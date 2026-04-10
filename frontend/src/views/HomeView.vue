@@ -32,7 +32,7 @@
         class="absolute bottom-1/4 right-1/4 h-64 w-64 rounded-full bg-primary-400/10 blur-3xl"
       ></div>
       <div
-        class="absolute inset-0 bg-[linear-gradient(rgba(20,184,166,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(20,184,166,0.03)_1px,transparent_1px)] bg-[size:64px_64px]"
+        class="absolute inset-0 bg-[linear-gradient(rgba(30,64,175,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(30,64,175,0.03)_1px,transparent_1px)] bg-[size:64px_64px]"
       ></div>
     </div>
 
@@ -42,7 +42,7 @@
         <!-- Logo -->
         <div class="flex items-center">
           <div class="h-10 w-10 overflow-hidden rounded-xl shadow-md">
-            <img :src="siteLogo || '/logo.png'" alt="Logo" class="h-full w-full object-contain" />
+            <img :src="siteLogo || '/logo.svg'" alt="Logo" class="h-full w-full object-contain" />
           </div>
         </div>
 
@@ -126,6 +126,14 @@
               {{ siteSubtitle }}
             </p>
 
+            <div class="mb-8">
+              <span
+                class="inline-flex items-center rounded-full border border-emerald-300/70 bg-emerald-50/80 px-4 py-1.5 text-sm font-semibold tracking-wide text-emerald-700 dark:border-emerald-700/60 dark:bg-emerald-900/20 dark:text-emerald-300"
+              >
+                {{ t('home.companySlogan') }}
+              </span>
+            </div>
+
             <!-- CTA Button -->
             <div>
               <router-link
@@ -154,7 +162,7 @@
                 <!-- Terminal content -->
                 <div class="terminal-body">
                   <div class="code-line line-1">
-                    <span class="code-prompt">$</span>
+                    <span class="code-prompt">￥</span>
                     <span class="code-cmd">curl</span>
                     <span class="code-flag">-X POST</span>
                     <span class="code-url">/v1/messages</span>
@@ -167,7 +175,7 @@
                     <span class="code-response">{ "content": "Hello!" }</span>
                   </div>
                   <div class="code-line line-4">
-                    <span class="code-prompt">$</span>
+                    <span class="code-prompt">￥</span>
                     <span class="cursor"></span>
                   </div>
                 </div>
@@ -293,7 +301,8 @@
         </div>
 
         <div class="mb-16 flex flex-wrap items-center justify-center gap-4">
-          <!-- Claude - Supported -->
+          <!-- Claude - Supported (disabled) -->
+          <!--
           <div
             class="flex items-center gap-2 rounded-xl border border-primary-200 bg-white/60 px-5 py-3 ring-1 ring-primary-500/20 backdrop-blur-sm dark:border-primary-800 dark:bg-dark-800/60"
           >
@@ -308,6 +317,7 @@
               >{{ t('home.providers.supported') }}</span
             >
           </div>
+          -->
           <!-- GPT - Supported -->
           <div
             class="flex items-center gap-2 rounded-xl border border-primary-200 bg-white/60 px-5 py-3 ring-1 ring-primary-500/20 backdrop-blur-sm dark:border-primary-800 dark:bg-dark-800/60"
@@ -323,7 +333,8 @@
               >{{ t('home.providers.supported') }}</span
             >
           </div>
-          <!-- Gemini - Supported -->
+          <!-- Gemini - Supported (disabled) -->
+          <!--
           <div
             class="flex items-center gap-2 rounded-xl border border-primary-200 bg-white/60 px-5 py-3 ring-1 ring-primary-500/20 backdrop-blur-sm dark:border-primary-800 dark:bg-dark-800/60"
           >
@@ -338,7 +349,9 @@
               >{{ t('home.providers.supported') }}</span
             >
           </div>
-          <!-- Antigravity - Supported -->
+          -->
+          <!-- Antigravity - Supported (disabled) -->
+          <!--
           <div
             class="flex items-center gap-2 rounded-xl border border-primary-200 bg-white/60 px-5 py-3 ring-1 ring-primary-500/20 backdrop-blur-sm dark:border-primary-800 dark:bg-dark-800/60"
           >
@@ -353,6 +366,7 @@
               >{{ t('home.providers.supported') }}</span
             >
           </div>
+          -->
           <!-- More - Coming Soon -->
           <div
             class="flex items-center gap-2 rounded-xl border border-gray-200/50 bg-white/40 px-5 py-3 opacity-60 backdrop-blur-sm dark:border-dark-700/50 dark:bg-dark-800/40"
@@ -417,7 +431,7 @@ const authStore = useAuthStore()
 const appStore = useAppStore()
 
 // Site settings - directly from appStore (already initialized from injected config)
-const siteName = computed(() => appStore.cachedPublicSettings?.site_name || appStore.siteName || 'Sub2API')
+const siteName = computed(() => appStore.cachedPublicSettings?.site_name || appStore.siteName || 'GPAPI')
 const siteLogo = computed(() => appStore.cachedPublicSettings?.site_logo || appStore.siteLogo || '')
 const siteSubtitle = computed(() => appStore.cachedPublicSettings?.site_subtitle || 'AI API Gateway Platform')
 const docUrl = computed(() => appStore.cachedPublicSettings?.doc_url || appStore.docUrl || '')
@@ -596,7 +610,7 @@ onMounted(() => {
   color: #a78bfa;
 }
 .code-url {
-  color: #14b8a6;
+  color: #1e40af;
 }
 .code-comment {
   color: #64748b;
@@ -637,8 +651,8 @@ onMounted(() => {
 :deep(.dark) .terminal-window {
   box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(20, 184, 166, 0.2),
-    0 0 40px rgba(20, 184, 166, 0.1),
+    0 0 0 1px rgba(30, 64, 175, 0.2),
+    0 0 40px rgba(30, 64, 175, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 </style>
