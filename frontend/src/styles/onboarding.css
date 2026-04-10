@@ -1,4 +1,4 @@
-/* Sub2API Interactive Tour Styles - DOM Restructured Version */
+/* GPAPI Interactive Tour Styles - DOM Restructured Version */
 
 /* 1. Overlay & Highlight */
 .driver-overlay {
@@ -22,7 +22,7 @@
 .driver-active-element {
   position: relative !important;
   z-index: 99999999 !important;
-  outline: 4px solid rgba(20, 184, 166, 0.2) !important;
+  outline: 4px solid rgba(30, 64, 175, 0.2) !important;
   border-radius: 4px !important;
 }
 
@@ -37,7 +37,7 @@
   padding: 0 !important;
   max-width: min(440px, 90vw) !important; /* Responsive on small screens */
   color: #1f2937 !important;
-  font-family: ui-sans-serif, system-ui, sans-serif !important;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif !important;
   overflow: hidden !important;
 }
 
@@ -196,11 +196,11 @@
 }
 
 .theme-tour-popover .driver-popover-next-btn {
-  background-color: #14b8a6 !important;
+  background-color: #1e40af !important;
   color: #ffffff !important;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
 }
-.theme-tour-popover .driver-popover-next-btn:hover { background-color: #0d9488 !important; }
+.theme-tour-popover .driver-popover-next-btn:hover { background-color: #1e3a8a !important; }
 
 .theme-tour-popover .driver-popover-prev-btn {
   background-color: white !important;

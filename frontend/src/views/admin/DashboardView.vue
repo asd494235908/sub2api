@@ -114,13 +114,13 @@
                   <span
                     class="text-amber-600 dark:text-amber-400"
                     :title="t('admin.dashboard.actual')"
-                    >${{ formatCost(stats.today_actual_cost) }}</span
+                    >￥{{ formatCost(stats.today_actual_cost) }}</span
                   >
                   <span
                     class="text-gray-400 dark:text-gray-500"
                     :title="t('admin.dashboard.standard')"
                   >
-                    / ${{ formatCost(stats.today_cost) }}</span
+                    / ￥{{ formatCost(stats.today_cost) }}</span
                   >
                 </p>
               </div>
@@ -144,13 +144,13 @@
                   <span
                     class="text-indigo-600 dark:text-indigo-400"
                     :title="t('admin.dashboard.actual')"
-                    >${{ formatCost(stats.total_actual_cost) }}</span
+                    >￥{{ formatCost(stats.total_actual_cost) }}</span
                   >
                   <span
                     class="text-gray-400 dark:text-gray-500"
                     :title="t('admin.dashboard.standard')"
                   >
-                    / ${{ formatCost(stats.total_cost) }}</span
+                    / ￥{{ formatCost(stats.total_cost) }}</span
                   >
                 </p>
               </div>

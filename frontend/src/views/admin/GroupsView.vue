@@ -122,7 +122,7 @@
                   v-if="row.daily_limit_usd || row.weekly_limit_usd || row.monthly_limit_usd"
                 >
                   <span v-if="row.daily_limit_usd"
-                    >${{ row.daily_limit_usd }}/{{ t('admin.groups.limitDay') }}</span
+                    >￥{{ row.daily_limit_usd }}/{{ t('admin.groups.limitDay') }}</span
                   >
                   <span
                     v-if="row.daily_limit_usd && (row.weekly_limit_usd || row.monthly_limit_usd)"
@@ -130,7 +130,7 @@
                     >·</span
                   >
                   <span v-if="row.weekly_limit_usd"
-                    >${{ row.weekly_limit_usd }}/{{ t('admin.groups.limitWeek') }}</span
+                    >￥{{ row.weekly_limit_usd }}/{{ t('admin.groups.limitWeek') }}</span
                   >
                   <span
                     v-if="row.weekly_limit_usd && row.monthly_limit_usd"
@@ -138,7 +138,7 @@
                     >·</span
                   >
                   <span v-if="row.monthly_limit_usd"
-                    >${{ row.monthly_limit_usd }}/{{ t('admin.groups.limitMonth') }}</span
+                    >￥{{ row.monthly_limit_usd }}/{{ t('admin.groups.limitMonth') }}</span
                   >
                 </template>
                 <span v-else class="text-gray-400 dark:text-gray-500">{{
@@ -196,11 +196,11 @@
             <div v-else class="space-y-0.5 text-xs">
               <div class="text-gray-500 dark:text-gray-400">
                 <span class="text-gray-400 dark:text-gray-500">{{ t('admin.groups.usageToday') }}</span>
-                <span class="ml-1 font-medium text-gray-700 dark:text-gray-300">${{ formatCost(usageMap.get(row.id)?.today_cost ?? 0) }}</span>
+                <span class="ml-1 font-medium text-gray-700 dark:text-gray-300">￥{{ formatCost(usageMap.get(row.id)?.today_cost ?? 0) }}</span>
               </div>
               <div class="text-gray-500 dark:text-gray-400">
                 <span class="text-gray-400 dark:text-gray-500">{{ t('admin.groups.usageTotal') }}</span>
-                <span class="ml-1 font-medium text-gray-700 dark:text-gray-300">${{ formatCost(usageMap.get(row.id)?.total_cost ?? 0) }}</span>
+                <span class="ml-1 font-medium text-gray-700 dark:text-gray-300">￥{{ formatCost(usageMap.get(row.id)?.total_cost ?? 0) }}</span>
               </div>
             </div>
           </template>
