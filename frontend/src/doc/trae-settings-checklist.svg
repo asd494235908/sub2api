@@ -1,0 +1,34 @@
+<svg width="1200" height="760" viewBox="0 0 1200 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="760" rx="32" fill="#EFF6FF"/>
+  <rect x="56" y="52" width="1088" height="656" rx="28" fill="#FFFFFF" stroke="#9EC5FE" stroke-width="4"/>
+  <text x="88" y="118" fill="#111827" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="42" font-weight="700">在 Trae 里优先找这些地方</text>
+  <text x="88" y="160" fill="#4B5563" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="24">你要找的是“可手动填写接口参数”的入口，不是普通模型切换按钮。</text>
+
+  <rect x="88" y="208" width="448" height="436" rx="24" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="3"/>
+  <text x="120" y="256" fill="#0F172A" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700">优先查看的位置</text>
+  <text x="120" y="316" fill="#334155" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="26">1. 右上角头像菜单</text>
+  <text x="120" y="372" fill="#334155" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="26">2. 左下角设置按钮</text>
+  <text x="120" y="428" fill="#334155" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="26">3. Settings</text>
+  <text x="120" y="484" fill="#334155" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="26">4. AI</text>
+  <text x="120" y="540" fill="#334155" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="26">5. Models</text>
+  <text x="120" y="596" fill="#334155" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="26">6. Provider</text>
+
+  <rect x="574" y="208" width="538" height="436" rx="24" fill="#FFF7ED" stroke="#FDBA74" stroke-width="3"/>
+  <text x="606" y="256" fill="#9A3412" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700">找到这些词就继续往下看</text>
+  <rect x="606" y="292" width="214" height="54" rx="14" fill="#FFEDD5"/>
+  <text x="664" y="327" fill="#7C2D12" font-family="Menlo,Consolas,monospace" font-size="24">AI</text>
+  <rect x="842" y="292" width="238" height="54" rx="14" fill="#FFEDD5"/>
+  <text x="892" y="327" fill="#7C2D12" font-family="Menlo,Consolas,monospace" font-size="24">Models</text>
+  <rect x="606" y="370" width="214" height="54" rx="14" fill="#FFEDD5"/>
+  <text x="642" y="405" fill="#7C2D12" font-family="Menlo,Consolas,monospace" font-size="24">Provider</text>
+  <rect x="842" y="370" width="238" height="54" rx="14" fill="#FFEDD5"/>
+  <text x="858" y="405" fill="#7C2D12" font-family="Menlo,Consolas,monospace" font-size="24">Custom Model</text>
+  <rect x="606" y="448" width="214" height="54" rx="14" fill="#FFEDD5"/>
+  <text x="682" y="483" fill="#7C2D12" font-family="Menlo,Consolas,monospace" font-size="24">API</text>
+  <rect x="842" y="448" width="238" height="54" rx="14" fill="#FFEDD5"/>
+  <text x="848" y="483" fill="#7C2D12" font-family="Menlo,Consolas,monospace" font-size="22">OpenAI Compatible</text>
+  <text x="606" y="566" fill="#7C2D12" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="24">真正有效的入口，通常会出现这些输入框：</text>
+  <text x="606" y="610" fill="#9A3412" font-family="Menlo,Consolas,monospace" font-size="22">Base URL / API Key / Model / Endpoint</text>
+
+  <text x="88" y="684" fill="#475569" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="22">如果只是看到官方模型切换下拉框，还不能说明支持第三方接口。</text>
+</svg>

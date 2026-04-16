@@ -10,101 +10,121 @@ export default {
     login: 'Login',
     getStarted: 'Get Started',
     goToDashboard: 'Go to Dashboard',
-    companySlogan: 'Company-run · Stable and Reliable',
-    // User-focused value proposition
-    heroSubtitle: 'One Key, All AI Models',
-    heroDescription: 'No need to manage multiple subscriptions. Access Claude, GPT, Gemini and more with a single API key',
-    tags: {
-      subscriptionToApi: 'Subscription to API',
-      stickySession: 'Session Persistence',
-      realtimeBilling: 'Pay As You Go'
+    companySlogan: 'Private enterprise network · Fast mainland access · Zero-code integration in 3 minutes',
+    nav: {
+      overview: 'Overview',
+      compatibility: 'Compatibility',
+      integration: 'Quick Start'
     },
-    // Pain points section
-    painPoints: {
-      title: 'Sound Familiar?',
-      items: {
-        expensive: {
-          title: 'High Subscription Costs',
-          desc: 'Paying for multiple AI subscriptions that add up every month'
+    hero: {
+      badge: 'OpenAI Enterprise Relay',
+      title: '{brand} - Enterprise-grade OpenAI official API relay service',
+      subtitle: 'Private enterprise proxy network · Fast mainland direct access · Zero-code integration in 3 minutes',
+      description:
+        'Built for enterprise development teams that need stable, compliant, production-ready relay access to OpenAI official APIs.',
+      secondaryCta: 'View Integration Docs',
+      summaryTitle: 'Overview',
+      summaryItems: {
+        relay: 'Enterprise-operated private relay service for long-term production use',
+        compatibility: 'Compatible with official OpenAI request formats and existing workflows',
+        integration: 'Replace the Base URL and keep the rest of your SDK usage nearly unchanged'
+      },
+      codeTitle: 'Quick Start Example',
+      endpointTitle: 'Service Endpoint',
+      endpointValue: 'https://token.gpapi.com/v1',
+      noticeTitle: 'Production Notes',
+      noticeItems: {
+        sla: '99.9% SLA commitment',
+        privacy: 'Encrypted transit with no prompt plaintext logging',
+        procurement: 'Enterprise invoicing and service contracts supported'
+      }
+    },
+    overview: {
+      kicker: 'Overview',
+      title: 'Why enterprise developers choose GPAPI',
+      painPoint:
+        'Still dealing with unstable NAT routes and disconnects? Worried that public proxy key leaks could get your accounts blocked?',
+      cards: {
+        company: {
+          title: 'Company-operated and built for long-term stability',
+          description:
+            '{companyName} operates GPAPI as a formal technical service with enterprise invoicing, service contracts, and a 99.9% SLA commitment.',
+          points: {
+            invoice: 'Enterprise VAT invoicing and procurement-friendly billing',
+            contract: 'Service contracts supported for compliant purchasing',
+            sla: 'Stable API supply for long-term production operations'
+          }
         },
-        complex: {
-          title: 'Account Chaos',
-          desc: 'Managing scattered accounts and API keys across different platforms'
+        network: {
+          title: 'Private proxy network that is fast and secure',
+          description:
+            'Built on private enterprise relay infrastructure and stable international connectivity with security as a first-class concern.',
+          points: {
+            speed: 'Fast mainland access with smoother streaming responses',
+            privacy: 'Traffic is encrypted in transit and prompt plaintext is not logged',
+            stability: 'Reduces instability and leakage risks commonly seen with shared proxies'
+          }
         },
-        unstable: {
-          title: 'Service Interruptions',
-          desc: 'Single accounts hitting rate limits and disrupting your workflow'
-        },
-        noControl: {
-          title: 'No Usage Control',
-          desc: "Can't track where your money goes or limit team member usage"
+        compatibility: {
+          title: 'Native OpenAI experience with seamless migration',
+          description:
+            'Replace api.openai.com with GPAPI and keep the rest of your integration flow almost unchanged.',
+          points: {
+            baseUrl: 'Swap the Base URL and keep your request flow',
+            sdk: 'Compatible with official OpenAI request formats and common SDKs',
+            models: 'Supports GPT-4o, o1, DALL·E, Whisper, Assistants API and related capabilities'
+          }
         }
       }
     },
-    // Solutions section
-    solutions: {
-      title: 'We Solve These Problems',
-      subtitle: 'Three simple steps to stress-free AI access'
-    },
-    features: {
-      unifiedGateway: 'One-Click Access',
-      unifiedGatewayDesc: 'Get a single API key to call all connected AI models. No separate applications needed.',
-      multiAccount: 'Always Reliable',
-      multiAccountDesc: 'Smart routing across multiple upstream accounts with automatic failover. Say goodbye to errors.',
-      balanceQuota: 'Pay What You Use',
-      balanceQuotaDesc: 'Usage-based billing with quota limits. Full visibility into team consumption.'
-    },
-    // Comparison section
-    comparison: {
-      title: 'Why Choose Us?',
-      headers: {
-        feature: 'Comparison',
-        official: 'Official Subscriptions',
-        us: 'Our Platform'
-      },
-      items: {
-        pricing: {
-          feature: 'Pricing',
-          official: 'Fixed monthly fee, pay even if unused',
-          us: 'Pay only for what you use'
+    compatibility: {
+      kicker: 'Compatibility',
+      title: 'Compatibility Matrix',
+      description: 'Production-oriented compatibility notes to help your team migrate and validate integrations quickly.',
+      rows: {
+        baseUrl: {
+          label: 'Base URL Migration',
+          value: 'Replace it with the GPAPI endpoint'
+        },
+        sdk: {
+          label: 'SDK Changes',
+          value: 'Minimal or none in most scenarios'
+        },
+        auth: {
+          label: 'Authentication',
+          value: 'Bearer API Key'
+        },
+        format: {
+          label: 'Request Format',
+          value: 'Compatible with the official OpenAI request format'
         },
         models: {
-          feature: 'Model Selection',
-          official: 'Single provider only',
-          us: 'Switch between models freely'
-        },
-        management: {
-          feature: 'Account Management',
-          official: 'Manage each service separately',
-          us: 'Unified key, one dashboard'
-        },
-        stability: {
-          feature: 'Stability',
-          official: 'Single account rate limits',
-          us: 'Multi-account pool, auto-failover'
-        },
-        control: {
-          feature: 'Usage Control',
-          official: 'Not available',
-          us: 'Quotas & detailed analytics'
+          label: 'Supported Capabilities',
+          value: 'GPT-4o, o1, DALL·E, Whisper, Assistants API'
         }
       }
     },
-    providers: {
-      title: 'Supported AI Models',
-      description: 'One API, Multiple Choices',
-      supported: 'Supported',
-      soon: 'Soon',
-      claude: 'Claude',
-      gemini: 'Gemini',
-      antigravity: 'Antigravity',
-      more: 'More'
-    },
-    // CTA section
-    cta: {
-      title: 'Ready to Get Started?',
-      description: 'Sign up now and get free trial credits to experience seamless AI access',
-      button: 'Sign Up Free'
+    integration: {
+      kicker: 'Minimal Integration Demo',
+      title: 'Start production AI workflows in three simple steps',
+      subtitle: 'Keep the familiar OpenAI API experience and finish migration plus verification in minutes.',
+      demoTitle: 'Integration Example',
+      demoHint: 'Replace the Base URL in your production code with the GPAPI endpoint.',
+      demoComment: 'Keep the official OpenAI request format and send requests as usual.',
+      steps: {
+        register: {
+          title: 'Get your API key',
+          description: 'Complete phone-based personal or enterprise verification and receive your dedicated access key.'
+        },
+        baseUrl: {
+          title: 'Replace the Base URL',
+          description: 'Point requests to https://token.gpapi.com/v1 while keeping the rest of your SDK usage unchanged.'
+        },
+        request: {
+          title: 'Send requests',
+          description: 'Continue using Chat Completions and related APIs with the same developer experience you already know.'
+        }
+      }
     },
     footer: {
       allRightsReserved: 'All rights reserved.'

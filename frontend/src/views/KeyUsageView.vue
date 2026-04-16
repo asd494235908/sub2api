@@ -336,9 +336,17 @@
 
     <!-- Footer (same pattern as HomeView) -->
     <footer class="relative z-10 border-t border-gray-200/50 px-6 py-8 dark:border-dark-800/50">
-      <div class="mx-auto flex max-w-6xl flex-col items-center justify-center gap-4 text-center sm:flex-row sm:text-left">
+      <div class="mx-auto flex max-w-6xl flex-col items-center justify-center gap-4 text-center sm:flex-row">
         <p class="text-sm text-gray-500 dark:text-dark-400">
-          &copy; {{ currentYear }} {{ siteName }}. {{ t('home.footer.allRightsReserved') }}
+          &copy; 2018 成都格品科技有限公司版权所有
+          <a
+            href="https://beian.miit.gov.cn/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="transition-colors hover:text-gray-700 hover:underline dark:hover:text-white"
+          >
+            蜀ICP备17044249号-1
+          </a>
         </p>
         <div class="flex items-center gap-4">
           <a
@@ -386,8 +394,6 @@ function toggleTheme() {
   document.documentElement.classList.toggle('dark', isDark.value)
   localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
 }
-
-const currentYear = computed(() => new Date().getFullYear())
 
 // ==================== Key Query State ====================
 

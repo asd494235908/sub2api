@@ -10,101 +10,119 @@ export default {
     login: '登录',
     getStarted: '立即开始',
     goToDashboard: '进入控制台',
-    companySlogan: '公司经营 · 稳定可靠',
-    // 新增：面向用户的价值主张
-    heroSubtitle: '一个密钥，畅用多个 AI 模型',
-    heroDescription: '无需管理多个订阅账号，一站式接入 Claude、GPT、Gemini 等主流 AI 服务',
-    tags: {
-      subscriptionToApi: '订阅转 API',
-      stickySession: '会话保持',
-      realtimeBilling: '按量计费'
+    companySlogan: '自营私有代理网络 · 国内快速接入 · 零代码 3 分钟接入',
+    nav: {
+      overview: '概览',
+      compatibility: '兼容说明',
+      integration: '接入演示'
     },
-    // 用户痛点区块
-    painPoints: {
-      title: '你是否也遇到这些问题？',
-      items: {
-        expensive: {
-          title: '订阅费用高',
-          desc: '每个 AI 服务都要单独订阅，每月支出越来越多'
+    hero: {
+      badge: 'OpenAI 企业中转服务',
+      title: '{brand} - 企业级 OpenAI 官方接口中转服务',
+      subtitle: '自营私有代理网络 · 国内快速接入 · 零代码 3 分钟接入',
+      description: '面向企业开发团队提供稳定、合规、可持续的 OpenAI 官方接口中转能力，帮助业务快速进入生产环境。',
+      secondaryCta: '查看接入文档',
+      summaryTitle: '概览',
+      summaryItems: {
+        relay: '企业运营的私有中转服务，适合生产环境长期使用',
+        compatibility: '兼容 OpenAI 官方请求格式，保留原有开发习惯',
+        integration: '替换 Base URL 即可接入，现有 SDK 调用流程基本无需修改'
+      },
+      codeTitle: '快速接入示例',
+      endpointTitle: '服务入口',
+      endpointValue: 'https://token.gpapi.com/v1',
+      noticeTitle: '生产说明',
+      noticeItems: {
+        sla: '提供 99.9% SLA 在线承诺',
+        privacy: '请求链路加密传输，不记录 Prompt 明文内容',
+        procurement: '支持企业发票与服务合同流程'
+      }
+    },
+    overview: {
+      kicker: '概览',
+      title: '为什么企业开发者选择 GPAPI',
+      painPoint: '还在为 NAT 网络波动掉线发愁？担心公共代理密钥泄露导致封号？',
+      cards: {
+        company: {
+          title: '公司正规运营，服务长久稳定',
+          description:
+            '{companyName} 为正规技术业务，支持企业增值税发票与服务合同，提供 99.9% SLA 在线承诺。',
+          points: {
+            invoice: '支持企业增值税发票与对公流程',
+            contract: '支持签订服务合同，便于采购合规',
+            sla: 'API 供应稳定，面向长期业务持续运营'
+          }
         },
-        complex: {
-          title: '多账号难管理',
-          desc: '不同平台的账号、密钥分散各处，管理起来很麻烦'
+        network: {
+          title: '私有代理网络，快且安全',
+          description:
+            '采用企业级私有代理网络与稳定国际线路，兼顾访问速度、可用性与数据安全。',
+          points: {
+            speed: '国内快速接入，流式响应更加顺滑',
+            privacy: '请求数据加密过境，不记录 Prompt 明文内容',
+            stability: '降低共享代理带来的抖动、泄露与封禁风险'
+          }
         },
-        unstable: {
-          title: '服务不稳定',
-          desc: '单一账号容易触发限制，影响正常使用'
-        },
-        noControl: {
-          title: '用量无法控制',
-          desc: '不知道钱花在哪了，也无法限制团队成员的使用'
+        compatibility: {
+          title: '原生 OpenAI 体验，无缝迁移',
+          description:
+            '只需将代码中的 api.openai.com 替换为 GPAPI 地址，SDK 基本无需改动即可上线。',
+          points: {
+            baseUrl: '替换 Base URL 即可接入，不改调用方式',
+            sdk: '兼容 OpenAI 官方请求结构与主流 SDK',
+            models: '支持 GPT-4o、o1、DALL·E、Whisper 与 Assistants API 等能力'
+          }
         }
       }
     },
-    // 解决方案区块
-    solutions: {
-      title: '我们帮你解决',
-      subtitle: '简单三步，开始省心使用 AI'
-    },
-    features: {
-      unifiedGateway: '一键接入',
-      unifiedGatewayDesc: '获取一个 API 密钥，即可调用所有已接入的 AI 模型，无需分别申请。',
-      multiAccount: '稳定可靠',
-      multiAccountDesc: '智能调度多个上游账号，自动切换和负载均衡，告别频繁报错。',
-      balanceQuota: '用多少付多少',
-      balanceQuotaDesc: '按实际使用量计费，支持设置配额上限，团队用量一目了然。'
-    },
-    // 优势对比
-    comparison: {
-      title: '为什么选择我们？',
-      headers: {
-        feature: '对比项',
-        official: '官方订阅',
-        us: '本平台'
-      },
-      items: {
-        pricing: {
-          feature: '付费方式',
-          official: '固定月费，用不完也付',
-          us: '按量付费，用多少付多少'
+    compatibility: {
+      kicker: '兼容说明',
+      title: '接入兼容矩阵',
+      description: '以生产环境迁移为目标整理的兼容能力说明，帮助团队快速完成联调与上线。',
+      rows: {
+        baseUrl: {
+          label: 'Base URL 迁移',
+          value: '替换为 GPAPI 服务入口即可'
+        },
+        sdk: {
+          label: 'SDK 改动',
+          value: '大多数场景下无需修改调用逻辑'
+        },
+        auth: {
+          label: '认证方式',
+          value: 'Bearer API Key'
+        },
+        format: {
+          label: '请求格式',
+          value: '兼容 OpenAI 官方请求结构'
         },
         models: {
-          feature: '模型选择',
-          official: '单一服务商',
-          us: '多模型随意切换'
-        },
-        management: {
-          feature: '账号管理',
-          official: '每个服务单独管理',
-          us: '统一密钥，一站管理'
-        },
-        stability: {
-          feature: '服务稳定性',
-          official: '单账号易触发限制',
-          us: '多账号池，自动切换'
-        },
-        control: {
-          feature: '用量控制',
-          official: '无法限制',
-          us: '可设配额、查明细'
+          label: '支持能力',
+          value: 'GPT-4o、o1、DALL·E、Whisper、Assistants API'
         }
       }
     },
-    providers: {
-      title: '已支持的 AI 模型',
-      description: '一个 API，多种选择',
-      supported: '已支持',
-      soon: '即将推出',
-      claude: 'Claude',
-      gemini: 'Gemini',
-      antigravity: 'Antigravity',
-      more: '更多'
-    },
-    // CTA 区块
-    cta: {
-      title: '准备好开始了吗？',
-      description: '注册即可获得免费试用额度，体验一站式 AI 服务',
-      button: '免费注册'
+    integration: {
+      kicker: '极简接入演示',
+      title: '三步开启 AI 生产力',
+      subtitle: '原汁原味的 OpenAI 接口体验，几分钟即可完成迁移和联调。',
+      demoTitle: '接入示例',
+      demoHint: '将生产代码中的 Base URL 替换为 GPAPI 地址即可。',
+      demoComment: '保持官方 OpenAI 请求格式不变，直接发起调用。',
+      steps: {
+        register: {
+          title: '注册获取密钥',
+          description: '填写手机号完成企业或个人认证，快速开通专属访问密钥。'
+        },
+        baseUrl: {
+          title: '修改 Base URL',
+          description: '将请求地址替换为 https://token.gpapi.com/v1，原有 SDK 调用逻辑保持不变。'
+        },
+        request: {
+          title: '发起请求',
+          description: '继续使用熟悉的 Chat Completions 等接口，原汁原味的体验瞬间抵达。'
+        }
+      }
     },
     footer: {
       allRightsReserved: '保留所有权利。'
