@@ -106,7 +106,7 @@ describe('HomeView', () => {
     expect(wrapper.text()).toContain('技术社群')
     expect(wrapper.text()).toContain('登录 / 注册')
     expect(wrapper.text()).toContain('注册即送 ￥5.00 体验额度')
-    expect(wrapper.text()).toContain('GPAPI - 让 AI 开发告别网络烦恼')
+    expect(wrapper.text()).toContain('拓垦API - 让 AI 开发告别网络烦恼')
     expect(wrapper.text()).toContain('企业级 OpenAI 私有代理中转 | 国内极速响应 | 一行代码接入')
     expect(wrapper.text()).toContain('免费注册领 ￥5')
     expect(wrapper.text()).toContain('查看接入文档')
@@ -121,7 +121,7 @@ describe('HomeView', () => {
     const benefitTags = wrapper.findAll('[data-test="benefit-tag"]')
     const overviewSection = wrapper.get('#overview')
 
-    expect(wrapper.text()).toContain('选 GPAPI 中转站的六大好处')
+    expect(wrapper.text()).toContain('选 拓垦API 中转站的六大好处')
     expect(wrapper.text()).not.toContain('面向对象')
     expect(wrapper.text()).toContain('Windows')
     expect(wrapper.text()).toContain('GPT-4o mini')
@@ -152,8 +152,8 @@ describe('HomeView', () => {
     expect(benefitTags).toHaveLength(6)
     expect(overviewSection.find('table').exists()).toBe(false)
     expect(wrapper.text()).toContain('三步完成模型接入')
-    expect(wrapper.text()).toContain('https://api.gpapi.com/v1')
-    expect(wrapper.text()).toContain('sk-gpapi-你的密钥')
+    expect(wrapper.text()).toContain('https://token.gepinapi.com/v1')
+    expect(wrapper.text()).toContain('sk-gepinapi-你的密钥')
   })
 
   it('routes homepage documentation links to /guide', () => {

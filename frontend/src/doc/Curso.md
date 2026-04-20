@@ -3,7 +3,7 @@
 
 你开始前先准备好：
 
-- `Base URL`：这里填 `https://token.gepinkeji.com/`
+- `Base URL`：这里填 `https://token.gepinapi.com/`
 - `API Key`：例如 `sk-xxxx`
 - `Model`：例如 `GPT-5.4`
 

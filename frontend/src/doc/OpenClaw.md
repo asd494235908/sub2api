@@ -9,7 +9,7 @@
 
 你开始前准备好：
 
-- `Base URL`：这里填 `https://token.gepinkeji.com/`
+- `Base URL`：这里填 `https://token.gepinapi.com/`
 - `API Key`：例如 `sk-xxxx`
 - `Model`：例如 `GPT-5.4`
 
@@ -105,7 +105,7 @@ openclaw onboard
 
 示例：
 
-- `Base URL`：`https://token.gepinkeji.com/`
+- `Base URL`：`https://token.gepinapi.com/`
 - `API Key`：`sk-xxxx`
 - `Model ID`：`GPT-5.4`
 
@@ -240,7 +240,7 @@ OpenClaw 官方文档也支持通过自定义 provider 配置 `baseUrl`。
   "models": {
     "providers": {
       "custom-proxy": {
-        "baseUrl": "https://token.gepinkeji.com/",
+        "baseUrl": "https://token.gepinapi.com/",
         "apiKey": "你的API_KEY",
         "api": "openai-completions",
         "models": [

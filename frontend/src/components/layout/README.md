@@ -1,6 +1,6 @@
 # Layout Components
 
-Vue 3 layout components for the GPAPI frontend, built with Composition API, TypeScript, and TailwindCSS.
+Vue 3 layout components for the 拓垦API frontend, built with Composition API, TypeScript, and TailwindCSS.
 
 ## Components
 

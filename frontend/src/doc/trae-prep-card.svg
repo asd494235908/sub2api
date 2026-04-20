@@ -9,7 +9,7 @@
   <text x="138" y="294" fill="#FFFFFF" font-family="Arial,sans-serif" font-size="28" font-weight="700">1</text>
   <text x="198" y="274" fill="#111827" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="30" font-weight="700">Base URL</text>
   <text x="198" y="314" fill="#374151" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="24">接口地址，不是官网首页。优先用后台给你的完整地址。</text>
-  <text x="816" y="297" fill="#92400E" font-family="Menlo,Consolas,monospace" font-size="22">https://token.gepinkeji.com/v1</text>
+  <text x="816" y="297" fill="#92400E" font-family="Menlo,Consolas,monospace" font-size="22">https://token.gepinapi.com/v1</text>
 
   <rect x="84" y="380" width="1032" height="128" rx="24" fill="#E8F3FF" stroke="#8AB6F9" stroke-width="3"/>
   <circle cx="146" cy="444" r="28" fill="#2563EB"/>

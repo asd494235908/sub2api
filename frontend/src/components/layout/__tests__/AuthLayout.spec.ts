@@ -4,7 +4,7 @@ import { mount } from '@vue/test-utils'
 import AuthLayout from '../AuthLayout.vue'
 
 const appStoreMock = vi.hoisted(() => ({
-  siteName: 'GPAPI',
+  siteName: '拓垦API',
   siteLogo: '',
   cachedPublicSettings: {
     site_subtitle: 'Subscription to API Conversion Platform'
@@ -23,7 +23,7 @@ vi.mock('@/utils/url', () => ({
 
 describe('AuthLayout', () => {
   beforeEach(() => {
-    appStoreMock.siteName = 'GPAPI'
+    appStoreMock.siteName = '拓垦API'
     appStoreMock.siteLogo = ''
     appStoreMock.cachedPublicSettings = {
       site_subtitle: 'Subscription to API Conversion Platform'

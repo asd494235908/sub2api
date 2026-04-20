@@ -33,7 +33,7 @@
             <p class="text-[11px] font-semibold uppercase tracking-[0.35em] text-slate-400 dark:text-slate-500">
               企业级 OpenAI 中转
             </p>
-            <p class="text-lg font-black tracking-tight">GPAPI</p>
+            <p class="text-lg font-black tracking-tight">拓垦API</p>
           </div>
         </a>
 
@@ -80,7 +80,7 @@
             </div>
 
             <h1 class="mt-6 max-w-4xl text-4xl font-black tracking-[-0.05em] text-slate-950 dark:text-white sm:text-5xl lg:text-6xl">
-              GPAPI - 让 AI 开发告别网络烦恼
+              拓垦API - 让 AI 开发告别网络烦恼
             </h1>
             <p class="mt-5 max-w-3xl text-lg font-semibold leading-8 text-slate-700 dark:text-slate-200 sm:text-xl">
               企业级 OpenAI 私有代理中转 | 国内极速响应 | 一行代码接入
@@ -133,8 +133,8 @@
               <div class="space-y-3 px-6 py-5 font-mono text-sm leading-7 text-slate-200">
                 <div><span class="text-slate-500">from</span> <span class="text-cyan-300">openai</span> <span class="text-slate-500">import</span> <span class="text-emerald-300">OpenAI</span></div>
                 <div class="pt-2"><span class="text-slate-500">client</span> = <span class="text-violet-300">OpenAI</span>(</div>
-                <div class="pl-4"><span class="text-slate-400">api_key=</span><span class="text-amber-300">"sk-gpapi-你的密钥"</span>,</div>
-                <div class="pl-4"><span class="text-slate-400">base_url=</span><span class="text-emerald-300">"https://api.gpapi.com/v1"</span></div>
+                <div class="pl-4"><span class="text-slate-400">api_key=</span><span class="text-amber-300">"sk-gepinapi-你的密钥"</span>,</div>
+                <div class="pl-4"><span class="text-slate-400">base_url=</span><span class="text-emerald-300">"https://token.gepinapi.com/v1"</span></div>
                 <div>)</div>
               </div>
             </article>
@@ -150,10 +150,10 @@
       >
         <div class="max-w-3xl">
           <p class="text-sm font-black uppercase tracking-[0.22em] text-blue-700 dark:text-cyan-300">
-            为什么选择 GPAPI？
+            为什么选择 拓垦API？
           </p>
           <h2 class="mt-3 text-3xl font-black tracking-tight text-slate-950 dark:text-white">
-            选 GPAPI 中转站的六大好处
+            选 拓垦API 中转站的六大好处
           </h2>
         </div>
 
@@ -215,7 +215,7 @@
 
           <div class="mt-6 rounded-[1.25rem] border border-sky-200 bg-sky-50 p-5 dark:border-cyan-400/20 dark:bg-cyan-500/10">
             <p class="text-sm leading-7 text-sky-900 dark:text-cyan-100">
-              📌 说明：GPAPI 为标准 RESTful API 服务，只要设备能发起 HTTPS 请求即可使用，不限操作系统。
+              📌 说明：拓垦API 为标准 RESTful API 服务，只要设备能发起 HTTPS 请求即可使用，不限操作系统。
             </p>
           </div>
         </article>
@@ -472,12 +472,12 @@
               <div class="space-y-3 px-6 py-5 font-mono text-sm leading-7 text-slate-200">
                 <div><span class="text-slate-500">from</span> <span class="text-cyan-300">openai</span> <span class="text-slate-500">import</span> <span class="text-emerald-300">OpenAI</span></div>
                 <div class="pt-2"><span class="text-cyan-300">client</span> = <span class="text-violet-300">OpenAI</span>(</div>
-                <div class="pl-4"><span class="text-slate-400">api_key=</span><span class="text-amber-300">"sk-gpapi-你的密钥"</span>,</div>
-                <div class="pl-4"><span class="text-slate-400">base_url=</span><span class="text-emerald-300">"https://api.gpapi.com/v1"</span></div>
+                <div class="pl-4"><span class="text-slate-400">api_key=</span><span class="text-amber-300">"sk-gepinapi-你的密钥"</span>,</div>
+                <div class="pl-4"><span class="text-slate-400">base_url=</span><span class="text-emerald-300">"https://token.gepinapi.com/v1"</span></div>
                 <div>)</div>
                 <div class="pt-2"><span class="text-cyan-300">response</span> = <span class="text-cyan-300">client.chat.completions.create</span>(</div>
                 <div class="pl-4"><span class="text-slate-400">model=</span><span class="text-emerald-300">"gpt-4o"</span>,</div>
-                <div class="pl-4"><span class="text-slate-400">messages=</span>[{ <span class="text-slate-400">"role"</span>: <span class="text-emerald-300">"user"</span>, <span class="text-slate-400">"content"</span>: <span class="text-emerald-300">"你好，GPAPI！"</span> }]</div>
+                <div class="pl-4"><span class="text-slate-400">messages=</span>[{ <span class="text-slate-400">"role"</span>: <span class="text-emerald-300">"user"</span>, <span class="text-slate-400">"content"</span>: <span class="text-emerald-300">"你好，拓垦API！"</span> }]</div>
                 <div>)</div>
                 <div class="pt-2"><span class="text-cyan-300">print</span>(<span class="text-cyan-300">response.choices[0].message.content</span>)</div>
               </div>
@@ -632,12 +632,12 @@ const modelRows = [
 ]
 
 const ecosystemRows = [
-  { tool: 'Codex', integration: '填入 GPAPI Base URL 与 API Key 即可接入', tutorial: '已支持' },
-  { tool: 'VS Code', integration: '通过 OpenAI 兼容配置接入 GPAPI', tutorial: '已支持' },
+  { tool: 'Codex', integration: '填入 拓垦API Base URL 与 API Key 即可接入', tutorial: '已支持' },
+  { tool: 'VS Code', integration: '通过 OpenAI 兼容配置接入 拓垦API', tutorial: '已支持' },
   { tool: 'Chatbox', integration: '选择 OpenAI 兼容方式并填写端点与密钥', tutorial: '已支持' },
-  { tool: 'OpenCode', integration: '自定义 API Provider 指向 GPAPI', tutorial: '已支持' },
+  { tool: 'OpenCode', integration: '自定义 API Provider 指向 拓垦API', tutorial: '已支持' },
   { tool: 'Cursor', integration: '配置 OpenAI 兼容接口即可使用', tutorial: '已支持' },
-  { tool: 'OpenClaw', integration: '使用 OpenAI-compatible 模式连接 GPAPI', tutorial: '已支持' }
+  { tool: 'OpenClaw', integration: '使用 OpenAI-compatible 模式连接 拓垦API', tutorial: '已支持' }
 ]
 
 const communityCards = [
@@ -706,15 +706,15 @@ const pricingRows = [
 const docsSteps = [
   {
     title: 'Step 1：获取 API 密钥',
-    description: '登录 GPAPI 控制台 → 左侧菜单「API 密钥」→ 点击「创建新密钥」\n复制保存形如 sk-gpapi-xxxxxxxxxxxxxxxx 的密钥串'
+    description: '登录 拓垦API 控制台 → 左侧菜单「API 密钥」→ 点击「创建新密钥」\n复制保存形如 sk-gepinapi-xxxxxxxxxxxxxxxx 的密钥串'
   },
   {
     title: 'Step 2：确定接入端点',
-    description: 'GPAPI 网关地址：https://api.gpapi.com/v1\n该地址与 OpenAI 官方格式 100% 兼容'
+    description: '拓垦API 网关地址：https://token.gepinapi.com/v1\n该地址与 OpenAI 官方格式 100% 兼容'
   },
   {
     title: 'Step 3：修改代码 / 配置',
-    description: '将现有 OpenAI SDK 的 base_url 指向 https://api.gpapi.com/v1\n保留原有调用方式即可开始发送请求'
+    description: '将现有 OpenAI SDK 的 base_url 指向 https://token.gepinapi.com/v1\n保留原有调用方式即可开始发送请求'
   }
 ]
 

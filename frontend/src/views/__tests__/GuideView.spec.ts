@@ -32,7 +32,7 @@ describe('GuideView', () => {
   it('renders the guide landing page with aggregated document navigation and content', () => {
     const wrapper = createWrapper()
 
-    expect(wrapper.text()).toContain('GPAPI 接入总入口')
+    expect(wrapper.text()).toContain('拓垦API 接入总入口')
     expect(wrapper.text()).toContain('文档目录')
     expect(wrapper.text()).toContain('快速接入模板')
     expect(wrapper.text()).toContain('Codex 接入中转站 API 教程')

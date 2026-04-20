@@ -1,5 +1,5 @@
 /**
- * Core Type Definitions for GPAPI Frontend
+ * Core Type Definitions for 拓垦API Frontend
  */
 
 // ==================== Common Types ====================

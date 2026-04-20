@@ -5,7 +5,7 @@ import KeyUsageView from '../KeyUsageView.vue'
 
 const appStoreMock = vi.hoisted(() => ({
   cachedPublicSettings: null as null | Record<string, string>,
-  siteName: 'GPAPI',
+  siteName: '拓垦API',
   siteLogo: '',
   docUrl: 'https://docs.example.com',
   publicSettingsLoaded: true,
@@ -65,7 +65,7 @@ describe('KeyUsageView', () => {
     })
 
     appStoreMock.cachedPublicSettings = null
-    appStoreMock.siteName = 'GPAPI'
+    appStoreMock.siteName = '拓垦API'
     appStoreMock.siteLogo = ''
     appStoreMock.docUrl = 'https://docs.example.com'
     appStoreMock.publicSettingsLoaded = true

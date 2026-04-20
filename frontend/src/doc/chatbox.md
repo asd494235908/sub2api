@@ -16,7 +16,7 @@ Chatbox 通常是比较适合首次接入的一种方式。
 
 ## 开始前先准备这 3 个值
 
-- `Base URL / API Host`：`https://token.gepinkeji.com/v1`
+- `Base URL / API Host`：`https://token.gepinapi.com/v1`
 - `API Key`：接口密钥，例如 `sk-xxxx`
 - `Model`：建议先用 `GPT-5.4`
 
@@ -68,7 +68,7 @@ Chatbox 界面里有时叫：
 进入 `Model Provider` 后，按这个顺序走：
 
 1. 点击 `Add`
-2. 给这个 provider 起一个名字，比如 `GPAPI`
+2. 给这个 provider 起一个名字，比如 `拓垦API`
 3. 类型选择 `OpenAI API compatible`
 
 如果当前版本没有看到完全一样的文字，就找这些接近的选项：
@@ -84,8 +84,8 @@ Chatbox 界面里有时叫：
 
 | 字段 | 建议填写 |
 | --- | --- |
-| Provider Name | `GPAPI` |
-| API Host | `https://token.gepinkeji.com/v1` |
+| Provider Name | `拓垦API` |
+| API Host | `https://token.gepinapi.com/v1` |
 | API Key | 真实密钥 |
 | Model | `GPT-5.4` |
 
@@ -95,7 +95,7 @@ Chatbox 界面里有时叫：
 
 这时可以先这样理解：
 
-- 如果它只让填写 `API Host`，优先直接填完整的 `https://token.gepinkeji.com/v1`
+- 如果它只让填写 `API Host`，优先直接填完整的 `https://token.gepinapi.com/v1`
 - 如果它已经默认拼 `/v1/chat/completions`，不要再额外重复拼一遍
 
 ### 两种最常见界面怎么填
@@ -105,7 +105,7 @@ Chatbox 界面里有时叫：
 直接填：
 
 ```text
-https://token.gepinkeji.com/v1
+https://token.gepinapi.com/v1
 ```
 
 #### 情况 2：`Host` 和 `Path` 分成两个框
@@ -114,7 +114,7 @@ https://token.gepinkeji.com/v1
 
 ```text
 Host:
-https://token.gepinkeji.com
+https://token.gepinapi.com
 
 Path:
 /v1

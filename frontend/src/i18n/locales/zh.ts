@@ -30,7 +30,7 @@ export default {
       },
       codeTitle: '快速接入示例',
       endpointTitle: '服务入口',
-      endpointValue: 'https://token.gpapi.com/v1',
+      endpointValue: 'https://token.gepinapi.com/v1',
       noticeTitle: '生产说明',
       noticeItems: {
         sla: '提供 99.9% SLA 在线承诺',
@@ -40,7 +40,7 @@ export default {
     },
     overview: {
       kicker: '概览',
-      title: '为什么企业开发者选择 GPAPI',
+      title: '为什么企业开发者选择 拓垦API',
       painPoint: '还在为 NAT 网络波动掉线发愁？担心公共代理密钥泄露导致封号？',
       cards: {
         company: {
@@ -66,7 +66,7 @@ export default {
         compatibility: {
           title: '原生 OpenAI 体验，无缝迁移',
           description:
-            '只需将代码中的 api.openai.com 替换为 GPAPI 地址，SDK 基本无需改动即可上线。',
+            '只需将代码中的 api.openai.com 替换为 拓垦API 地址，SDK 基本无需改动即可上线。',
           points: {
             baseUrl: '替换 Base URL 即可接入，不改调用方式',
             sdk: '兼容 OpenAI 官方请求结构与主流 SDK',
@@ -82,7 +82,7 @@ export default {
       rows: {
         baseUrl: {
           label: 'Base URL 迁移',
-          value: '替换为 GPAPI 服务入口即可'
+          value: '替换为 拓垦API 服务入口即可'
         },
         sdk: {
           label: 'SDK 改动',
@@ -107,7 +107,7 @@ export default {
       title: '三步开启 AI 生产力',
       subtitle: '原汁原味的 OpenAI 接口体验，几分钟即可完成迁移和联调。',
       demoTitle: '接入示例',
-      demoHint: '将生产代码中的 Base URL 替换为 GPAPI 地址即可。',
+      demoHint: '将生产代码中的 Base URL 替换为 拓垦API 地址即可。',
       demoComment: '保持官方 OpenAI 请求格式不变，直接发起调用。',
       steps: {
         register: {
@@ -116,7 +116,7 @@ export default {
         },
         baseUrl: {
           title: '修改 Base URL',
-          description: '将请求地址替换为 https://token.gpapi.com/v1，原有 SDK 调用逻辑保持不变。'
+          description: '将请求地址替换为 https://token.gepinapi.com/v1，原有 SDK 调用逻辑保持不变。'
         },
         request: {
           title: '发起请求',
@@ -201,8 +201,8 @@ export default {
 
   // Setup Wizard
   setup: {
-    title: 'GPAPI 安装向导',
-    description: '配置您的 GPAPI 实例',
+    title: '拓垦API 安装向导',
+    description: '配置您的 拓垦API 实例',
     database: {
       title: '数据库配置',
       description: '连接到您的 PostgreSQL 数据库',
@@ -4395,7 +4395,7 @@ export default {
       },
       linuxdo: {
         title: 'LinuxDo Connect 登录',
-        description: '配置 LinuxDo Connect OAuth，用于 GPAPI 用户登录',
+        description: '配置 LinuxDo Connect OAuth，用于 拓垦API 用户登录',
         enable: '启用 LinuxDo 登录',
         enableHint: '在登录/注册页面显示 LinuxDo 登录入口',
         clientId: 'Client ID',
@@ -4459,7 +4459,7 @@ export default {
           '禁用用户注册、公开页面和自助服务功能。仅管理员可以登录和管理平台。',
         siteName: '站点名称',
         siteNameHint: '显示在邮件和页面标题中',
-        siteNamePlaceholder: 'GPAPI',
+        siteNamePlaceholder: '拓垦API',
         siteSubtitle: '站点副标题',
         siteSubtitleHint: '显示在登录和注册页面',
         siteSubtitlePlaceholder: '订阅转 API 转换平台',
@@ -4560,7 +4560,7 @@ export default {
         fromEmail: '发件人邮箱',
         fromEmailPlaceholder: "noreply{'@'}example.com",
         fromName: '发件人名称',
-        fromNamePlaceholder: 'GPAPI',
+        fromNamePlaceholder: '拓垦API',
         useTls: '使用 TLS',
         useTlsHint: '为 SMTP 连接启用 TLS 加密'
       },
@@ -5057,16 +5057,16 @@ export default {
     // Admin tour steps
     admin: {
       welcome: {
-        title: '👋 欢迎使用 GPAPi',
+        title: '👋 欢迎使用 拓垦API',
         description:
-          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">GPAPI 是一个强大的 AI 服务中转平台，让您轻松管理和分发 AI 服务。</p><p style="margin-bottom: 12px;"><b>🎯 核心功能：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>分组管理</b> - 创建不同的服务套餐（VIP、免费试用等）</li><li>🔗 <b>账号池</b> - 连接多个上游 AI 服务商账号</li><li>🔑 <b>密钥分发</b> - 为用户生成独立的 API Key</li><li>💰 <b>计费管理</b> - 灵活的费率和配额控制</li></ul><p style="color: #10b981; font-weight: 600;">接下来，我们将用 3 分钟带您完成首次配置 →</p></div>',
+          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">拓垦API 是一个强大的 AI 服务中转平台，让您轻松管理和分发 AI 服务。</p><p style="margin-bottom: 12px;"><b>🎯 核心功能：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>分组管理</b> - 创建不同的服务套餐（VIP、免费试用等）</li><li>🔗 <b>账号池</b> - 连接多个上游 AI 服务商账号</li><li>🔑 <b>密钥分发</b> - 为用户生成独立的 API Key</li><li>💰 <b>计费管理</b> - 灵活的费率和配额控制</li></ul><p style="color: #10b981; font-weight: 600;">接下来，我们将用 3 分钟带您完成首次配置 →</p></div>',
         nextBtn: '开始配置 🚀',
         prevBtn: '跳过'
       },
       groupManage: {
         title: '📦 第一步：分组管理',
         description:
-          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>什么是分组？</b></p><p style="margin-bottom: 12px;">分组是 GPAPI 的核心概念，它就像一个"服务套餐"：</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 每个分组可以包含多个上游账号</li><li>💰 每个分组有独立的计费倍率</li><li>👥 可以设置为公开或专属分组</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 示例：</b>您可以创建"VIP专线"（高倍率）和"免费试用"（低倍率）两个分组</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 点击左侧的"分组管理"开始</p></div>'
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>什么是分组？</b></p><p style="margin-bottom: 12px;">分组是 拓垦API 的核心概念，它就像一个"服务套餐"：</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 每个分组可以包含多个上游账号</li><li>💰 每个分组有独立的计费倍率</li><li>👥 可以设置为公开或专属分组</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 示例：</b>您可以创建"VIP专线"（高倍率）和"免费试用"（低倍率）两个分组</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 点击左侧的"分组管理"开始</p></div>'
       },
       createGroup: {
         title: '➕ 创建新分组',
@@ -5178,9 +5178,9 @@ export default {
     // User tour steps
     user: {
       welcome: {
-        title: '👋 欢迎使用 GPAPi',
+        title: '👋 欢迎使用 拓垦API',
         description:
-          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">您好！欢迎来到 GPAPI AI 服务平台。</p><p style="margin-bottom: 12px;"><b>🎯 快速开始：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 创建 API 密钥</li><li>📋 复制密钥到您的应用</li><li>🚀 开始使用 AI 服务</li></ul><p style="color: #10b981; font-weight: 600;">只需 1 分钟，让我们开始吧 →</p></div>',
+          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">您好！欢迎来到 拓垦API AI 服务平台。</p><p style="margin-bottom: 12px;"><b>🎯 快速开始：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 创建 API 密钥</li><li>📋 复制密钥到您的应用</li><li>🚀 开始使用 AI 服务</li></ul><p style="color: #10b981; font-weight: 600;">只需 1 分钟，让我们开始吧 →</p></div>',
         nextBtn: '开始 🚀',
         prevBtn: '跳过'
       },

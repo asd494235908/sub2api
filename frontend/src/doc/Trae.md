@@ -21,7 +21,7 @@
 
 | 你要填的内容 | 这是什么意思 | 示例 |
 | --- | --- | --- |
-| `Base URL` | 接口地址，不是官网首页地址 | `https://token.gepinkeji.com/v1` |
+| `Base URL` | 接口地址，不是官网首页地址 | `https://token.gepinapi.com/v1` |
 | `API Key` | 你的密钥，通常以 `sk-` 开头 | `sk-xxxx` |
 | `Model` | 你要调用的模型名 | `GPT-5.4` |
 
@@ -39,7 +39,7 @@
 
 ```text
 Base URL:
-https://token.gepinkeji.com/v1
+https://token.gepinapi.com/v1
 
 API Key:
 sk-请替换成你自己的真实密钥
@@ -52,7 +52,7 @@ GPT-5.4
 
 如果你接的是我们自己的中转站，可以先按这条最短路径找：
 
-1. 登录 GPAPI 控制台
+1. 登录 拓垦API 控制台
 2. 进入左侧菜单 `API 密钥`
 3. 如果你还没有密钥，点击 `创建密钥`
 4. 创建成功后，立即复制形如 `sk-xxxx` 的完整密钥
@@ -189,7 +189,7 @@ GPT-5.4
 
 | 字段 | 建议填写 |
 | --- | --- |
-| `Base URL` | `https://token.gepinkeji.com/v1` |
+| `Base URL` | `https://token.gepinapi.com/v1` |
 | `API Key` | 你的真实密钥 |
 | `Model` | `GPT-5.4` |
 
@@ -276,7 +276,7 @@ https://traeide.com/
 最简单的判断方式：
 
 - 以你后台展示的完整接口地址为准
-- 如果没有单独说明，优先先试 `https://token.gepinkeji.com/v1`
+- 如果没有单独说明，优先先试 `https://token.gepinapi.com/v1`
 
 ### 4. 还没登录就开始找 API 设置
 
@@ -306,7 +306,7 @@ https://traeide.com/
 2. `Base URL` 是否应该带 `/v1`
 3. 当前网络能不能访问你的接口地址
 
-如果你用的是我们的 GPAPI 控制台，可以回到 `API 密钥` 页面做两件事：
+如果你用的是我们的 拓垦API 控制台，可以回到 `API 密钥` 页面做两件事：
 
 1. 看 `API 端点` 是否和你填进 Trae 的地址一致
 2. 如果页面上有 `测速`，先点一下测速，确认这个地址本身能连通
@@ -327,7 +327,7 @@ https://traeide.com/
 2. 这个 Key 是否已禁用、过期或没有分组
 3. 这个 Key 是否有可用额度
 
-如果你不知道去哪里看这些信息，就回到 GPAPI 控制台的 `API 密钥` 页面，重点看这一行：
+如果你不知道去哪里看这些信息，就回到 拓垦API 控制台的 `API 密钥` 页面，重点看这一行：
 
 - `状态`
 - `分组`

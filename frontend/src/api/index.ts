@@ -1,5 +1,5 @@
 /**
- * API Client for GPAPI Backend
+ * API Client for 拓垦API Backend
  * Central export point for all API modules
  */
 

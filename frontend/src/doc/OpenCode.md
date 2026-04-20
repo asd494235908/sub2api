@@ -6,7 +6,7 @@
 
 但这里已经按你的实际接入信息重新整理成可直接使用的版本：
 
-- 网关地址：`https://token.gepinkeji.com/v1`
+- 网关地址：`https://token.gepinapi.com/v1`
 - 示例模型：`GPT-5.4`
 
 ## 官方网站
@@ -20,7 +20,7 @@
 
 你只需要准备 3 个信息：
 
-- `Base URL`：`https://token.gepinkeji.com/v1`
+- `Base URL`：`https://token.gepinapi.com/v1`
 - `API Key`：你的接口密钥，例如 `sk-xxxx`
 - `Model`：`GPT-5.4`
 
@@ -106,7 +106,7 @@ API Key 也有两种用法：
   "provider": {
     "openai": {
       "options": {
-        "baseURL": "https://token.gepinkeji.com/v1",
+        "baseURL": "https://token.gepinapi.com/v1",
         "apiKey": "sk-请替换成你自己的真实APIKey"
       },
       "models": {
@@ -318,7 +318,7 @@ API Key 也有两种用法：
 
 你现在至少要确认这几件事：
 
-1. `baseURL` 已经是 `https://token.gepinkeji.com/v1`
+1. `baseURL` 已经是 `https://token.gepinapi.com/v1`
 2. 你已经把 `apiKey` 替换成自己的真实密钥
 3. `gpt-5.4` 已经在模型列表里
 4. 这份配置使用的是默认 provider：`openai`
@@ -395,7 +395,7 @@ openai
 
 重点检查：
 
-- `baseURL` 是否写成了 `https://token.gepinkeji.com/v1`
+- `baseURL` 是否写成了 `https://token.gepinapi.com/v1`
 - 模型名是否包含并正确填写了 `gpt-5.4`
 - API Key 是否正确
 

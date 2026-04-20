@@ -21,7 +21,7 @@
 
 ## 开始前先准备这 3 个值
 
-- `Base URL`：`https://token.gepinkeji.com/v1`
+- `Base URL`：`https://token.gepinapi.com/v1`
 - `API Key`：接口密钥，例如 `sk-xxxx`
 - `Model`：建议先用 `GPT-5.4`
 
@@ -137,20 +137,20 @@ codex login status
 第一次接入，最省事的写法可以直接参考下面这份：
 
 ```toml
-model_provider = "gpapi"
+model_provider = "gepinapi"
 model = "gpt-5.4"
 review_model = "gpt-5.4"
 
-[model_providers.gpapi]
-name = "GPAPI"
-base_url = "https://token.gepinkeji.com/v1"
+[model_providers.gepinapi]
+name = "拓垦API"
+base_url = "https://token.gepinapi.com/v1"
 wire_api = "responses"
 requires_openai_auth = true
 ```
 
 ### 这几行分别是什么意思
 
-- `model_provider = "gpapi"`
+- `model_provider = "gepinapi"`
   说明默认走这里定义的 provider
 - `model = "gpt-5.4"`
   说明默认使用这个模型
@@ -266,7 +266,7 @@ codex login status
 
 1. `~/.codex/config.toml` 是否已经保存
 2. `base_url` 是否写成了完整接口地址
-3. `model_provider` 是否真的写成了 `gpapi`
+3. `model_provider` 是否真的写成了 `gepinapi`
 4. `model` 是否是真实模型名
 
 #### 情况 3：提示 401 或鉴权失败

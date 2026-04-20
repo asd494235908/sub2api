@@ -22,7 +22,7 @@
             <p class="text-[11px] font-semibold uppercase tracking-[0.35em] text-slate-400 dark:text-slate-500">
               Docs Hub
             </p>
-            <p class="text-lg font-black tracking-tight">GPAPI Guide</p>
+            <p class="text-lg font-black tracking-tight">拓垦API Guide</p>
           </div>
         </a>
 
@@ -130,7 +130,7 @@
             </div>
             <div class="space-y-3 px-6 py-5 font-mono text-sm leading-7 text-slate-200">
               <div><span class="text-slate-500">provider</span> = <span class="text-emerald-300">"OpenAI Compatible"</span></div>
-              <div><span class="text-slate-500">base_url</span> = <span class="text-amber-300">"https://token.gepinkeji.com/v1"</span></div>
+              <div><span class="text-slate-500">base_url</span> = <span class="text-amber-300">"https://token.gepinapi.com/v1"</span></div>
               <div><span class="text-slate-500">api_key</span> = <span class="text-cyan-300">"sk-xxxx"</span></div>
               <div><span class="text-slate-500">model</span> = <span class="text-violet-300">"GPT-5.4"</span></div>
             </div>

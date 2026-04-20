@@ -49,7 +49,7 @@ export const guideDocSections: GuideDocSection[] = [
   {
     id: "doc-guide",
     filename: "guide",
-    title: "GPAPI 接入总入口",
+    title: "拓垦API 接入总入口",
     summary: "总入口页，负责通用准备、选型建议和统一排错。",
     markdown: `---
 
@@ -94,11 +94,11 @@ Model: 真实模型名
 2. \`Model\` 要按后台真实模型名填写，不要自己猜
 3. 大多数 OpenAI 兼容接口，地址通常要写到 \`/v1\`
 
-### 如果接的是 GPAPI
+### 如果接的是 拓垦API
 
 最短路径通常是：
 
-1. 登录 GPAPI 控制台
+1. 登录 拓垦API 控制台
 2. 打开左侧菜单 \`API 密钥\`
 3. 创建或复制 \`API Key\`
 4. 在同一页查看或复制 \`API 端点\`
@@ -331,8 +331,8 @@ Model: gpt-4o
         "level": 3
       },
       {
-        "id": "doc-guide-如果接的是-gpapi",
-        "text": "如果接的是 GPAPI",
+        "id": "doc-guide-如果接的是-拓垦api",
+        "text": "如果接的是 拓垦API",
         "level": 3
       },
       {
@@ -443,7 +443,7 @@ Model: gpt-4o
 
 ## 开始前先准备这 3 个值
 
-- \`Base URL\`：\`https://token.gepinkeji.com/v1\`
+- \`Base URL\`：\`https://token.gepinapi.com/v1\`
 - \`API Key\`：接口密钥，例如 \`sk-xxxx\`
 - \`Model\`：建议先用 \`GPT-5.4\`
 
@@ -559,20 +559,20 @@ codex login status
 第一次接入，最省事的写法可以直接参考下面这份：
 
 \`\`\`toml
-model_provider = "gpapi"
+model_provider = "gepinapi"
 model = "gpt-5.4"
 review_model = "gpt-5.4"
 
-[model_providers.gpapi]
-name = "GPAPI"
-base_url = "https://token.gepinkeji.com/v1"
+[model_providers.gepinapi]
+name = "拓垦API"
+base_url = "https://token.gepinapi.com/v1"
 wire_api = "responses"
 requires_openai_auth = true
 \`\`\`
 
 ### 这几行分别是什么意思
 
-- \`model_provider = "gpapi"\`
+- \`model_provider = "gepinapi"\`
   说明默认走这里定义的 provider
 - \`model = "gpt-5.4"\`
   说明默认使用这个模型
@@ -688,7 +688,7 @@ codex login status
 
 1. \`~/.codex/config.toml\` 是否已经保存
 2. \`base_url\` 是否写成了完整接口地址
-3. \`model_provider\` 是否真的写成了 \`gpapi\`
+3. \`model_provider\` 是否真的写成了 \`gepinapi\`
 4. \`model\` 是否是真实模型名
 
 #### 情况 3：提示 401 或鉴权失败
@@ -1081,7 +1081,7 @@ Chatbox 通常是比较适合首次接入的一种方式。
 
 ## 开始前先准备这 3 个值
 
-- \`Base URL / API Host\`：\`https://token.gepinkeji.com/v1\`
+- \`Base URL / API Host\`：\`https://token.gepinapi.com/v1\`
 - \`API Key\`：接口密钥，例如 \`sk-xxxx\`
 - \`Model\`：建议先用 \`GPT-5.4\`
 
@@ -1133,7 +1133,7 @@ Chatbox 界面里有时叫：
 进入 \`Model Provider\` 后，按这个顺序走：
 
 1. 点击 \`Add\`
-2. 给这个 provider 起一个名字，比如 \`GPAPI\`
+2. 给这个 provider 起一个名字，比如 \`拓垦API\`
 3. 类型选择 \`OpenAI API compatible\`
 
 如果当前版本没有看到完全一样的文字，就找这些接近的选项：
@@ -1149,8 +1149,8 @@ Chatbox 界面里有时叫：
 
 | 字段 | 建议填写 |
 | --- | --- |
-| Provider Name | \`GPAPI\` |
-| API Host | \`https://token.gepinkeji.com/v1\` |
+| Provider Name | \`拓垦API\` |
+| API Host | \`https://token.gepinapi.com/v1\` |
 | API Key | 真实密钥 |
 | Model | \`GPT-5.4\` |
 
@@ -1160,7 +1160,7 @@ Chatbox 界面里有时叫：
 
 这时可以先这样理解：
 
-- 如果它只让填写 \`API Host\`，优先直接填完整的 \`https://token.gepinkeji.com/v1\`
+- 如果它只让填写 \`API Host\`，优先直接填完整的 \`https://token.gepinapi.com/v1\`
 - 如果它已经默认拼 \`/v1/chat/completions\`，不要再额外重复拼一遍
 
 ### 两种最常见界面怎么填
@@ -1170,7 +1170,7 @@ Chatbox 界面里有时叫：
 直接填：
 
 \`\`\`text
-https://token.gepinkeji.com/v1
+https://token.gepinapi.com/v1
 \`\`\`
 
 #### 情况 2：\`Host\` 和 \`Path\` 分成两个框
@@ -1179,7 +1179,7 @@ https://token.gepinkeji.com/v1
 
 \`\`\`text
 Host:
-https://token.gepinkeji.com
+https://token.gepinapi.com
 
 Path:
 /v1
@@ -1415,7 +1415,7 @@ Check
 
 但这里已经按你的实际接入信息重新整理成可直接使用的版本：
 
-- 网关地址：\`https://token.gepinkeji.com/v1\`
+- 网关地址：\`https://token.gepinapi.com/v1\`
 - 示例模型：\`GPT-5.4\`
 
 ## 官方网站
@@ -1429,7 +1429,7 @@ Check
 
 你只需要准备 3 个信息：
 
-- \`Base URL\`：\`https://token.gepinkeji.com/v1\`
+- \`Base URL\`：\`https://token.gepinapi.com/v1\`
 - \`API Key\`：你的接口密钥，例如 \`sk-xxxx\`
 - \`Model\`：\`GPT-5.4\`
 
@@ -1515,7 +1515,7 @@ API Key 也有两种用法：
   "provider": {
     "openai": {
       "options": {
-        "baseURL": "https://token.gepinkeji.com/v1",
+        "baseURL": "https://token.gepinapi.com/v1",
         "apiKey": "sk-请替换成你自己的真实APIKey"
       },
       "models": {
@@ -1727,7 +1727,7 @@ API Key 也有两种用法：
 
 你现在至少要确认这几件事：
 
-1. \`baseURL\` 已经是 \`https://token.gepinkeji.com/v1\`
+1. \`baseURL\` 已经是 \`https://token.gepinapi.com/v1\`
 2. 你已经把 \`apiKey\` 替换成自己的真实密钥
 3. \`gpt-5.4\` 已经在模型列表里
 4. 这份配置使用的是默认 provider：\`openai\`
@@ -1804,7 +1804,7 @@ openai
 
 重点检查：
 
-- \`baseURL\` 是否写成了 \`https://token.gepinkeji.com/v1\`
+- \`baseURL\` 是否写成了 \`https://token.gepinapi.com/v1\`
 - 模型名是否包含并正确填写了 \`gpt-5.4\`
 - API Key 是否正确
 
@@ -1943,7 +1943,7 @@ openai
 
 你开始前准备好：
 
-- \`Base URL\`：这里填 \`https://token.gepinkeji.com/\`
+- \`Base URL\`：这里填 \`https://token.gepinapi.com/\`
 - \`API Key\`：例如 \`sk-xxxx\`
 - \`Model\`：例如 \`GPT-5.4\`
 
@@ -2039,7 +2039,7 @@ openclaw onboard
 
 示例：
 
-- \`Base URL\`：\`https://token.gepinkeji.com/\`
+- \`Base URL\`：\`https://token.gepinapi.com/\`
 - \`API Key\`：\`sk-xxxx\`
 - \`Model ID\`：\`GPT-5.4\`
 
@@ -2174,7 +2174,7 @@ OpenClaw 官方文档也支持通过自定义 provider 配置 \`baseUrl\`。
   "models": {
     "providers": {
       "custom-proxy": {
-        "baseUrl": "https://token.gepinkeji.com/",
+        "baseUrl": "https://token.gepinapi.com/",
         "apiKey": "你的API_KEY",
         "api": "openai-completions",
         "models": [
@@ -2364,7 +2364,7 @@ OpenClaw 官方文档也支持通过自定义 provider 配置 \`baseUrl\`。
     summary: "覆盖 Cursor 的公开入口检查与自定义地址判断流程。",
     markdown: `你开始前先准备好：
 
-- \`Base URL\`：这里填 \`https://token.gepinkeji.com/\`
+- \`Base URL\`：这里填 \`https://token.gepinapi.com/\`
 - \`API Key\`：例如 \`sk-xxxx\`
 - \`Model\`：例如 \`GPT-5.4\`
 
@@ -2583,7 +2583,7 @@ Cursor 官方还特别说明了两点：
 
 | 你要填的内容 | 这是什么意思 | 示例 |
 | --- | --- | --- |
-| \`Base URL\` | 接口地址，不是官网首页地址 | \`https://token.gepinkeji.com/v1\` |
+| \`Base URL\` | 接口地址，不是官网首页地址 | \`https://token.gepinapi.com/v1\` |
 | \`API Key\` | 你的密钥，通常以 \`sk-\` 开头 | \`sk-xxxx\` |
 | \`Model\` | 你要调用的模型名 | \`GPT-5.4\` |
 
@@ -2601,7 +2601,7 @@ Cursor 官方还特别说明了两点：
 
 \`\`\`text
 Base URL:
-https://token.gepinkeji.com/v1
+https://token.gepinapi.com/v1
 
 API Key:
 sk-请替换成你自己的真实密钥
@@ -2614,7 +2614,7 @@ GPT-5.4
 
 如果你接的是我们自己的中转站，可以先按这条最短路径找：
 
-1. 登录 GPAPI 控制台
+1. 登录 拓垦API 控制台
 2. 进入左侧菜单 \`API 密钥\`
 3. 如果你还没有密钥，点击 \`创建密钥\`
 4. 创建成功后，立即复制形如 \`sk-xxxx\` 的完整密钥
@@ -2751,7 +2751,7 @@ GPT-5.4
 
 | 字段 | 建议填写 |
 | --- | --- |
-| \`Base URL\` | \`https://token.gepinkeji.com/v1\` |
+| \`Base URL\` | \`https://token.gepinapi.com/v1\` |
 | \`API Key\` | 你的真实密钥 |
 | \`Model\` | \`GPT-5.4\` |
 
@@ -2838,7 +2838,7 @@ https://traeide.com/
 最简单的判断方式：
 
 - 以你后台展示的完整接口地址为准
-- 如果没有单独说明，优先先试 \`https://token.gepinkeji.com/v1\`
+- 如果没有单独说明，优先先试 \`https://token.gepinapi.com/v1\`
 
 ### 4. 还没登录就开始找 API 设置
 
@@ -2868,7 +2868,7 @@ https://traeide.com/
 2. \`Base URL\` 是否应该带 \`/v1\`
 3. 当前网络能不能访问你的接口地址
 
-如果你用的是我们的 GPAPI 控制台，可以回到 \`API 密钥\` 页面做两件事：
+如果你用的是我们的 拓垦API 控制台，可以回到 \`API 密钥\` 页面做两件事：
 
 1. 看 \`API 端点\` 是否和你填进 Trae 的地址一致
 2. 如果页面上有 \`测速\`，先点一下测速，确认这个地址本身能连通
@@ -2889,7 +2889,7 @@ https://traeide.com/
 2. 这个 Key 是否已禁用、过期或没有分组
 3. 这个 Key 是否有可用额度
 
-如果你不知道去哪里看这些信息，就回到 GPAPI 控制台的 \`API 密钥\` 页面，重点看这一行：
+如果你不知道去哪里看这些信息，就回到 拓垦API 控制台的 \`API 密钥\` 页面，重点看这一行：
 
 - \`状态\`
 - \`分组\`

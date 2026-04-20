@@ -1,6 +1,6 @@
 # Authentication Views
 
-This directory contains Vue 3 authentication views for the GPAPI frontend application.
+This directory contains Vue 3 authentication views for the 拓垦API frontend application.
 
 ## Components
 
