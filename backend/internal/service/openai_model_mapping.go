@@ -30,12 +30,31 @@ func isExplicitCodexModel(model string) bool {
 		model = parts[len(parts)-1]
 	}
 	model = strings.ToLower(strings.TrimSpace(model))
-	if strings.Contains(model, "gpt-5.5") || strings.Contains(model, "gpt 5.5") {
+	if getNormalizedCodexModel(model) != "" {
 		return true
 	}
 	if strings.HasSuffix(model, "-openai-compact") {
-		base := strings.TrimSpace(strings.TrimSuffix(model, "-openai-compact"))
-		return strings.Contains(base, "gpt-5.5") || strings.Contains(base, "gpt 5.5")
+		base := strings.TrimSuffix(model, "-openai-compact")
+		return getNormalizedCodexModel(base) != ""
 	}
 	return false
+}
+
+// resolveOpenAICompactForwardModel determines the compact-only upstream model
+// for /responses/compact requests. It never affects normal /responses traffic.
+// When no compact-specific mapping matches, the input model is returned as-is.
+func resolveOpenAICompactForwardModel(account *Account, model string) string {
+	trimmedModel := strings.TrimSpace(model)
+	if trimmedModel == "" || account == nil {
+		return trimmedModel
+	}
+
+	mappedModel, matched := account.ResolveCompactMappedModel(trimmedModel)
+	if !matched {
+		return trimmedModel
+	}
+	if trimmedMapped := strings.TrimSpace(mappedModel); trimmedMapped != "" {
+		return trimmedMapped
+	}
+	return trimmedModel
 }

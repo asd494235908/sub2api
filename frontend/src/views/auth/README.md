@@ -1,6 +1,6 @@
 # Authentication Views
 
-This directory contains Vue 3 authentication views for the 格品API frontend application.
+This directory contains Vue 3 authentication views for the Sub2API frontend application.
 
 ## Components
 

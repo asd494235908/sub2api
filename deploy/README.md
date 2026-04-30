@@ -29,32 +29,6 @@ This directory contains files for deploying Sub2API on Linux servers.
 
 ## Docker Deployment (Recommended)
 
-### Redeploy Existing `sub2api` Only
-
-If the server already has `sub2api-postgres` and `sub2api-redis` running and you only want to rebuild local code and replace the `sub2api` app container, use:
-
-```bash
-bash deploy/redeploy-sub2api.sh
-```
-
-Default behavior:
-- Builds local code as `linux/amd64`
-- Uploads the new image to `root@101.96.208.132:/opt/sub2api-current`
-- Replaces only the `sub2api` container
-- Leaves `sub2api-postgres` and `sub2api-redis` untouched
-
-Preview commands without executing:
-
-```bash
-bash deploy/redeploy-sub2api.sh --dry-run
-```
-
-Override the target if needed:
-
-```bash
-bash deploy/redeploy-sub2api.sh --host 203.0.113.10 --user root --deploy-dir /opt/sub2api-current
-```
-
 ### Method 1: One-Click Deployment (Recommended)
 
 Use the automated preparation script for the easiest setup:

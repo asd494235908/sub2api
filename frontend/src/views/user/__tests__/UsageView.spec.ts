@@ -178,9 +178,9 @@ describe('user UsageView tooltip', () => {
     expect(text).toContain('Rate')
     expect(text).toContain('1.00x')
     expect(text).toContain('Billed')
-    expect(text).toContain('￥0.092883')
-    expect(text).toContain('￥5.0000 / 1M tokens')
-    expect(text).toContain('￥30.0000 / 1M tokens')
+    expect(text).toContain('$0.092883')
+    expect(text).toContain('$5.0000 / 1M tokens')
+    expect(text).toContain('$30.0000 / 1M tokens')
   })
 
   it('exports csv with input and output unit price columns', async () => {
@@ -256,6 +256,17 @@ describe('user UsageView tooltip', () => {
     await setupState.exportToCSV()
 
     expect(exportedBlob).not.toBeNull()
+    const hasSortedExportQuery = query.mock.calls.some((call) => {
+      const params = call[0] as Record<string, unknown> | undefined
+      const config = call[1]
+      return (
+        params?.page_size === 100 &&
+        params?.sort_by === 'created_at' &&
+        params?.sort_order === 'desc' &&
+        config === undefined
+      )
+    })
+    expect(hasSortedExportQuery).toBe(true)
     expect(clickSpy).toHaveBeenCalled()
     expect(showSuccess).toHaveBeenCalled()
 

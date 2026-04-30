@@ -105,10 +105,13 @@ type CreateGroupRequest struct {
 	// 支持的模型系列（仅 antigravity 平台使用）
 	SupportedModelScopes []string `json:"supported_model_scopes"`
 	// OpenAI Messages 调度配置（仅 openai 平台使用）
-	AllowMessagesDispatch bool   `json:"allow_messages_dispatch"`
-	RequireOAuthOnly      bool   `json:"require_oauth_only"`
-	RequirePrivacySet     bool   `json:"require_privacy_set"`
-	DefaultMappedModel    string `json:"default_mapped_model"`
+	AllowMessagesDispatch       bool                                      `json:"allow_messages_dispatch"`
+	RequireOAuthOnly            bool                                      `json:"require_oauth_only"`
+	RequirePrivacySet           bool                                      `json:"require_privacy_set"`
+	DefaultMappedModel          string                                    `json:"default_mapped_model"`
+	MessagesDispatchModelConfig service.OpenAIMessagesDispatchModelConfig `json:"messages_dispatch_model_config"`
+	// 分组 RPM 上限（0 = 不限制）
+	RPMLimit int `json:"rpm_limit"`
 	// 从指定分组复制账号（创建后自动绑定）
 	CopyAccountsFromGroupIDs []int64 `json:"copy_accounts_from_group_ids"`
 }
@@ -139,10 +142,13 @@ type UpdateGroupRequest struct {
 	// 支持的模型系列（仅 antigravity 平台使用）
 	SupportedModelScopes *[]string `json:"supported_model_scopes"`
 	// OpenAI Messages 调度配置（仅 openai 平台使用）
-	AllowMessagesDispatch *bool   `json:"allow_messages_dispatch"`
-	RequireOAuthOnly      *bool   `json:"require_oauth_only"`
-	RequirePrivacySet     *bool   `json:"require_privacy_set"`
-	DefaultMappedModel    *string `json:"default_mapped_model"`
+	AllowMessagesDispatch       *bool                                      `json:"allow_messages_dispatch"`
+	RequireOAuthOnly            *bool                                      `json:"require_oauth_only"`
+	RequirePrivacySet           *bool                                      `json:"require_privacy_set"`
+	DefaultMappedModel          *string                                    `json:"default_mapped_model"`
+	MessagesDispatchModelConfig *service.OpenAIMessagesDispatchModelConfig `json:"messages_dispatch_model_config"`
+	// 分组 RPM 上限（0 = 不限制）；nil 表示未提供不改动
+	RPMLimit *int `json:"rpm_limit"`
 	// 从指定分组复制账号（同步操作：先清空当前分组的账号绑定，再绑定源分组的账号）
 	CopyAccountsFromGroupIDs []int64 `json:"copy_accounts_from_group_ids"`
 }
@@ -160,6 +166,8 @@ func (h *GroupHandler) List(c *gin.Context) {
 		search = search[:100]
 	}
 	isExclusiveStr := c.Query("is_exclusive")
+	sortBy := c.DefaultQuery("sort_by", "sort_order")
+	sortOrder := c.DefaultQuery("sort_order", "asc")
 
 	var isExclusive *bool
 	if isExclusiveStr != "" {
@@ -167,7 +175,7 @@ func (h *GroupHandler) List(c *gin.Context) {
 		isExclusive = &val
 	}
 
-	groups, total, err := h.adminService.ListGroups(c.Request.Context(), page, pageSize, platform, status, search, isExclusive)
+	groups, total, err := h.adminService.ListGroups(c.Request.Context(), page, pageSize, platform, status, search, isExclusive, sortBy, sortOrder)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
@@ -257,6 +265,8 @@ func (h *GroupHandler) Create(c *gin.Context) {
 		RequireOAuthOnly:                req.RequireOAuthOnly,
 		RequirePrivacySet:               req.RequirePrivacySet,
 		DefaultMappedModel:              req.DefaultMappedModel,
+		MessagesDispatchModelConfig:     req.MessagesDispatchModelConfig,
+		RPMLimit:                        req.RPMLimit,
 		CopyAccountsFromGroupIDs:        req.CopyAccountsFromGroupIDs,
 	})
 	if err != nil {
@@ -307,6 +317,8 @@ func (h *GroupHandler) Update(c *gin.Context) {
 		RequireOAuthOnly:                req.RequireOAuthOnly,
 		RequirePrivacySet:               req.RequirePrivacySet,
 		DefaultMappedModel:              req.DefaultMappedModel,
+		MessagesDispatchModelConfig:     req.MessagesDispatchModelConfig,
+		RPMLimit:                        req.RPMLimit,
 		CopyAccountsFromGroupIDs:        req.CopyAccountsFromGroupIDs,
 	})
 	if err != nil {
@@ -469,6 +481,51 @@ func (h *GroupHandler) BatchSetGroupRateMultipliers(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{"message": "Rate multipliers updated successfully"})
+}
+
+// BatchSetGroupRPMOverridesRequest represents batch set rpm_override request
+type BatchSetGroupRPMOverridesRequest struct {
+	Entries []service.GroupRPMOverrideInput `json:"entries" binding:"required"`
+}
+
+// BatchSetGroupRPMOverrides handles batch setting rpm_override for users in a group
+// PUT /api/v1/admin/groups/:id/rpm-overrides
+func (h *GroupHandler) BatchSetGroupRPMOverrides(c *gin.Context) {
+	groupID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "Invalid group ID")
+		return
+	}
+
+	var req BatchSetGroupRPMOverridesRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	if err := h.adminService.BatchSetGroupRPMOverrides(c.Request.Context(), groupID, req.Entries); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, gin.H{"message": "RPM overrides updated successfully"})
+}
+
+// ClearGroupRPMOverrides handles clearing all rpm_override for a group
+// DELETE /api/v1/admin/groups/:id/rpm-overrides
+func (h *GroupHandler) ClearGroupRPMOverrides(c *gin.Context) {
+	groupID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "Invalid group ID")
+		return
+	}
+
+	if err := h.adminService.ClearGroupRPMOverrides(c.Request.Context(), groupID); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, gin.H{"message": "RPM overrides cleared successfully"})
 }
 
 // UpdateSortOrderRequest represents the request to update group sort orders

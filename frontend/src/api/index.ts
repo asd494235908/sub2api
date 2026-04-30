@@ -1,5 +1,5 @@
 /**
- * API Client for 格品API Backend
+ * API Client for Sub2API Backend
  * Central export point for all API modules
  */
 
@@ -14,9 +14,12 @@ export { keysAPI } from './keys'
 export { usageAPI } from './usage'
 export { userAPI } from './user'
 export { redeemAPI, type RedeemHistoryItem } from './redeem'
+export { paymentAPI } from './payment'
 export { userGroupsAPI } from './groups'
+export { userChannelsAPI } from './channels'
 export { totpAPI } from './totp'
 export { default as announcementsAPI } from './announcements'
+export { channelMonitorUserAPI } from './channelMonitor'
 
 // Admin APIs
 export { adminAPI } from './admin'
