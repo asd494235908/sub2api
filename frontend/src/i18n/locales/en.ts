@@ -41,14 +41,14 @@ export default {
     },
     overview: {
       kicker: 'Overview',
-      title: 'Why enterprise developers choose 拓垦API',
+      title: 'Why enterprise developers choose 格品API',
       painPoint:
         'Still dealing with unstable NAT routes and disconnects? Worried that public proxy key leaks could get your accounts blocked?',
       cards: {
         company: {
           title: 'Company-operated and built for long-term stability',
           description:
-            '{companyName} operates 拓垦API as a formal technical service with enterprise invoicing, service contracts, and a 99.9% SLA commitment.',
+            '{companyName} operates 格品API as a formal technical service with enterprise invoicing, service contracts, and a 99.9% SLA commitment.',
           points: {
             invoice: 'Enterprise VAT invoicing and procurement-friendly billing',
             contract: 'Service contracts supported for compliant purchasing',
@@ -68,7 +68,7 @@ export default {
         compatibility: {
           title: 'Native OpenAI experience with seamless migration',
           description:
-            'Replace api.openai.com with 拓垦API and keep the rest of your integration flow almost unchanged.',
+            'Replace api.openai.com with 格品API and keep the rest of your integration flow almost unchanged.',
           points: {
             baseUrl: 'Swap the Base URL and keep your request flow',
             sdk: 'Compatible with official OpenAI request formats and common SDKs',
@@ -84,7 +84,7 @@ export default {
       rows: {
         baseUrl: {
           label: 'Base URL Migration',
-          value: 'Replace it with the 拓垦API endpoint'
+          value: 'Replace it with the 格品API endpoint'
         },
         sdk: {
           label: 'SDK Changes',
@@ -109,7 +109,7 @@ export default {
       title: 'Start production AI workflows in three simple steps',
       subtitle: 'Keep the familiar OpenAI API experience and finish migration plus verification in minutes.',
       demoTitle: 'Integration Example',
-      demoHint: 'Replace the Base URL in your production code with the 拓垦API endpoint.',
+      demoHint: 'Replace the Base URL in your production code with the 格品API endpoint.',
       demoComment: 'Keep the official OpenAI request format and send requests as usual.',
       steps: {
         register: {
@@ -128,6 +128,188 @@ export default {
     },
     footer: {
       allRightsReserved: 'All rights reserved.'
+    },
+    landing: {
+      brand: '格品API',
+      logoTagline: 'Enterprise OpenAI Relay',
+      nav: {
+        home: 'Home',
+        pricing: 'Pricing',
+        docs: 'Docs',
+        community: 'Community'
+      },
+      console: {
+        login: 'Get Started',
+        enter: 'Dashboard'
+      },
+      hero: {
+        badge: 'Reliable, secure, and fast OpenAI relay service',
+        titlePrefix: '格品API',
+        titleLead: '',
+        titleHighlight: 'AI',
+        titleSuffix: ' builds AI faster',
+        subtitle: 'Enterprise OpenAI API relay | Fast mainland access | One-stop integration',
+        primaryCtaGuest: 'Start Now',
+        primaryCtaAuthed: 'Go to Dashboard',
+        secondaryCta: 'Read Docs',
+        promoTitle: 'Start building your AI application',
+        promoSubtitle: 'A few simple steps to unlock powerful AI capabilities',
+        checks: {
+          availability: '99.9% availability',
+          latency: 'Fast response < 200ms',
+          security: 'Enterprise-grade protection'
+        },
+        stats: {
+          calls: 'API calls',
+          developers: 'trusted developers',
+          sla: 'uptime SLA',
+          support: 'support'
+        }
+      },
+      overview: {
+        kicker: 'Why choose Gepin API',
+        title: 'Fast, stable, and secure AI integration',
+        subtitle: 'We provide stable, fast, and secure OpenAI API relay access so your team can focus on shipping product value.',
+        benefits: {
+          stability: {
+            title: 'High stability',
+            description: 'End-to-end acceleration and elastic routing keep responses stable even during peak traffic.'
+          },
+          security: {
+            title: 'Enterprise security',
+            description: 'TLS encryption and isolated routing architecture balance security and compliance.'
+          },
+          value: {
+            title: 'Strong value',
+            description: 'Usage-based billing and subscription plans cover everything from evaluation to production.'
+          },
+          easy: {
+            title: 'Easy to use',
+            description: 'Compatible with OpenAI APIs, so you can swap the Base URL and go live quickly.'
+          },
+          support: {
+            title: 'Expert support',
+            description: '24/7 support coverage and maintenance updates help teams resolve issues faster.'
+          },
+          updates: {
+            title: 'Always updated',
+            description: 'We track the latest OpenAI models and capabilities and roll supported models forward quickly.'
+          }
+        }
+      },
+      platforms: {
+        kicker: 'Supported platforms',
+        title: 'Operating systems and devices we support',
+        subtitle: 'Use the API across mainstream environments and devices',
+        mobile: 'Mobile',
+        devices: 'Dev devices'
+      },
+      models: {
+        kicker: 'Current model lineup',
+        cardTitle: 'OpenAI frontier models',
+        cardSubtitle: 'Covering the main reasoning, lightweight, and image workloads currently available in the API.',
+        apiNotice: 'Now featuring GPT-5.5 for complex reasoning, coding, and professional workflows.',
+        viewAll: 'View all models',
+        badges: {
+          latest: 'Latest'
+        },
+        items: {
+          gpt55: 'OpenAI\'s latest supported model for complex reasoning, coding, and professional workflows.',
+          gpt54Mini: 'A more cost-efficient lightweight model for coding, tool use, and low-latency tasks.',
+          gpt54Nano: 'An ultra-low-cost option for high-frequency and basic workloads.',
+          gptImage2: 'OpenAI\'s current image generation model for image creation and editing.'
+        }
+      },
+      pricing: {
+        kicker: 'Flexible pricing',
+        title: 'Choose the plan that fits',
+        subtitle: 'Usage billing, lightweight subscriptions, and enterprise plans are all available.',
+        viewDetails: 'View pricing details',
+        plans: {
+          standard: {
+            plan: 'Standard',
+            description: 'A good fit for individual developers and lighter projects',
+            badge: 'Light'
+          },
+          pro: {
+            plan: 'Professional',
+            description: 'Best for growing teams and reliable production use',
+            badge: 'Recommended'
+          },
+          enterprise: {
+            plan: 'Enterprise',
+            description: 'Tailored for large organizations and custom requirements',
+            badge: 'Enterprise',
+            price: 'Custom pricing'
+          }
+        }
+      },
+      setup: {
+        kicker: 'Three-step integration',
+        title: 'Connect your models with ease',
+        subtitle: 'A few simple steps are all you need to get started.',
+        steps: {
+          register: {
+            title: 'Create an account',
+            description: 'Sign up and generate your dedicated API key.'
+          },
+          integrate: {
+            title: 'Integrate the API',
+            description: 'Replace the documented endpoint in your app configuration.'
+          },
+          start: {
+            title: 'Start calling',
+            description: 'Send requests and build your AI-powered workflows.'
+          }
+        }
+      },
+      community: {
+        kicker: 'Join the developer community',
+        title: 'Community QR codes',
+        lead: 'Scan to join via QQ or WeChat',
+        body: 'Get onboarding help, model updates, and fast troubleshooting.',
+        qrLabels: {
+          qq: 'QQ Group',
+          wechat: 'WeChat'
+        },
+        qrAlt: {
+          qq: 'QQ group QR code',
+          wechat: 'WeChat QR code'
+        }
+      },
+      footer: {
+        about: 'Enterprise OpenAI API relay service that helps teams build AI products faster.',
+        follow: 'Follow us',
+        copyrightOwner: 'Chengdu Gepin Technology Co., Ltd. All rights reserved',
+        columns: {
+          product: {
+            title: 'Product',
+            pricing: 'Pricing',
+            docs: 'API Docs',
+            platforms: 'Platforms',
+            changelog: 'Changelog'
+          },
+          developer: {
+            title: 'Developers',
+            quickstart: 'Quickstart',
+            sdk: 'SDK & Tools',
+            bestPractices: 'Best Practices',
+            status: 'API Status'
+          },
+          company: {
+            title: 'Company',
+            about: 'About',
+            contact: 'Contact',
+            terms: 'Terms',
+            privacy: 'Privacy'
+          },
+          support: {
+            title: 'Support',
+            help: 'Help Center',
+            community: 'Community'
+          }
+        }
+      }
     }
   },
 
@@ -203,8 +385,8 @@ export default {
 
   // Setup Wizard
   setup: {
-    title: '拓垦API Setup',
-    description: 'Configure your 拓垦API instance',
+    title: '格品API Setup',
+    description: 'Configure your 格品API instance',
     database: {
       title: 'Database Configuration',
       description: 'Connect to your PostgreSQL database',
@@ -4230,7 +4412,7 @@ export default {
         secretKeyConfiguredHint: 'Secret key configured. Leave empty to keep the current value.'      },
       linuxdo: {
         title: 'LinuxDo Connect Login',
-        description: 'Configure LinuxDo Connect OAuth for 拓垦API end-user login',
+        description: 'Configure LinuxDo Connect OAuth for 格品API end-user login',
         enable: 'Enable LinuxDo Login',
         enableHint: 'Show LinuxDo login on the login/register pages',
         clientId: 'Client ID',
@@ -4297,7 +4479,7 @@ export default {
         backendModeDescription:
           'Disables user registration, public site, and self-service features. Only admin can log in and manage the platform.',
         siteName: 'Site Name',
-        siteNamePlaceholder: '拓垦API',
+        siteNamePlaceholder: '格品API',
         siteNameHint: 'Displayed in emails and page titles',
         siteSubtitle: 'Site Subtitle',
         siteSubtitlePlaceholder: 'Subscription to API Conversion Platform',
@@ -4397,7 +4579,7 @@ export default {
         fromEmail: 'From Email',
         fromEmailPlaceholder: "noreply{'@'}example.com",
         fromName: 'From Name',
-        fromNamePlaceholder: '拓垦API',
+        fromNamePlaceholder: '格品API',
         useTls: 'Use TLS',
         useTlsHint: 'Enable TLS encryption for SMTP connection'
       },
@@ -4897,14 +5079,14 @@ export default {
     // Admin tour steps
     admin: {
       welcome: {
-        title: '👋 Welcome to 拓垦API',
-        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">拓垦API is a powerful AI service gateway platform that helps you easily manage and distribute AI services.</p><p style="margin-bottom: 12px;"><b>🎯 Core Features:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>Group Management</b> - Create service tiers (VIP, Free Trial, etc.)</li><li>🔗 <b>Account Pool</b> - Connect multiple upstream AI service accounts</li><li>🔑 <b>Key Distribution</b> - Generate independent API Keys for users</li><li>💰 <b>Billing Control</b> - Flexible rate and quota management</li></ul><p style="color: #10b981; font-weight: 600;">Let\'s complete the initial setup in 3 minutes →</p></div>',
+        title: '👋 Welcome to 格品API',
+        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">格品API is a powerful AI service gateway platform that helps you easily manage and distribute AI services.</p><p style="margin-bottom: 12px;"><b>🎯 Core Features:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>Group Management</b> - Create service tiers (VIP, Free Trial, etc.)</li><li>🔗 <b>Account Pool</b> - Connect multiple upstream AI service accounts</li><li>🔑 <b>Key Distribution</b> - Generate independent API Keys for users</li><li>💰 <b>Billing Control</b> - Flexible rate and quota management</li></ul><p style="color: #10b981; font-weight: 600;">Let\'s complete the initial setup in 3 minutes →</p></div>',
         nextBtn: 'Start Setup 🚀',
         prevBtn: 'Skip'
       },
       groupManage: {
         title: '📦 Step 1: Group Management',
-        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>What is a Group?</b></p><p style="margin-bottom: 12px;">Groups are the core concept of 拓垦API, like a "service package":</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 Each group can contain multiple upstream accounts</li><li>💰 Each group has independent billing multiplier</li><li>👥 Can be set as public or exclusive</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Example:</b> You can create "VIP Premium" (high rate) and "Free Trial" (low rate) groups</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 Click "Group Management" on the left sidebar</p></div>'
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>What is a Group?</b></p><p style="margin-bottom: 12px;">Groups are the core concept of 格品API, like a "service package":</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 Each group can contain multiple upstream accounts</li><li>💰 Each group has independent billing multiplier</li><li>👥 Can be set as public or exclusive</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Example:</b> You can create "VIP Premium" (high rate) and "Free Trial" (low rate) groups</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 Click "Group Management" on the left sidebar</p></div>'
       },
       createGroup: {
         title: '➕ Create New Group',
@@ -4997,8 +5179,8 @@ export default {
     // User tour steps
     user: {
       welcome: {
-        title: '👋 Welcome to 拓垦API',
-        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Hello! Welcome to the 拓垦API AI service platform.</p><p style="margin-bottom: 12px;"><b>🎯 Quick Start:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 Create API Key</li><li>📋 Copy key to your application</li><li>🚀 Start using AI services</li></ul><p style="color: #10b981; font-weight: 600;">Just 1 minute, let\'s get started →</p></div>',
+        title: '👋 Welcome to 格品API',
+        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Hello! Welcome to the 格品API AI service platform.</p><p style="margin-bottom: 12px;"><b>🎯 Quick Start:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 Create API Key</li><li>📋 Copy key to your application</li><li>🚀 Start using AI services</li></ul><p style="color: #10b981; font-weight: 600;">Just 1 minute, let\'s get started →</p></div>',
         nextBtn: 'Start 🚀',
         prevBtn: 'Skip'
       },

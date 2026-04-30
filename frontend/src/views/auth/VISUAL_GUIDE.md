@@ -11,7 +11,7 @@ Both LoginView and RegisterView use the AuthLayout component, which provides:
 │                                             │
 │  ┌─────────────────────────────────────┐   │
 │  │                                     │   │
-│  │         拓垦API Logo                │   │
+│  │         格品API Logo                │   │
 │  │  "Subscription to API Conversion"   │   │
 │  │                                     │   │
 │  └─────────────────────────────────────┘   │
@@ -39,7 +39,7 @@ Centered: Both horizontally and vertically
 ```
 ┌─────────────────────────────────────────────┐
 │                                             │
-│         🔷 拓垦API                          │
+│         🔷 格品API                          │
 │    Subscription to API Conversion Platform  │
 │                                             │
 │  ┌─────────────────────────────────────┐   │
@@ -133,13 +133,13 @@ Centered: Both horizontally and vertically
 ```
 ┌─────────────────────────────────────────────┐
 │                                             │
-│         🔷 拓垦API                          │
+│         🔷 格品API                          │
 │    Subscription to API Conversion Platform  │
 │                                             │
 │  ┌─────────────────────────────────────┐   │
 │  │                                     │   │
 │  │        Create Account               │   │
-│  │     Sign up to start using 拓垦API  │   │
+│  │     Sign up to start using 格品API  │   │
 │  │                                     │   │
 │  │  Username                           │   │
 │  │  ┌────────────────────────────────┐ │   │

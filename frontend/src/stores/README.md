@@ -1,6 +1,6 @@
 # Pinia Stores Documentation
 
-This directory contains all Pinia stores for the 拓垦API frontend application.
+This directory contains all Pinia stores for the 格品API frontend application.
 
 ## Stores Overview
 

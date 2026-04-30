@@ -1,5 +1,5 @@
 /**
- * API Client for 拓垦API Backend
+ * API Client for 格品API Backend
  * Central export point for all API modules
  */
 

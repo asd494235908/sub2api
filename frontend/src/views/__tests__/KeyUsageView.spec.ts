@@ -5,7 +5,7 @@ import KeyUsageView from '../KeyUsageView.vue'
 
 const appStoreMock = vi.hoisted(() => ({
   cachedPublicSettings: null as null | Record<string, string>,
-  siteName: '拓垦API',
+  siteName: '格品API',
   siteLogo: '',
   docUrl: 'https://docs.example.com',
   publicSettingsLoaded: true,
@@ -65,7 +65,7 @@ describe('KeyUsageView', () => {
     })
 
     appStoreMock.cachedPublicSettings = null
-    appStoreMock.siteName = '拓垦API'
+    appStoreMock.siteName = '格品API'
     appStoreMock.siteLogo = ''
     appStoreMock.docUrl = 'https://docs.example.com'
     appStoreMock.publicSettingsLoaded = true
@@ -122,5 +122,30 @@ describe('KeyUsageView', () => {
 
     expect(footerContainer.classes()).toContain('justify-center')
     expect(footerContainer.classes()).not.toContain('sm:text-left')
+  })
+
+  it('uses the external token documentation link in a new window', () => {
+    const wrapper = mount(KeyUsageView, {
+      global: {
+        stubs: {
+          LocaleSwitcher: {
+            template: '<div data-test="locale-switcher">LocaleSwitcher</div>'
+          },
+          Icon: {
+            template: '<span data-test="icon" />'
+          },
+          'router-link': {
+            props: ['to'],
+            template: '<a :href="typeof to === \'string\' ? to : to?.path"><slot /></a>'
+          }
+        }
+      }
+    })
+
+    const docLinks = wrapper.findAll('a[href="https://token.gepinkeji.com/tokenDoc"]')
+
+    expect(docLinks.length).toBeGreaterThan(0)
+    expect(docLinks.every((link) => link.attributes('target') === '_blank')).toBe(true)
+    expect(docLinks.every((link) => link.attributes('rel') === 'noopener noreferrer')).toBe(true)
   })
 })

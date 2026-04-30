@@ -49,7 +49,7 @@ export const guideDocSections: GuideDocSection[] = [
   {
     id: "doc-guide",
     filename: "guide",
-    title: "拓垦API 接入总入口",
+    title: "格品API 接入总入口",
     summary: "总入口页，负责通用准备、选型建议和统一排错。",
     markdown: `---
 
@@ -94,11 +94,11 @@ Model: 真实模型名
 2. \`Model\` 要按后台真实模型名填写，不要自己猜
 3. 大多数 OpenAI 兼容接口，地址通常要写到 \`/v1\`
 
-### 如果接的是 拓垦API
+### 如果接的是 格品API
 
 最短路径通常是：
 
-1. 登录 拓垦API 控制台
+1. 登录 格品API 控制台
 2. 打开左侧菜单 \`API 密钥\`
 3. 创建或复制 \`API Key\`
 4. 在同一页查看或复制 \`API 端点\`
@@ -331,8 +331,8 @@ Model: gpt-4o
         "level": 3
       },
       {
-        "id": "doc-guide-如果接的是-拓垦api",
-        "text": "如果接的是 拓垦API",
+        "id": "doc-guide-如果接的是-格品api",
+        "text": "如果接的是 格品API",
         "level": 3
       },
       {
@@ -564,7 +564,7 @@ model = "gpt-5.4"
 review_model = "gpt-5.4"
 
 [model_providers.gepinapi]
-name = "拓垦API"
+name = "格品API"
 base_url = "https://token.gepinapi.com/v1"
 wire_api = "responses"
 requires_openai_auth = true
@@ -1133,7 +1133,7 @@ Chatbox 界面里有时叫：
 进入 \`Model Provider\` 后，按这个顺序走：
 
 1. 点击 \`Add\`
-2. 给这个 provider 起一个名字，比如 \`拓垦API\`
+2. 给这个 provider 起一个名字，比如 \`格品API\`
 3. 类型选择 \`OpenAI API compatible\`
 
 如果当前版本没有看到完全一样的文字，就找这些接近的选项：
@@ -1149,7 +1149,7 @@ Chatbox 界面里有时叫：
 
 | 字段 | 建议填写 |
 | --- | --- |
-| Provider Name | \`拓垦API\` |
+| Provider Name | \`格品API\` |
 | API Host | \`https://token.gepinapi.com/v1\` |
 | API Key | 真实密钥 |
 | Model | \`GPT-5.4\` |
@@ -2614,7 +2614,7 @@ GPT-5.4
 
 如果你接的是我们自己的中转站，可以先按这条最短路径找：
 
-1. 登录 拓垦API 控制台
+1. 登录 格品API 控制台
 2. 进入左侧菜单 \`API 密钥\`
 3. 如果你还没有密钥，点击 \`创建密钥\`
 4. 创建成功后，立即复制形如 \`sk-xxxx\` 的完整密钥
@@ -2868,7 +2868,7 @@ https://traeide.com/
 2. \`Base URL\` 是否应该带 \`/v1\`
 3. 当前网络能不能访问你的接口地址
 
-如果你用的是我们的 拓垦API 控制台，可以回到 \`API 密钥\` 页面做两件事：
+如果你用的是我们的 格品API 控制台，可以回到 \`API 密钥\` 页面做两件事：
 
 1. 看 \`API 端点\` 是否和你填进 Trae 的地址一致
 2. 如果页面上有 \`测速\`，先点一下测速，确认这个地址本身能连通
@@ -2889,7 +2889,7 @@ https://traeide.com/
 2. 这个 Key 是否已禁用、过期或没有分组
 3. 这个 Key 是否有可用额度
 
-如果你不知道去哪里看这些信息，就回到 拓垦API 控制台的 \`API 密钥\` 页面，重点看这一行：
+如果你不知道去哪里看这些信息，就回到 格品API 控制台的 \`API 密钥\` 页面，重点看这一行：
 
 - \`状态\`
 - \`分组\`

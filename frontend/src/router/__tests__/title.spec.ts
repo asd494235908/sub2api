@@ -11,8 +11,8 @@ describe('resolveDocumentTitle', () => {
   })
 
   it('站点名为空时，回退默认站点名', () => {
-    expect(resolveDocumentTitle('Dashboard', '')).toBe('Dashboard - 拓垦API')
-    expect(resolveDocumentTitle(undefined, '   ')).toBe('拓垦API')
+    expect(resolveDocumentTitle('Dashboard', '')).toBe('Dashboard - 格品API')
+    expect(resolveDocumentTitle(undefined, '   ')).toBe('格品API')
   })
 
   it('站点名变更时仅影响后续路由标题计算', () => {

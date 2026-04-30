@@ -1,5 +1,5 @@
 /**
- * Vue Router configuration for 拓垦API frontend
+ * Vue Router configuration for 格品API frontend
  * Defines all application routes with lazy loading and navigation guards
  */
 
@@ -34,15 +34,6 @@ const routes: RouteRecordRaw[] = [
     meta: {
       requiresAuth: false,
       title: 'Home'
-    }
-  },
-  {
-    path: '/guide',
-    name: 'Guide',
-    component: () => import('@/views/GuideView.vue'),
-    meta: {
-      requiresAuth: false,
-      title: 'Guide'
     }
   },
   {
@@ -444,7 +435,7 @@ router.beforeEach((to, _from, next) => {
     const menuItem = publicItems.find((item) => item.id === id)
       ?? (authStore.isAdmin ? adminSettingsStore.customMenuItems.find((item) => item.id === id) : undefined)
     if (menuItem?.label) {
-      const siteName = appStore.siteName || '拓垦API'
+      const siteName = appStore.siteName || '格品API'
       document.title = `${menuItem.label} - ${siteName}`
     } else {
       document.title = resolveDocumentTitle(to.meta.title, appStore.siteName, to.meta.titleKey as string)

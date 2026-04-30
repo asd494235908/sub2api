@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory contains the Vue Router configuration for the 拓垦API frontend application. The router implements a comprehensive navigation system with authentication guards, role-based access control, and lazy loading.
+This directory contains the Vue Router configuration for the 格品API frontend application. The router implements a comprehensive navigation system with authentication guards, role-based access control, and lazy loading.
 
 ## Files
 

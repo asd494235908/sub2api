@@ -1,5 +1,5 @@
 /**
- * Core Type Definitions for 拓垦API Frontend
+ * Core Type Definitions for 格品API Frontend
  */
 
 // ==================== Common Types ====================

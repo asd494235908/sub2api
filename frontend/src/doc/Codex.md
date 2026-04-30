@@ -142,7 +142,7 @@ model = "gpt-5.4"
 review_model = "gpt-5.4"
 
 [model_providers.gepinapi]
-name = "拓垦API"
+name = "格品API"
 base_url = "https://token.gepinapi.com/v1"
 wire_api = "responses"
 requires_openai_auth = true

@@ -68,7 +68,7 @@ Chatbox 界面里有时叫：
 进入 `Model Provider` 后，按这个顺序走：
 
 1. 点击 `Add`
-2. 给这个 provider 起一个名字，比如 `拓垦API`
+2. 给这个 provider 起一个名字，比如 `格品API`
 3. 类型选择 `OpenAI API compatible`
 
 如果当前版本没有看到完全一样的文字，就找这些接近的选项：
@@ -84,7 +84,7 @@ Chatbox 界面里有时叫：
 
 | 字段 | 建议填写 |
 | --- | --- |
-| Provider Name | `拓垦API` |
+| Provider Name | `格品API` |
 | API Host | `https://token.gepinapi.com/v1` |
 | API Key | 真实密钥 |
 | Model | `GPT-5.4` |

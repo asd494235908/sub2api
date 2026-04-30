@@ -40,7 +40,7 @@ export default {
     },
     overview: {
       kicker: '概览',
-      title: '为什么企业开发者选择 拓垦API',
+      title: '为什么企业开发者选择 格品API',
       painPoint: '还在为 NAT 网络波动掉线发愁？担心公共代理密钥泄露导致封号？',
       cards: {
         company: {
@@ -66,7 +66,7 @@ export default {
         compatibility: {
           title: '原生 OpenAI 体验，无缝迁移',
           description:
-            '只需将代码中的 api.openai.com 替换为 拓垦API 地址，SDK 基本无需改动即可上线。',
+            '只需将代码中的 api.openai.com 替换为 格品API 地址，SDK 基本无需改动即可上线。',
           points: {
             baseUrl: '替换 Base URL 即可接入，不改调用方式',
             sdk: '兼容 OpenAI 官方请求结构与主流 SDK',
@@ -82,7 +82,7 @@ export default {
       rows: {
         baseUrl: {
           label: 'Base URL 迁移',
-          value: '替换为 拓垦API 服务入口即可'
+          value: '替换为 格品API 服务入口即可'
         },
         sdk: {
           label: 'SDK 改动',
@@ -107,7 +107,7 @@ export default {
       title: '三步开启 AI 生产力',
       subtitle: '原汁原味的 OpenAI 接口体验，几分钟即可完成迁移和联调。',
       demoTitle: '接入示例',
-      demoHint: '将生产代码中的 Base URL 替换为 拓垦API 地址即可。',
+      demoHint: '将生产代码中的 Base URL 替换为 格品API 地址即可。',
       demoComment: '保持官方 OpenAI 请求格式不变，直接发起调用。',
       steps: {
         register: {
@@ -126,6 +126,188 @@ export default {
     },
     footer: {
       allRightsReserved: '保留所有权利。'
+    },
+    landing: {
+      brand: '格品API',
+      logoTagline: '企业级 OpenAI 中转',
+      nav: {
+        home: '首页',
+        pricing: '定价',
+        docs: 'API文档',
+        community: '技术社群'
+      },
+      console: {
+        login: '立即使用',
+        enter: '控制台'
+      },
+      hero: {
+        badge: '稳定 · 安全 · 高效的 OpenAI 中转服务',
+        titlePrefix: '格品API',
+        titleLead: '让 ',
+        titleHighlight: 'AI',
+        titleSuffix: ' 开发更简单',
+        subtitle: '企业级 OpenAI API 中转服务 | 国内极速响应 | 一站式接入',
+        primaryCtaGuest: '立即开始接入',
+        primaryCtaAuthed: '进入控制台',
+        secondaryCta: '查看文档',
+        promoTitle: '开始构建你的 AI 应用',
+        promoSubtitle: '简单几步，快速接入强大的 AI 能力',
+        checks: {
+          availability: '99.9% 可用性',
+          latency: '极速响应 < 200ms',
+          security: '企业级安全防护'
+        },
+        stats: {
+          calls: 'API 调用次数',
+          developers: '开发者信赖',
+          sla: '可用性保障',
+          support: '技术支持'
+        }
+      },
+      overview: {
+        kicker: '为什么选择 格品API',
+        title: '快速、稳定、安全的 AI 接入体验',
+        subtitle: '我们提供稳定、快速、安全的 OpenAI API 中转服务，让业务专注于产品创新。',
+        benefits: {
+          stability: {
+            title: '高速稳定',
+            description: '全链路加速与弹性调度，保障高峰期也能稳定返回。'
+          },
+          security: {
+            title: '企业级安全',
+            description: '全程 TLS 加密与独立通道设计，兼顾安全与合规。'
+          },
+          value: {
+            title: '高性价比',
+            description: '按量与套餐并存，覆盖从试用到生产的大部分场景。'
+          },
+          easy: {
+            title: '简单易用',
+            description: '兼容 OpenAI 接口规范，替换 Base URL 即可接入。'
+          },
+          support: {
+            title: '专业支持',
+            description: '7x24 小时技术支持与维护通知，协助快速排障。'
+          },
+          updates: {
+            title: '持续更新',
+            description: '紧跟 OpenAI 当前最新模型与能力，快速同步可用模型。'
+          }
+        }
+      },
+      platforms: {
+        kicker: '支持的平台',
+        title: '支持的操作系统与设备',
+        subtitle: '支持主流平台，随时随地接入 API',
+        mobile: '移动端',
+        devices: '开发设备'
+      },
+      models: {
+        kicker: '丰富的模型选择',
+        cardTitle: '接入 OpenAI 前沿模型',
+        cardSubtitle: '覆盖当前 API 可用的主流推理、轻量与图像场景。',
+        apiNotice: '最新支持 GPT-5.5，适合复杂推理、编码与专业工作流。',
+        viewAll: '查看所有模型',
+        badges: {
+          latest: '当前最新'
+        },
+        items: {
+          gpt55: 'OpenAI 最新支持模型，适合复杂推理、编码与专业工作流。',
+          gpt54Mini: '更高性价比的轻量版本，适合编码、工具调用与低延迟任务。',
+          gpt54Nano: '面向高频与基础任务的超低成本版本。',
+          gptImage2: 'OpenAI 当前图像生成模型，适合图片生成与编辑场景。'
+        }
+      },
+      pricing: {
+        kicker: '灵活的计费方案',
+        title: '灵活套餐，按需选择',
+        subtitle: '按量计费、轻量订阅与企业级方案都能覆盖。',
+        viewDetails: '查看详细价格',
+        plans: {
+          standard: {
+            plan: '标准套餐',
+            description: '适合个人开发者的轻度项目',
+            badge: '轻量版'
+          },
+          pro: {
+            plan: '专业套餐',
+            description: '适合中型团队和稳定项目',
+            badge: '推荐'
+          },
+          enterprise: {
+            plan: '企业套餐',
+            description: '适合大型企业和定制化需求',
+            badge: '企业版',
+            price: '定制价格'
+          }
+        }
+      },
+      setup: {
+        kicker: '三步快速接入',
+        title: '轻松完成模型接入',
+        subtitle: '简单几步，就能开始使用。',
+        steps: {
+          register: {
+            title: '注册账号',
+            description: '创建账户并获取专属 API Key。'
+          },
+          integrate: {
+            title: '接入 API',
+            description: '替换文档中的接入地址，配置应用即可。'
+          },
+          start: {
+            title: '开始调用',
+            description: '快速调用 API，构建你的 AI 应用。'
+          }
+        }
+      },
+      community: {
+        kicker: '加入开发者社区',
+        title: '社群二维码',
+        lead: '扫码加入 QQ 群或微信',
+        body: '获取接入支持、模型上新通知与问题答疑。',
+        qrLabels: {
+          qq: 'QQ 群',
+          wechat: '微信'
+        },
+        qrAlt: {
+          qq: 'QQ群二维码',
+          wechat: '微信二维码'
+        }
+      },
+      footer: {
+        about: '企业级 OpenAI API 中转服务，让 AI 开发更简单。',
+        follow: '关注我们',
+        copyrightOwner: '成都格品科技有限公司版权所有',
+        columns: {
+          product: {
+            title: '产品',
+            pricing: '定价',
+            docs: 'API 文档',
+            platforms: '支持的平台',
+            changelog: '更新日志'
+          },
+          developer: {
+            title: '开发者',
+            quickstart: '快速开始',
+            sdk: 'SDK & 工具',
+            bestPractices: '最佳实践',
+            status: 'API 状态'
+          },
+          company: {
+            title: '公司',
+            about: '关于我们',
+            contact: '联系我们',
+            terms: '服务条款',
+            privacy: '隐私政策'
+          },
+          support: {
+            title: '支持',
+            help: '帮助中心',
+            community: '技术社群'
+          }
+        }
+      }
     }
   },
 
@@ -201,8 +383,8 @@ export default {
 
   // Setup Wizard
   setup: {
-    title: '拓垦API 安装向导',
-    description: '配置您的 拓垦API 实例',
+    title: '格品API 安装向导',
+    description: '配置您的 格品API 实例',
     database: {
       title: '数据库配置',
       description: '连接到您的 PostgreSQL 数据库',
@@ -4395,7 +4577,7 @@ export default {
       },
       linuxdo: {
         title: 'LinuxDo Connect 登录',
-        description: '配置 LinuxDo Connect OAuth，用于 拓垦API 用户登录',
+        description: '配置 LinuxDo Connect OAuth，用于 格品API 用户登录',
         enable: '启用 LinuxDo 登录',
         enableHint: '在登录/注册页面显示 LinuxDo 登录入口',
         clientId: 'Client ID',
@@ -4459,7 +4641,7 @@ export default {
           '禁用用户注册、公开页面和自助服务功能。仅管理员可以登录和管理平台。',
         siteName: '站点名称',
         siteNameHint: '显示在邮件和页面标题中',
-        siteNamePlaceholder: '拓垦API',
+        siteNamePlaceholder: '格品API',
         siteSubtitle: '站点副标题',
         siteSubtitleHint: '显示在登录和注册页面',
         siteSubtitlePlaceholder: '订阅转 API 转换平台',
@@ -4560,7 +4742,7 @@ export default {
         fromEmail: '发件人邮箱',
         fromEmailPlaceholder: "noreply{'@'}example.com",
         fromName: '发件人名称',
-        fromNamePlaceholder: '拓垦API',
+        fromNamePlaceholder: '格品API',
         useTls: '使用 TLS',
         useTlsHint: '为 SMTP 连接启用 TLS 加密'
       },
@@ -5057,16 +5239,16 @@ export default {
     // Admin tour steps
     admin: {
       welcome: {
-        title: '👋 欢迎使用 拓垦API',
+        title: '👋 欢迎使用 格品API',
         description:
-          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">拓垦API 是一个强大的 AI 服务中转平台，让您轻松管理和分发 AI 服务。</p><p style="margin-bottom: 12px;"><b>🎯 核心功能：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>分组管理</b> - 创建不同的服务套餐（VIP、免费试用等）</li><li>🔗 <b>账号池</b> - 连接多个上游 AI 服务商账号</li><li>🔑 <b>密钥分发</b> - 为用户生成独立的 API Key</li><li>💰 <b>计费管理</b> - 灵活的费率和配额控制</li></ul><p style="color: #10b981; font-weight: 600;">接下来，我们将用 3 分钟带您完成首次配置 →</p></div>',
+          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">格品API 是一个强大的 AI 服务中转平台，让您轻松管理和分发 AI 服务。</p><p style="margin-bottom: 12px;"><b>🎯 核心功能：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>分组管理</b> - 创建不同的服务套餐（VIP、免费试用等）</li><li>🔗 <b>账号池</b> - 连接多个上游 AI 服务商账号</li><li>🔑 <b>密钥分发</b> - 为用户生成独立的 API Key</li><li>💰 <b>计费管理</b> - 灵活的费率和配额控制</li></ul><p style="color: #10b981; font-weight: 600;">接下来，我们将用 3 分钟带您完成首次配置 →</p></div>',
         nextBtn: '开始配置 🚀',
         prevBtn: '跳过'
       },
       groupManage: {
         title: '📦 第一步：分组管理',
         description:
-          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>什么是分组？</b></p><p style="margin-bottom: 12px;">分组是 拓垦API 的核心概念，它就像一个"服务套餐"：</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 每个分组可以包含多个上游账号</li><li>💰 每个分组有独立的计费倍率</li><li>👥 可以设置为公开或专属分组</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 示例：</b>您可以创建"VIP专线"（高倍率）和"免费试用"（低倍率）两个分组</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 点击左侧的"分组管理"开始</p></div>'
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>什么是分组？</b></p><p style="margin-bottom: 12px;">分组是 格品API 的核心概念，它就像一个"服务套餐"：</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 每个分组可以包含多个上游账号</li><li>💰 每个分组有独立的计费倍率</li><li>👥 可以设置为公开或专属分组</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 示例：</b>您可以创建"VIP专线"（高倍率）和"免费试用"（低倍率）两个分组</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 点击左侧的"分组管理"开始</p></div>'
       },
       createGroup: {
         title: '➕ 创建新分组',
@@ -5178,9 +5360,9 @@ export default {
     // User tour steps
     user: {
       welcome: {
-        title: '👋 欢迎使用 拓垦API',
+        title: '👋 欢迎使用 格品API',
         description:
-          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">您好！欢迎来到 拓垦API AI 服务平台。</p><p style="margin-bottom: 12px;"><b>🎯 快速开始：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 创建 API 密钥</li><li>📋 复制密钥到您的应用</li><li>🚀 开始使用 AI 服务</li></ul><p style="color: #10b981; font-weight: 600;">只需 1 分钟，让我们开始吧 →</p></div>',
+          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">您好！欢迎来到 格品API AI 服务平台。</p><p style="margin-bottom: 12px;"><b>🎯 快速开始：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 创建 API 密钥</li><li>📋 复制密钥到您的应用</li><li>🚀 开始使用 AI 服务</li></ul><p style="color: #10b981; font-weight: 600;">只需 1 分钟，让我们开始吧 →</p></div>',
         nextBtn: '开始 🚀',
         prevBtn: '跳过'
       },

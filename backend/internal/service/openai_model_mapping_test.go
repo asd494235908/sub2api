@@ -20,6 +20,15 @@ func TestResolveOpenAIForwardModel(t *testing.T) {
 			expectedModel:      "gpt-4o-mini",
 		},
 		{
+			name: "preserves explicit gpt-5.5 instead of group default",
+			account: &Account{
+				Credentials: map[string]any{},
+			},
+			requestedModel:     "gpt-5.5",
+			defaultMappedModel: "gpt-4o-mini",
+			expectedModel:      "gpt-5.5",
+		},
+		{
 			name: "preserves exact passthrough mapping instead of group default",
 			account: &Account{
 				Credentials: map[string]any{
@@ -87,6 +96,7 @@ func TestResolveOpenAIForwardModel_PreventsClaudeModelFromFallingBackToGpt51(t *
 
 func TestNormalizeCodexModel(t *testing.T) {
 	cases := map[string]string{
+		"gpt-5.5":                   "gpt-5.5",
 		"gpt-5.3-codex-spark":       "gpt-5.3-codex",
 		"gpt-5.3-codex-spark-high":  "gpt-5.3-codex",
 		"gpt-5.3-codex-spark-xhigh": "gpt-5.3-codex",
