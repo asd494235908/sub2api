@@ -1,0 +1,7 @@
+#!/usr/bin/expect -f
+set timeout 30
+spawn ssh -f -N -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ExitOnForwardFailure=yes -L 15432:127.0.0.1:5432 -L 16379:127.0.0.1:6379 root@101.96.208.132
+expect {
+  "*assword:" { send "Gepinkeji888\r" }
+  eof
+}
