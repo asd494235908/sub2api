@@ -17,6 +17,23 @@ export interface AffiliateAdminEntry {
   aff_count: number
 }
 
+export interface AffiliateInviterEntry {
+  user_id: number
+  email: string
+  username: string
+  aff_code: string
+  aff_count: number
+  total_rebate: number
+}
+
+export interface AffiliateInvitee {
+  user_id: number
+  email: string
+  username: string
+  created_at?: string
+  total_rebate: number
+}
+
 export interface ListAffiliateUsersParams {
   page?: number
   page_size?: number
@@ -28,6 +45,12 @@ export interface UpdateAffiliateUserRequest {
   aff_rebate_rate_percent?: number | null
   /** Set true to explicitly clear the per-user rate (sets it to NULL). */
   clear_rebate_rate?: boolean
+}
+
+export interface ListAffiliateInvitersParams {
+  page?: number
+  page_size?: number
+  search?: string
 }
 
 export interface BatchSetRateRequest {
@@ -67,6 +90,29 @@ export async function lookupUsers(q: string): Promise<SimpleUser[]> {
   return data
 }
 
+export async function listInviters(
+  params: ListAffiliateInvitersParams = {},
+): Promise<PaginatedResponse<AffiliateInviterEntry>> {
+  const { data } = await apiClient.get<PaginatedResponse<AffiliateInviterEntry>>(
+    '/admin/affiliates/inviters',
+    {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? 20,
+        search: params.search ?? '',
+      },
+    },
+  )
+  return data
+}
+
+export async function listInviterInvitees(userId: number): Promise<AffiliateInvitee[]> {
+  const { data } = await apiClient.get<AffiliateInvitee[]>(
+    `/admin/affiliates/inviters/${userId}/invitees`,
+  )
+  return data
+}
+
 export async function updateUserSettings(
   userId: number,
   payload: UpdateAffiliateUserRequest,
@@ -99,6 +145,8 @@ export async function batchSetRate(
 
 export const affiliatesAPI = {
   listUsers,
+  listInviters,
+  listInviterInvitees,
   lookupUsers,
   updateUserSettings,
   clearUserSettings,

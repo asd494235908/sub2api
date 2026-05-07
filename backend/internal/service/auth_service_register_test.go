@@ -216,6 +216,44 @@ func newAuthService(repo *userRepoStub, settings map[string]string, emailCache E
 	)
 }
 
+func newAuthServiceWithAffiliate(repo *userRepoStub, settings map[string]string, emailCache EmailCache, affiliateService *AffiliateService) *AuthService {
+	cfg := &config.Config{
+		JWT: config.JWTConfig{
+			Secret:     "test-secret",
+			ExpireHour: 1,
+		},
+		Default: config.DefaultConfig{
+			UserBalance:     3.5,
+			UserConcurrency: 2,
+		},
+	}
+
+	var settingService *SettingService
+	if settings != nil {
+		settingService = NewSettingService(&settingRepoStub{values: settings}, cfg)
+	}
+
+	var emailService *EmailService
+	if emailCache != nil {
+		emailService = NewEmailService(&settingRepoStub{values: settings}, emailCache)
+	}
+
+	return NewAuthService(
+		nil,
+		repo,
+		nil,
+		nil,
+		cfg,
+		settingService,
+		emailService,
+		nil,
+		nil,
+		nil,
+		nil,
+		affiliateService,
+	)
+}
+
 func TestAuthService_Register_Disabled(t *testing.T) {
 	repo := &userRepoStub{}
 	service := newAuthService(repo, map[string]string{
@@ -333,6 +371,37 @@ func TestAuthService_Register_EmailSuffixAllowed(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, user)
 	require.Equal(t, int64(8), user.ID)
+}
+
+func TestAuthService_Register_AppliesAffiliateSignupBonus(t *testing.T) {
+	repo := &userRepoStub{nextID: 101}
+	inviterID := int64(55)
+	affiliateRepo := &affiliateRepoStub{
+		summaries: map[int64]*AffiliateSummary{
+			inviterID: {UserID: inviterID, AffCode: "INVITER001"},
+		},
+		signupBonusApplied: true,
+		signupBonusBalance: 88.8,
+	}
+	affiliateService := &AffiliateService{
+		repo: affiliateRepo,
+		settingService: NewSettingService(&settingRepoStub{values: map[string]string{
+			SettingKeyAffiliateEnabled:             "true",
+			SettingKeyAffiliateSignupRewardEnabled: "true",
+			SettingKeyAffiliateSignupRewardAmount:  "9.9",
+		}}, nil),
+	}
+	service := newAuthServiceWithAffiliate(repo, map[string]string{
+		SettingKeyRegistrationEnabled: "true",
+	}, nil, affiliateService)
+
+	_, user, err := service.RegisterWithVerification(context.Background(), "signup-bonus@test.com", "password", "", "", "", "INVITER001")
+	require.NoError(t, err)
+	require.NotNil(t, user)
+	require.Len(t, affiliateRepo.signupBonusCalls, 1)
+	require.Equal(t, inviterID, affiliateRepo.signupBonusCalls[0].inviterID)
+	require.Equal(t, user.ID, affiliateRepo.signupBonusCalls[0].inviteeUserID)
+	require.InDelta(t, 9.9, affiliateRepo.signupBonusCalls[0].amount, 1e-9)
 }
 
 func TestAuthService_SendVerifyCode_EmailSuffixNotAllowed(t *testing.T) {

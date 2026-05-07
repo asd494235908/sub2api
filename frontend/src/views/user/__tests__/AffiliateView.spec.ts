@@ -61,6 +61,12 @@ vi.mock('vue-i18n', async () => {
   const messages: Record<string, string> = {
     'affiliate.title': '邀请返利',
     'affiliate.description': '邀请返利说明',
+    'affiliate.stats.rebateRate': '返利比例',
+    'affiliate.stats.rebateRateHint': '返利比例说明',
+    'affiliate.stats.invitedUsers': '邀请人数',
+    'affiliate.stats.availableQuota': '可转余额',
+    'affiliate.stats.totalQuota': '累计返利',
+    'affiliate.stats.frozenQuota': '冻结中',
     'affiliate.yourCode': '我的邀请码',
     'affiliate.copyCode': '复制邀请码',
     'affiliate.inviteLink': '邀请链接',
@@ -69,6 +75,7 @@ vi.mock('vue-i18n', async () => {
     'affiliate.tips.line1': 'line1',
     'affiliate.tips.line2': 'line2',
     'affiliate.tips.line3': 'line3',
+    'affiliate.tips.line4': 'line4',
     'affiliate.invitees.title': '已邀请用户',
     'affiliate.invitees.empty': '暂无邀请记录',
     'affiliate.invitees.columns.email': '邮箱',
@@ -76,6 +83,11 @@ vi.mock('vue-i18n', async () => {
     'affiliate.invitees.columns.rebate': '返利',
     'affiliate.invitees.columns.joinedAt': '加入时间',
     'affiliate.transfer.title': '返利转余额',
+    'affiliate.transfer.description': '将可转返利转入余额',
+    'affiliate.transfer.button': '转入余额',
+    'affiliate.transfer.transferring': '转入中',
+    'affiliate.transfer.success': '已转入 {amount}',
+    'affiliate.transfer.empty': '暂无可转返利',
   }
 
   return {
@@ -120,7 +132,7 @@ describe('AffiliateView', () => {
     getAffiliateDetailMock.mockResolvedValue(createAffiliateDetail())
   })
 
-  it('shows only the affiliate and invitees cards', async () => {
+  it('restores the affiliate stats, guidance, and transfer cards', async () => {
     const wrapper = mount(AffiliateView, {
       global: {
         stubs: {
@@ -132,12 +144,18 @@ describe('AffiliateView', () => {
 
     await flushPromises()
 
-    expect(wrapper.findAll('.card')).toHaveLength(2)
+    expect(wrapper.findAll('.card')).toHaveLength(7)
     expect(wrapper.text()).toContain('邀请返利')
     expect(wrapper.text()).toContain('已邀请用户')
+    expect(wrapper.text()).toContain('返利比例')
+    expect(wrapper.text()).toContain('12.5')
+    expect(wrapper.text()).toContain('邀请人数')
+    expect(wrapper.text()).toContain('可转余额')
+    expect(wrapper.text()).toContain('累计返利')
     expect(wrapper.text()).toContain('line1')
+    expect(wrapper.text()).toContain('line2')
     expect(wrapper.text()).toContain('line3')
-    expect(wrapper.text()).not.toContain('line2')
-    expect(wrapper.text()).not.toContain('返利转余额')
+    expect(wrapper.text()).toContain('返利转余额')
+    expect(wrapper.text()).toContain('转入余额')
   })
 })

@@ -189,6 +189,8 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		AffiliateRebateFreezeHours:             settings.AffiliateRebateFreezeHours,
 		AffiliateRebateDurationDays:            settings.AffiliateRebateDurationDays,
 		AffiliateRebatePerInviteeCap:           settings.AffiliateRebatePerInviteeCap,
+		AffiliateSignupRewardEnabled:           settings.AffiliateSignupRewardEnabled,
+		AffiliateSignupRewardAmount:            settings.AffiliateSignupRewardAmount,
 		DefaultUserRPMLimit:                    settings.DefaultUserRPMLimit,
 		DefaultSubscriptions:                   defaultSubscriptions,
 		EnableModelFallback:                    settings.EnableModelFallback,
@@ -390,6 +392,8 @@ type UpdateSettingsRequest struct {
 	AffiliateRebateFreezeHours               *int                              `json:"affiliate_rebate_freeze_hours"`
 	AffiliateRebateDurationDays              *int                              `json:"affiliate_rebate_duration_days"`
 	AffiliateRebatePerInviteeCap             *float64                          `json:"affiliate_rebate_per_invitee_cap"`
+	AffiliateSignupRewardEnabled             *bool                             `json:"affiliate_signup_reward_enabled"`
+	AffiliateSignupRewardAmount              *float64                          `json:"affiliate_signup_reward_amount"`
 	DefaultUserRPMLimit                      int                               `json:"default_user_rpm_limit"`
 	DefaultSubscriptions                     []dto.DefaultSubscriptionSetting  `json:"default_subscriptions"`
 	AuthSourceDefaultEmailBalance            *float64                          `json:"auth_source_default_email_balance"`
@@ -562,6 +566,17 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	}
 	if affiliateRebatePerInviteeCap < 0 {
 		affiliateRebatePerInviteeCap = service.AffiliateRebatePerInviteeCapDefault
+	}
+	affiliateSignupRewardEnabled := previousSettings.AffiliateSignupRewardEnabled
+	if req.AffiliateSignupRewardEnabled != nil {
+		affiliateSignupRewardEnabled = *req.AffiliateSignupRewardEnabled
+	}
+	affiliateSignupRewardAmount := previousSettings.AffiliateSignupRewardAmount
+	if req.AffiliateSignupRewardAmount != nil {
+		affiliateSignupRewardAmount = *req.AffiliateSignupRewardAmount
+	}
+	if affiliateSignupRewardAmount < 0 {
+		affiliateSignupRewardAmount = service.AffiliateSignupRewardAmountDefault
 	}
 	// 通用表格配置：兼容旧客户端未传字段时保留当前值。
 	if req.TableDefaultPageSize <= 0 {
@@ -1218,6 +1233,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		AffiliateRebateFreezeHours:       affiliateRebateFreezeHours,
 		AffiliateRebateDurationDays:      affiliateRebateDurationDays,
 		AffiliateRebatePerInviteeCap:     affiliateRebatePerInviteeCap,
+		AffiliateSignupRewardEnabled:     affiliateSignupRewardEnabled,
+		AffiliateSignupRewardAmount:      affiliateSignupRewardAmount,
 		DefaultUserRPMLimit:              req.DefaultUserRPMLimit,
 		DefaultSubscriptions:             defaultSubscriptions,
 		EnableModelFallback:              req.EnableModelFallback,
@@ -1550,6 +1567,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		AffiliateRebateFreezeHours:             updatedSettings.AffiliateRebateFreezeHours,
 		AffiliateRebateDurationDays:            updatedSettings.AffiliateRebateDurationDays,
 		AffiliateRebatePerInviteeCap:           updatedSettings.AffiliateRebatePerInviteeCap,
+		AffiliateSignupRewardEnabled:           updatedSettings.AffiliateSignupRewardEnabled,
+		AffiliateSignupRewardAmount:            updatedSettings.AffiliateSignupRewardAmount,
 		DefaultUserRPMLimit:                    updatedSettings.DefaultUserRPMLimit,
 		DefaultSubscriptions:                   updatedDefaultSubscriptions,
 		EnableModelFallback:                    updatedSettings.EnableModelFallback,
@@ -1873,6 +1892,12 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.AffiliateRebatePerInviteeCap != after.AffiliateRebatePerInviteeCap {
 		changed = append(changed, "affiliate_rebate_per_invitee_cap")
+	}
+	if before.AffiliateSignupRewardEnabled != after.AffiliateSignupRewardEnabled {
+		changed = append(changed, "affiliate_signup_reward_enabled")
+	}
+	if before.AffiliateSignupRewardAmount != after.AffiliateSignupRewardAmount {
+		changed = append(changed, "affiliate_signup_reward_amount")
 	}
 	if !equalDefaultSubscriptions(before.DefaultSubscriptions, after.DefaultSubscriptions) {
 		changed = append(changed, "default_subscriptions")

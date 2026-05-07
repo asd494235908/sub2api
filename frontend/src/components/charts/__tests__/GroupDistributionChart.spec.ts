@@ -41,6 +41,7 @@ describe('GroupDistributionChart', () => {
       requests: 9,
       total_tokens: 1200,
       cost: 1.8,
+      account_cost: 0.4,
       actual_cost: 0.1,
     },
     {
@@ -49,6 +50,7 @@ describe('GroupDistributionChart', () => {
       requests: 4,
       total_tokens: 600,
       cost: 0.7,
+      account_cost: 0.2,
       actual_cost: 0.9,
     },
   ]
@@ -109,6 +111,6 @@ describe('GroupDistributionChart', () => {
       raw: 0.9,
       dataset: { data: [0.9, 0.1] },
     })
-    expect(label).toBe('group-b: $0.900 (90.0%)')
+    expect(label).toBe('group-b: ¥0.900 (90.0%)')
   })
 })

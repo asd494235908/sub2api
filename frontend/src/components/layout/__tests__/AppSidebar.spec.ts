@@ -30,3 +30,10 @@ describe('AppSidebar header styles', () => {
     expect(sidebarBrandBlockMatch?.[0]).not.toContain('overflow: hidden;')
   })
 })
+
+describe('AppSidebar admin affiliate navigation', () => {
+  it('includes a dedicated admin affiliates entry', () => {
+    expect(componentSource).toContain("{ path: '/admin/affiliates'")
+    expect(componentSource).toContain("label: t('nav.adminAffiliateRelations')")
+  })
+})

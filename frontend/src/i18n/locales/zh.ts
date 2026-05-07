@@ -10,103 +10,384 @@ export default {
     login: '登录',
     getStarted: '立即开始',
     goToDashboard: '进入控制台',
-    // 新增：面向用户的价值主张
-    heroSubtitle: '一个密钥，畅用多个 AI 模型',
-    heroDescription: '无需管理多个订阅账号，一站式接入 Claude、GPT、Gemini 等主流 AI 服务',
-    tags: {
-      subscriptionToApi: '订阅转 API',
-      stickySession: '会话保持',
-      realtimeBilling: '按量计费'
+    companySlogan: '自营私有代理网络 · 国内快速接入 · 零代码 3 分钟接入',
+    nav: {
+      overview: '概览',
+      compatibility: '兼容说明',
+      integration: '接入演示'
     },
-    // 用户痛点区块
-    painPoints: {
-      title: '你是否也遇到这些问题？',
-      items: {
-        expensive: {
-          title: '订阅费用高',
-          desc: '每个 AI 服务都要单独订阅，每月支出越来越多'
+    hero: {
+      badge: 'OpenAI 企业中转服务',
+      title: '{brand} - 企业级 OpenAI 官方接口中转服务',
+      subtitle: '自营私有代理网络 · 国内快速接入 · 零代码 3 分钟接入',
+      description: '面向企业开发团队提供稳定、合规、可持续的 OpenAI 官方接口中转能力，帮助业务快速进入生产环境。',
+      secondaryCta: '查看接入文档',
+      summaryTitle: '概览',
+      summaryItems: {
+        relay: '企业运营的私有中转服务，适合生产环境长期使用',
+        compatibility: '兼容 OpenAI 官方请求格式，保留原有开发习惯',
+        integration: '替换 Base URL 即可接入，现有 SDK 调用流程基本无需修改'
+      },
+      codeTitle: '快速接入示例',
+      endpointTitle: '服务入口',
+      endpointValue: 'https://token.gepinapi.com/v1',
+      noticeTitle: '生产说明',
+      noticeItems: {
+        sla: '提供 99.9% SLA 在线承诺',
+        privacy: '请求链路加密传输，不记录 Prompt 明文内容',
+        procurement: '支持企业发票与服务合同流程'
+      }
+    },
+    overview: {
+      kicker: '概览',
+      title: '为什么企业开发者选择 GPTK',
+      painPoint: '还在为 NAT 网络波动掉线发愁？担心公共代理密钥泄露导致封号？',
+      cards: {
+        company: {
+          title: '公司正规运营，服务长久稳定',
+          description:
+            '{companyName} 为正规技术业务，支持企业增值税发票与服务合同，提供 99.9% SLA 在线承诺。',
+          points: {
+            invoice: '支持企业增值税发票与对公流程',
+            contract: '支持签订服务合同，便于采购合规',
+            sla: 'API 供应稳定，面向长期业务持续运营'
+          }
         },
-        complex: {
-          title: '多账号难管理',
-          desc: '不同平台的账号、密钥分散各处，管理起来很麻烦'
+        network: {
+          title: '私有代理网络，快且安全',
+          description:
+            '采用企业级私有代理网络与稳定国际线路，兼顾访问速度、可用性与数据安全。',
+          points: {
+            speed: '国内快速接入，流式响应更加顺滑',
+            privacy: '请求数据加密过境，不记录 Prompt 明文内容',
+            stability: '降低共享代理带来的抖动、泄露与封禁风险'
+          }
         },
-        unstable: {
-          title: '服务不稳定',
-          desc: '单一账号容易触发限制，影响正常使用'
-        },
-        noControl: {
-          title: '用量无法控制',
-          desc: '不知道钱花在哪了，也无法限制团队成员的使用'
+        compatibility: {
+          title: '原生 OpenAI 体验，无缝迁移',
+          description:
+            '只需将代码中的 api.openai.com 替换为 GPTK 地址，SDK 基本无需改动即可上线。',
+          points: {
+            baseUrl: '替换 Base URL 即可接入，不改调用方式',
+            sdk: '兼容 OpenAI 官方请求结构与主流 SDK',
+            models: '支持 GPT-4o、o1、DALL·E、Whisper 与 Assistants API 等能力'
+          }
         }
       }
     },
-    // 解决方案区块
-    solutions: {
-      title: '我们帮你解决',
-      subtitle: '简单三步，开始省心使用 AI'
-    },
-    features: {
-      unifiedGateway: '一键接入',
-      unifiedGatewayDesc: '获取一个 API 密钥，即可调用所有已接入的 AI 模型，无需分别申请。',
-      multiAccount: '稳定可靠',
-      multiAccountDesc: '智能调度多个上游账号，自动切换和负载均衡，告别频繁报错。',
-      balanceQuota: '用多少付多少',
-      balanceQuotaDesc: '按实际使用量计费，支持设置配额上限，团队用量一目了然。'
-    },
-    // 优势对比
-    comparison: {
-      title: '为什么选择我们？',
-      headers: {
-        feature: '对比项',
-        official: '官方订阅',
-        us: '本平台'
-      },
-      items: {
-        pricing: {
-          feature: '付费方式',
-          official: '固定月费，用不完也付',
-          us: '按量付费，用多少付多少'
+    compatibility: {
+      kicker: '兼容说明',
+      title: '接入兼容矩阵',
+      description: '以生产环境迁移为目标整理的兼容能力说明，帮助团队快速完成联调与上线。',
+      rows: {
+        baseUrl: {
+          label: 'Base URL 迁移',
+          value: '替换为 GPTK 服务入口即可'
+        },
+        sdk: {
+          label: 'SDK 改动',
+          value: '大多数场景下无需修改调用逻辑'
+        },
+        auth: {
+          label: '认证方式',
+          value: 'Bearer API Key'
+        },
+        format: {
+          label: '请求格式',
+          value: '兼容 OpenAI 官方请求结构'
         },
         models: {
-          feature: '模型选择',
-          official: '单一服务商',
-          us: '多模型随意切换'
-        },
-        management: {
-          feature: '账号管理',
-          official: '每个服务单独管理',
-          us: '统一密钥，一站管理'
-        },
-        stability: {
-          feature: '服务稳定性',
-          official: '单账号易触发限制',
-          us: '多账号池，自动切换'
-        },
-        control: {
-          feature: '用量控制',
-          official: '无法限制',
-          us: '可设配额、查明细'
+          label: '支持能力',
+          value: 'GPT-4o、o1、DALL·E、Whisper、Assistants API'
         }
       }
     },
-    providers: {
-      title: '已支持的 AI 模型',
-      description: '一个 API，多种选择',
-      supported: '已支持',
-      soon: '即将推出',
-      claude: 'Claude',
-      gemini: 'Gemini',
-      antigravity: 'Antigravity',
-      more: '更多'
-    },
-    // CTA 区块
-    cta: {
-      title: '准备好开始了吗？',
-      description: '注册即可获得免费试用额度，体验一站式 AI 服务',
-      button: '免费注册'
+    integration: {
+      kicker: '极简接入演示',
+      title: '三步开启 AI 生产力',
+      subtitle: '原汁原味的 OpenAI 接口体验，几分钟即可完成迁移和联调。',
+      demoTitle: '接入示例',
+      demoHint: '将生产代码中的 Base URL 替换为 GPTK 地址即可。',
+      demoComment: '保持官方 OpenAI 请求格式不变，直接发起调用。',
+      steps: {
+        register: {
+          title: '注册获取密钥',
+          description: '填写手机号完成企业或个人认证，快速开通专属访问密钥。'
+        },
+        baseUrl: {
+          title: '修改 Base URL',
+          description: '将请求地址替换为 https://token.gepinapi.com/v1，原有 SDK 调用逻辑保持不变。'
+        },
+        request: {
+          title: '发起请求',
+          description: '继续使用熟悉的 Chat Completions 等接口，原汁原味的体验瞬间抵达。'
+        }
+      }
     },
     footer: {
       allRightsReserved: '保留所有权利。'
+    },
+    landing: {
+      brand: 'GPTK',
+      logoTagline: '企业级 OpenAI 中转',
+      nav: {
+        home: '首页',
+        pricing: '定价',
+        docs: 'API文档',
+        community: '技术社群'
+      },
+      console: {
+        login: '立即使用',
+        enter: '控制台'
+      },
+      hero: {
+        badge: '稳定 · 安全 · 高效的 OpenAI 中转服务',
+        titlePrefix: 'GPTK',
+        titleLead: '让 ',
+        titleHighlight: 'AI',
+        titleSuffix: ' 开发更简单',
+        subtitle: '企业级 OpenAI API 中转服务 | 国内极速响应 | 一站式接入',
+        primaryCtaGuest: '立即开始接入',
+        primaryCtaAuthed: '进入控制台',
+        secondaryCta: '查看文档',
+        promoTitle: '开始构建你的 AI 应用',
+        promoSubtitle: '简单几步，快速接入强大的 AI 能力',
+        placeholder: {
+          badge: '主视觉占位',
+          title: '官网主视觉图片预留',
+          description: '这里预留首页大图、产品演示图或关键视觉素材区域，当前先用统一高级占位样式承接整体版面节奏。',
+          footer: '等待替换正式图片'
+        },
+        checks: {
+          availability: '99.9% 可用性',
+          latency: '极速响应 < 200ms',
+          security: '企业级安全防护'
+        },
+        stats: {
+          calls: 'API 调用次数',
+          developers: '开发者信赖',
+          sla: '可用性保障',
+          support: '技术支持'
+        }
+      },
+      overview: {
+        kicker: '为什么选择 GPTK',
+        title: '快速、稳定、安全的 AI 接入体验',
+        subtitle: '我们提供稳定、快速、安全的 OpenAI API 中转服务，让业务专注于产品创新。',
+        benefits: {
+          stability: {
+            title: '高速稳定',
+            description: '全链路加速与弹性调度，保障高峰期也能稳定返回。'
+          },
+          security: {
+            title: '企业级安全',
+            description: '全程 TLS 加密与独立通道设计，兼顾安全与合规。'
+          },
+          value: {
+            title: '高性价比',
+            description: '按量与套餐并存，覆盖从试用到生产的大部分场景。'
+          },
+          easy: {
+            title: '简单易用',
+            description: '兼容 OpenAI 接口规范，替换 Base URL 即可接入。'
+          },
+          support: {
+            title: '专业支持',
+            description: '7x24 小时技术支持与维护通知，协助快速排障。'
+          },
+          updates: {
+            title: '持续更新',
+            description: '紧跟 OpenAI 当前最新模型与能力，快速同步可用模型。'
+          }
+        }
+      },
+      products: {
+        kicker: '核心能力矩阵',
+        title: '一套入口，承接你的 AI 业务增长',
+        subtitle: '从接入、路由到交付与安全，围绕真实生产环境设计，适合个人开发者、创业团队与企业项目逐步扩展。',
+        cards: {
+          infrastructure: {
+            title: '统一模型接入',
+            description: '集中承接多模型能力，让团队用一致方式访问推理、图像与扩展能力。'
+          },
+          integration: {
+            title: '低成本迁移上线',
+            description: '沿用熟悉的 OpenAI 请求方式，把改造成本降到更低，快速完成联调与交付。'
+          },
+          delivery: {
+            title: '国内快速交付',
+            description: '面向国内开发环境优化访问体验，减少因网络抖动带来的调试与交付成本。'
+          },
+          security: {
+            title: '安全与可控',
+            description: '通过独立通道、加密链路和稳定服务策略，支撑更可控的生产运行。'
+          }
+        }
+      },
+      platforms: {
+        kicker: '支持的平台',
+        title: '支持的操作系统与设备',
+        subtitle: '支持主流平台，随时随地接入 API',
+        mobile: '移动端',
+        devices: '开发设备'
+      },
+      models: {
+        kicker: '丰富的模型选择',
+        cardTitle: '接入 OpenAI 前沿模型',
+        cardSubtitle: '覆盖当前 API 可用的主流推理、轻量与图像场景。',
+        apiNotice: '最新支持 GPT-5.5，适合复杂推理、编码与专业工作流。',
+        viewAll: '查看所有模型',
+        badges: {
+          latest: '当前最新'
+        },
+        items: {
+          gpt55: 'OpenAI 最新支持模型，适合复杂推理、编码与专业工作流。',
+          gpt54Mini: '更高性价比的轻量版本，适合编码、工具调用与低延迟任务。',
+          gpt54Nano: '面向高频与基础任务的超低成本版本。',
+          gptImage2: 'OpenAI 当前图像生成模型，适合图片生成与编辑场景。'
+        }
+      },
+      showcase: {
+        kicker: '信任与案例展示',
+        title: '从接入效率到稳定运行，都更贴近生产需求',
+        subtitle: '新版官网保留真实业务表达，用更现代的展示方式承接你的平台优势、客户感知与后续案例内容。',
+        stats: {
+          developers: '开发者信赖',
+          sla: '服务可用性',
+          support: '支持响应'
+        },
+        quotes: {
+          team: {
+            quote: '接入方式几乎不用重写，团队把更多时间放在产品功能上，而不是处理兼容和网络问题。',
+            author: '产品团队反馈',
+            role: '企业接入场景'
+          },
+          engineer: {
+            quote: '从测试到上线节奏更顺，接口稳定之后，前后端协作成本明显下降。',
+            author: '研发视角',
+            role: '工程实践体验'
+          },
+          ops: {
+            quote: '对我们来说，更重要的是稳定与支持响应速度，这也是长期使用的基础。',
+            author: '运维协作反馈',
+            role: '生产可用性关注'
+          }
+        }
+      },
+      cta: {
+        badge: '立即开始，快速接入',
+        title: '准备好把你的 AI 应用更快推向生产了吗？',
+        subtitle: '沿用熟悉的调用方式，保留现有开发习惯，用更稳定的链路支撑接入、测试、上线和长期维护。',
+        trust: {
+          freeTrial: '支持试用与快速体验',
+          noCard: '无需复杂迁移流程',
+          fastSupport: '技术支持响应更直接'
+        }
+      },
+      pricing: {
+        kicker: '灵活的计费方案',
+        title: '灵活套餐，按需选择',
+        subtitle: '按量计费、轻量订阅与企业级方案都能覆盖。',
+        viewDetails: '查看详细价格',
+        plans: {
+          standard: {
+            plan: '标准套餐',
+            description: '适合个人开发者的轻度项目',
+            badge: '轻量版'
+          },
+          pro: {
+            plan: '专业套餐',
+            description: '适合中型团队和稳定项目',
+            badge: '推荐'
+          },
+          enterprise: {
+            plan: '企业套餐',
+            description: '适合大型企业和定制化需求',
+            badge: '企业版',
+            price: '定制价格'
+          }
+        }
+      },
+      setup: {
+        kicker: '三步快速接入',
+        title: '轻松完成模型接入',
+        subtitle: '简单几步，就能开始使用。',
+        steps: {
+          register: {
+            title: '注册账号',
+            description: '创建账户并获取专属 API Key。'
+          },
+          integrate: {
+            title: '接入 API',
+            description: '替换文档中的接入地址，配置应用即可。'
+          },
+          start: {
+            title: '开始调用',
+            description: '快速调用 API，构建你的 AI 应用。'
+          }
+        }
+      },
+      community: {
+        kicker: '加入开发者社区',
+        title: '社群二维码',
+        lead: '扫码加入 QQ 群或微信',
+        body: '获取接入支持、模型上新通知与问题答疑。',
+        qrLabels: {
+          qq: 'QQ 群',
+          wechat: '微信'
+        },
+        qrAlt: {
+          qq: 'QQ群二维码',
+          wechat: '微信二维码'
+        }
+      },
+      placeholders: {
+        visual: {
+          badge: '视觉展示区',
+          title: '平台演示、架构图或关键产品截图预留',
+          description: '该区域将用于承接官网大图、产品演示、客户案例图或关键卖点视觉化内容，当前以统一占位样式保持整体版面完整。',
+          footer: '图片资源待替换'
+        },
+        caseStudy: {
+          badge: '案例展示区',
+          title: '客户案例、产品演示或合作展示预留',
+          description: '这里可在后续替换为平台截图、典型场景演示、客户墙或合作伙伴展示模块。',
+          footer: '预留后续内容扩展'
+        }
+      },
+      footer: {
+        about: '企业级 OpenAI API 中转服务，让 AI 开发更简单。',
+        follow: '关注我们',
+        copyrightOwner: '成都格品科技有限公司版权所有',
+        columns: {
+          product: {
+            title: '产品',
+            pricing: '定价',
+            docs: 'API 文档',
+            platforms: '支持的平台',
+            changelog: '更新日志'
+          },
+          developer: {
+            title: '开发者',
+            quickstart: '快速开始',
+            sdk: 'SDK & 工具',
+            bestPractices: '最佳实践',
+            status: 'API 状态'
+          },
+          company: {
+            title: '公司',
+            about: '关于我们',
+            contact: '联系我们',
+            terms: '服务条款',
+            privacy: '隐私政策'
+          },
+          support: {
+            title: '支持',
+            help: '帮助中心',
+            community: '技术社群'
+          }
+        }
+      }
     }
   },
 
@@ -182,8 +463,8 @@ export default {
 
   // Setup Wizard
   setup: {
-    title: 'Sub2API 安装向导',
-    description: '配置您的 Sub2API 实例',
+    title: 'GPTK 安装向导',
+    description: '配置您的GPTK实例',
     database: {
       title: '数据库配置',
       description: '连接到您的 PostgreSQL 数据库',
@@ -355,6 +636,7 @@ export default {
     subscriptions: '订阅管理',
     accounts: '账号管理',
     proxies: 'IP管理',
+    adminAffiliateRelations: '邀请关系',
     redeemCodes: '兑换码',
     ops: '运维监控',
     promoCodes: '优惠码',
@@ -4073,6 +4355,32 @@ export default {
       failedToLoadUsages: '加载使用记录失败'
     },
 
+    affiliates: {
+      title: '邀请关系',
+      description: '查看所有邀请人的邀请关系与返利明细',
+      searchPlaceholder: '搜索邀请人邮箱或用户名',
+      empty: '暂无邀请关系数据',
+      viewInvitees: '查看邀请用户',
+      totalLabel: '共 {total} 条',
+      inviteesTitle: '{email} 邀请的用户',
+      inviteesDescription: '展示该邀请人当前关联的被邀请用户明细。',
+      inviteesEmpty: '该邀请人暂无可展示的邀请用户',
+      col: {
+        email: '邀请人邮箱',
+        username: '邀请人用户名',
+        code: '邀请码',
+        invitedCount: '邀请人数',
+        totalRebate: '累计返利',
+        actions: '操作',
+      },
+      inviteesCol: {
+        email: '被邀请用户邮箱',
+        username: '被邀请用户名',
+        joinedAt: '加入时间',
+        totalRebate: '累计返利',
+      },
+    },
+
     // Usage Records
     usage: {
       title: '使用记录',
@@ -4981,6 +5289,35 @@ export default {
           durationDaysDesc: '被邀请用户注册后多少天内的充值产生返利。0 = 永久有效。',
           perInviteeCap: '单人返利上限',
           perInviteeCapDesc: '每个被邀请用户最多产生的返利总额。0 = 无上限。',
+          signupRewardEnabled: '启用注册成功奖励',
+          signupRewardEnabledHint: '被邀请用户首次注册成功后，直接给邀请人账户余额增加一笔固定奖励。',
+          signupRewardAmount: '注册奖励金额',
+          signupRewardAmountDesc: '奖励会直接进入邀请人余额，并计入历史返利；0 = 不发放。',
+          inviterRelations: {
+            title: '邀请关系查看',
+            description: '查看所有有邀请记录的用户，以及他们邀请了哪些人。',
+            searchPlaceholder: '搜索邀请人邮箱或用户名',
+            empty: '暂无邀请关系数据',
+            viewInvitees: '查看邀请用户',
+            totalLabel: '共 {total} 条',
+            inviteesTitle: '{email} 邀请的用户',
+            inviteesDescription: '展示该邀请人当前关联的被邀请用户明细。',
+            inviteesEmpty: '该邀请人暂无可展示的邀请用户',
+            col: {
+              email: '邀请人邮箱',
+              username: '邀请人用户名',
+              code: '邀请码',
+              invitedCount: '邀请人数',
+              totalRebate: '累计返利',
+              actions: '操作',
+            },
+            inviteesCol: {
+              email: '被邀请用户邮箱',
+              username: '被邀请用户名',
+              joinedAt: '加入时间',
+              totalRebate: '累计返利',
+            },
+          },
           customUsers: {
             title: '专属用户配置',
             description: '为指定用户设置专属邀请码或专属返利比例。仅展示已设置过专属配置的用户。',
@@ -5066,7 +5403,7 @@ export default {
       },
       linuxdo: {
         title: 'LinuxDo Connect 登录',
-        description: '配置 LinuxDo Connect OAuth，用于 Sub2API 用户登录',
+        description: '配置 LinuxDo Connect OAuth，用于GPTK用户登录',
         enable: '启用 LinuxDo 登录',
         enableHint: '在登录/注册页面显示 LinuxDo 登录入口',
         clientId: 'Client ID',
@@ -5221,7 +5558,7 @@ export default {
           '禁用用户注册、公开页面和自助服务功能。仅管理员可以登录和管理平台。',
         siteName: '站点名称',
         siteNameHint: '显示在邮件和页面标题中',
-        siteNamePlaceholder: 'Sub2API',
+        siteNamePlaceholder: 'GPTK',
         siteSubtitle: '站点副标题',
         siteSubtitleHint: '显示在登录和注册页面',
         siteSubtitlePlaceholder: '订阅转 API 转换平台',
@@ -5491,7 +5828,7 @@ export default {
         fromEmail: '发件人邮箱',
         fromEmailPlaceholder: "noreply{'@'}example.com",
         fromName: '发件人名称',
-        fromNamePlaceholder: 'Sub2API',
+        fromNamePlaceholder: 'GPTK',
         useTls: '使用 TLS',
         useTlsHint: '为 SMTP 连接启用 TLS 加密'
       },
@@ -6086,16 +6423,16 @@ export default {
     // Admin tour steps
     admin: {
       welcome: {
-        title: '👋 欢迎使用 Sub2API',
+        title: '👋 欢迎使用GPTK',
         description:
-          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Sub2API 是一个强大的 AI 服务中转平台，让您轻松管理和分发 AI 服务。</p><p style="margin-bottom: 12px;"><b>🎯 核心功能：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>分组管理</b> - 创建不同的服务套餐（VIP、免费试用等）</li><li>🔗 <b>账号池</b> - 连接多个上游 AI 服务商账号</li><li>🔑 <b>密钥分发</b> - 为用户生成独立的 API Key</li><li>💰 <b>计费管理</b> - 灵活的费率和配额控制</li></ul><p style="color: #10b981; font-weight: 600;">接下来，我们将用 3 分钟带您完成首次配置 →</p></div>',
+          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">GPTK 是一个强大的 AI 服务中转平台，让您轻松管理和分发 AI 服务。</p><p style="margin-bottom: 12px;"><b>🎯 核心功能：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>分组管理</b> - 创建不同的服务套餐（VIP、免费试用等）</li><li>🔗 <b>账号池</b> - 连接多个上游 AI 服务商账号</li><li>🔑 <b>密钥分发</b> - 为用户生成独立的 API Key</li><li>💰 <b>计费管理</b> - 灵活的费率和配额控制</li></ul><p style="color: #10b981; font-weight: 600;">接下来，我们将用 3 分钟带您完成首次配置 →</p></div>',
         nextBtn: '开始配置 🚀',
         prevBtn: '跳过'
       },
       groupManage: {
         title: '📦 第一步：分组管理',
         description:
-          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>什么是分组？</b></p><p style="margin-bottom: 12px;">分组是 Sub2API 的核心概念，它就像一个"服务套餐"：</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 每个分组可以包含多个上游账号</li><li>💰 每个分组有独立的计费倍率</li><li>👥 可以设置为公开或专属分组</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 示例：</b>您可以创建"VIP专线"（高倍率）和"免费试用"（低倍率）两个分组</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 点击左侧的"分组管理"开始</p></div>'
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>什么是分组？</b></p><p style="margin-bottom: 12px;">分组是GPTK的核心概念，它就像一个"服务套餐"：</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 每个分组可以包含多个上游账号</li><li>💰 每个分组有独立的计费倍率</li><li>👥 可以设置为公开或专属分组</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 示例：</b>您可以创建"VIP专线"（高倍率）和"免费试用"（低倍率）两个分组</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 点击左侧的"分组管理"开始</p></div>'
       },
       createGroup: {
         title: '➕ 创建新分组',
@@ -6207,9 +6544,9 @@ export default {
     // User tour steps
     user: {
       welcome: {
-        title: '👋 欢迎使用 Sub2API',
+        title: '👋 欢迎使用GPTK',
         description:
-          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">您好！欢迎来到 Sub2API AI 服务平台。</p><p style="margin-bottom: 12px;"><b>🎯 快速开始：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 创建 API 密钥</li><li>📋 复制密钥到您的应用</li><li>🚀 开始使用 AI 服务</li></ul><p style="color: #10b981; font-weight: 600;">只需 1 分钟，让我们开始吧 →</p></div>',
+          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">您好！欢迎来到GPTK AI 服务平台。</p><p style="margin-bottom: 12px;"><b>🎯 快速开始：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 创建 API 密钥</li><li>📋 复制密钥到您的应用</li><li>🚀 开始使用 AI 服务</li></ul><p style="color: #10b981; font-weight: 600;">只需 1 分钟，让我们开始吧 →</p></div>',
         nextBtn: '开始 🚀',
         prevBtn: '跳过'
       },

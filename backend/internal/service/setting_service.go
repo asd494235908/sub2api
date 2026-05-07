@@ -1193,6 +1193,11 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 		settings.AffiliateRebatePerInviteeCap = AffiliateRebatePerInviteeCapDefault
 	}
 	updates[SettingKeyAffiliateRebatePerInviteeCap] = strconv.FormatFloat(settings.AffiliateRebatePerInviteeCap, 'f', 8, 64)
+	updates[SettingKeyAffiliateSignupRewardEnabled] = strconv.FormatBool(settings.AffiliateSignupRewardEnabled)
+	if settings.AffiliateSignupRewardAmount < 0 || math.IsNaN(settings.AffiliateSignupRewardAmount) || math.IsInf(settings.AffiliateSignupRewardAmount, 0) {
+		settings.AffiliateSignupRewardAmount = AffiliateSignupRewardAmountDefault
+	}
+	updates[SettingKeyAffiliateSignupRewardAmount] = strconv.FormatFloat(settings.AffiliateSignupRewardAmount, 'f', 8, 64)
 	updates[SettingKeyDefaultUserRPMLimit] = strconv.Itoa(settings.DefaultUserRPMLimit)
 	defaultSubsJSON, err := json.Marshal(settings.DefaultSubscriptions)
 	if err != nil {
@@ -1578,6 +1583,26 @@ func (s *SettingService) GetAffiliateRebatePerInviteeCap(ctx context.Context) fl
 	return cap
 }
 
+func (s *SettingService) IsAffiliateSignupRewardEnabled(ctx context.Context) bool {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateSignupRewardEnabled)
+	if err != nil {
+		return false
+	}
+	return value == "true"
+}
+
+func (s *SettingService) GetAffiliateSignupRewardAmount(ctx context.Context) float64 {
+	raw, err := s.settingRepo.GetValue(ctx, SettingKeyAffiliateSignupRewardAmount)
+	if err != nil {
+		return AffiliateSignupRewardAmountDefault
+	}
+	amount, err := strconv.ParseFloat(strings.TrimSpace(raw), 64)
+	if err != nil || amount < 0 || math.IsNaN(amount) || math.IsInf(amount, 0) {
+		return AffiliateSignupRewardAmountDefault
+	}
+	return amount
+}
+
 // IsPasswordResetEnabled 检查是否启用密码重置功能
 // 要求：必须同时开启邮件验证
 func (s *SettingService) IsPasswordResetEnabled(ctx context.Context) bool {
@@ -1824,6 +1849,8 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyAffiliateRebateFreezeHours:               strconv.Itoa(AffiliateRebateFreezeHoursDefault),
 		SettingKeyAffiliateRebateDurationDays:              strconv.Itoa(AffiliateRebateDurationDaysDefault),
 		SettingKeyAffiliateRebatePerInviteeCap:             strconv.FormatFloat(AffiliateRebatePerInviteeCapDefault, 'f', 2, 64),
+		SettingKeyAffiliateSignupRewardEnabled:             "false",
+		SettingKeyAffiliateSignupRewardAmount:              strconv.FormatFloat(AffiliateSignupRewardAmountDefault, 'f', 2, 64),
 		SettingKeyDefaultUserRPMLimit:                      "0",
 		SettingKeyDefaultSubscriptions:                     "[]",
 		SettingKeyAuthSourceDefaultEmailBalance:            "0",
@@ -1973,6 +2000,10 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	}
 	if perInviteeCap, err := strconv.ParseFloat(settings[SettingKeyAffiliateRebatePerInviteeCap], 64); err == nil && perInviteeCap >= 0 {
 		result.AffiliateRebatePerInviteeCap = perInviteeCap
+	}
+	result.AffiliateSignupRewardEnabled = settings[SettingKeyAffiliateSignupRewardEnabled] == "true"
+	if signupRewardAmount, err := strconv.ParseFloat(settings[SettingKeyAffiliateSignupRewardAmount], 64); err == nil && signupRewardAmount >= 0 {
+		result.AffiliateSignupRewardAmount = signupRewardAmount
 	}
 	result.DefaultSubscriptions = parseDefaultSubscriptions(settings[SettingKeyDefaultSubscriptions])
 

@@ -99,6 +99,7 @@ type AffiliateRepository interface {
 	GetAffiliateByCode(ctx context.Context, code string) (*AffiliateSummary, error)
 	BindInviter(ctx context.Context, userID, inviterID int64) (bool, error)
 	AccrueQuota(ctx context.Context, inviterID, inviteeUserID int64, amount float64, freezeHours int) (bool, error)
+	AwardSignupBonus(ctx context.Context, inviterID, inviteeUserID int64, amount float64) (bool, float64, error)
 	GetAccruedRebateFromInvitee(ctx context.Context, inviterID, inviteeUserID int64) (float64, error)
 	ThawFrozenQuota(ctx context.Context, userID int64) (float64, error)
 	TransferQuotaToBalance(ctx context.Context, userID int64) (float64, float64, error)
@@ -110,6 +111,8 @@ type AffiliateRepository interface {
 	SetUserRebateRate(ctx context.Context, userID int64, ratePercent *float64) error
 	BatchSetUserRebateRate(ctx context.Context, userIDs []int64, ratePercent *float64) error
 	ListUsersWithCustomSettings(ctx context.Context, filter AffiliateAdminFilter) ([]AffiliateAdminEntry, int64, error)
+	ListInvitersWithInvitees(ctx context.Context, filter AffiliateAdminFilter) ([]AffiliateInviterEntry, int64, error)
+	ListInviteesByInviter(ctx context.Context, inviterID int64, limit int) ([]AffiliateInvitee, error)
 }
 
 // AffiliateAdminFilter 列表筛选条件
@@ -128,6 +131,16 @@ type AffiliateAdminEntry struct {
 	AffCodeCustom        bool     `json:"aff_code_custom"`
 	AffRebateRatePercent *float64 `json:"aff_rebate_rate_percent,omitempty"`
 	AffCount             int      `json:"aff_count"`
+}
+
+// AffiliateInviterEntry 管理端“有邀请记录的邀请人”列表条目。
+type AffiliateInviterEntry struct {
+	UserID      int64   `json:"user_id"`
+	Email       string  `json:"email"`
+	Username    string  `json:"username"`
+	AffCode     string  `json:"aff_code"`
+	AffCount    int     `json:"aff_count"`
+	TotalRebate float64 `json:"total_rebate"`
 }
 
 type AffiliateService struct {
@@ -306,6 +319,45 @@ func (s *AffiliateService) AccrueInviteRebate(ctx context.Context, inviteeUserID
 		return 0, nil
 	}
 	return rebate, nil
+}
+
+func (s *AffiliateService) ApplySignupBonus(ctx context.Context, inviteeUserID int64) (float64, float64, error) {
+	if s == nil || s.repo == nil {
+		return 0, 0, nil
+	}
+	if inviteeUserID <= 0 {
+		return 0, 0, nil
+	}
+	if !s.IsEnabled(ctx) || s.settingService == nil || !s.settingService.IsAffiliateSignupRewardEnabled(ctx) {
+		return 0, 0, nil
+	}
+
+	amount := s.settingService.GetAffiliateSignupRewardAmount(ctx)
+	if amount <= 0 {
+		return 0, 0, nil
+	}
+
+	inviteeSummary, err := s.repo.EnsureUserAffiliate(ctx, inviteeUserID)
+	if err != nil {
+		return 0, 0, err
+	}
+	if inviteeSummary.InviterID == nil || *inviteeSummary.InviterID <= 0 {
+		return 0, 0, nil
+	}
+	inviterID := *inviteeSummary.InviterID
+	if _, err := s.repo.EnsureUserAffiliate(ctx, inviterID); err != nil {
+		return 0, 0, err
+	}
+
+	applied, balance, err := s.repo.AwardSignupBonus(ctx, inviterID, inviteeUserID, amount)
+	if err != nil {
+		return 0, 0, err
+	}
+	if !applied {
+		return 0, balance, nil
+	}
+	s.invalidateAffiliateCaches(ctx, inviterID)
+	return amount, balance, nil
 }
 
 // resolveRebateRatePercent returns the inviter's exclusive rate when set,
@@ -487,4 +539,23 @@ func (s *AffiliateService) AdminListCustomUsers(ctx context.Context, filter Affi
 		return nil, 0, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
 	}
 	return s.repo.ListUsersWithCustomSettings(ctx, filter)
+}
+
+// AdminListInvitersWithInvitees 列出所有有邀请记录的邀请人。
+func (s *AffiliateService) AdminListInvitersWithInvitees(ctx context.Context, filter AffiliateAdminFilter) ([]AffiliateInviterEntry, int64, error) {
+	if s == nil || s.repo == nil {
+		return nil, 0, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+	}
+	return s.repo.ListInvitersWithInvitees(ctx, filter)
+}
+
+// AdminListInviteesByInviter 返回某个邀请人的被邀请用户列表。
+func (s *AffiliateService) AdminListInviteesByInviter(ctx context.Context, inviterID int64) ([]AffiliateInvitee, error) {
+	if s == nil || s.repo == nil {
+		return nil, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+	}
+	if inviterID <= 0 {
+		return nil, infraerrors.BadRequest("INVALID_USER", "invalid user")
+	}
+	return s.repo.ListInviteesByInviter(ctx, inviterID, affiliateInviteesLimit)
 }

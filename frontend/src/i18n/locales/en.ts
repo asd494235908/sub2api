@@ -10,103 +10,386 @@ export default {
     login: 'Login',
     getStarted: 'Get Started',
     goToDashboard: 'Go to Dashboard',
-    // User-focused value proposition
-    heroSubtitle: 'One Key, All AI Models',
-    heroDescription: 'No need to manage multiple subscriptions. Access Claude, GPT, Gemini and more with a single API key',
-    tags: {
-      subscriptionToApi: 'Subscription to API',
-      stickySession: 'Session Persistence',
-      realtimeBilling: 'Pay As You Go'
+    companySlogan: 'Private enterprise network · Fast mainland access · Zero-code integration in 3 minutes',
+    nav: {
+      overview: 'Overview',
+      compatibility: 'Compatibility',
+      integration: 'Quick Start'
     },
-    // Pain points section
-    painPoints: {
-      title: 'Sound Familiar?',
-      items: {
-        expensive: {
-          title: 'High Subscription Costs',
-          desc: 'Paying for multiple AI subscriptions that add up every month'
+    hero: {
+      badge: 'OpenAI Enterprise Relay',
+      title: '{brand} - Enterprise-grade OpenAI official API relay service',
+      subtitle: 'Private enterprise proxy network · Fast mainland direct access · Zero-code integration in 3 minutes',
+      description:
+        'Built for enterprise development teams that need stable, compliant, production-ready relay access to OpenAI official APIs.',
+      secondaryCta: 'View Integration Docs',
+      summaryTitle: 'Overview',
+      summaryItems: {
+        relay: 'Enterprise-operated private relay service for long-term production use',
+        compatibility: 'Compatible with official OpenAI request formats and existing workflows',
+        integration: 'Replace the Base URL and keep the rest of your SDK usage nearly unchanged'
+      },
+      codeTitle: 'Quick Start Example',
+      endpointTitle: 'Service Endpoint',
+      endpointValue: 'https://token.gepinapi.com/v1',
+      noticeTitle: 'Production Notes',
+      noticeItems: {
+        sla: '99.9% SLA commitment',
+        privacy: 'Encrypted transit with no prompt plaintext logging',
+        procurement: 'Enterprise invoicing and service contracts supported'
+      }
+    },
+    overview: {
+      kicker: 'Overview',
+      title: 'Why enterprise developers choose GPTK',
+      painPoint:
+        'Still dealing with unstable NAT routes and disconnects? Worried that public proxy key leaks could get your accounts blocked?',
+      cards: {
+        company: {
+          title: 'Company-operated and built for long-term stability',
+          description:
+            '{companyName} operates GPTK as a formal technical service with enterprise invoicing, service contracts, and a 99.9% SLA commitment.',
+          points: {
+            invoice: 'Enterprise VAT invoicing and procurement-friendly billing',
+            contract: 'Service contracts supported for compliant purchasing',
+            sla: 'Stable API supply for long-term production operations'
+          }
         },
-        complex: {
-          title: 'Account Chaos',
-          desc: 'Managing scattered accounts and API keys across different platforms'
+        network: {
+          title: 'Private proxy network that is fast and secure',
+          description:
+            'Built on private enterprise relay infrastructure and stable international connectivity with security as a first-class concern.',
+          points: {
+            speed: 'Fast mainland access with smoother streaming responses',
+            privacy: 'Traffic is encrypted in transit and prompt plaintext is not logged',
+            stability: 'Reduces instability and leakage risks commonly seen with shared proxies'
+          }
         },
-        unstable: {
-          title: 'Service Interruptions',
-          desc: 'Single accounts hitting rate limits and disrupting your workflow'
-        },
-        noControl: {
-          title: 'No Usage Control',
-          desc: "Can't track where your money goes or limit team member usage"
+        compatibility: {
+          title: 'Native OpenAI experience with seamless migration',
+          description:
+            'Replace api.openai.com with GPTK and keep the rest of your integration flow almost unchanged.',
+          points: {
+            baseUrl: 'Swap the Base URL and keep your request flow',
+            sdk: 'Compatible with official OpenAI request formats and common SDKs',
+            models: 'Supports GPT-4o, o1, DALL·E, Whisper, Assistants API and related capabilities'
+          }
         }
       }
     },
-    // Solutions section
-    solutions: {
-      title: 'We Solve These Problems',
-      subtitle: 'Three simple steps to stress-free AI access'
-    },
-    features: {
-      unifiedGateway: 'One-Click Access',
-      unifiedGatewayDesc: 'Get a single API key to call all connected AI models. No separate applications needed.',
-      multiAccount: 'Always Reliable',
-      multiAccountDesc: 'Smart routing across multiple upstream accounts with automatic failover. Say goodbye to errors.',
-      balanceQuota: 'Pay What You Use',
-      balanceQuotaDesc: 'Usage-based billing with quota limits. Full visibility into team consumption.'
-    },
-    // Comparison section
-    comparison: {
-      title: 'Why Choose Us?',
-      headers: {
-        feature: 'Comparison',
-        official: 'Official Subscriptions',
-        us: 'Our Platform'
-      },
-      items: {
-        pricing: {
-          feature: 'Pricing',
-          official: 'Fixed monthly fee, pay even if unused',
-          us: 'Pay only for what you use'
+    compatibility: {
+      kicker: 'Compatibility',
+      title: 'Compatibility Matrix',
+      description: 'Production-oriented compatibility notes to help your team migrate and validate integrations quickly.',
+      rows: {
+        baseUrl: {
+          label: 'Base URL Migration',
+          value: 'Replace it with the GPTK endpoint'
+        },
+        sdk: {
+          label: 'SDK Changes',
+          value: 'Minimal or none in most scenarios'
+        },
+        auth: {
+          label: 'Authentication',
+          value: 'Bearer API Key'
+        },
+        format: {
+          label: 'Request Format',
+          value: 'Compatible with the official OpenAI request format'
         },
         models: {
-          feature: 'Model Selection',
-          official: 'Single provider only',
-          us: 'Switch between models freely'
-        },
-        management: {
-          feature: 'Account Management',
-          official: 'Manage each service separately',
-          us: 'Unified key, one dashboard'
-        },
-        stability: {
-          feature: 'Stability',
-          official: 'Single account rate limits',
-          us: 'Multi-account pool, auto-failover'
-        },
-        control: {
-          feature: 'Usage Control',
-          official: 'Not available',
-          us: 'Quotas & detailed analytics'
+          label: 'Supported Capabilities',
+          value: 'GPT-4o, o1, DALL·E, Whisper, Assistants API'
         }
       }
     },
-    providers: {
-      title: 'Supported AI Models',
-      description: 'One API, Multiple Choices',
-      supported: 'Supported',
-      soon: 'Soon',
-      claude: 'Claude',
-      gemini: 'Gemini',
-      antigravity: 'Antigravity',
-      more: 'More'
-    },
-    // CTA section
-    cta: {
-      title: 'Ready to Get Started?',
-      description: 'Sign up now and get free trial credits to experience seamless AI access',
-      button: 'Sign Up Free'
+    integration: {
+      kicker: 'Minimal Integration Demo',
+      title: 'Start production AI workflows in three simple steps',
+      subtitle: 'Keep the familiar OpenAI API experience and finish migration plus verification in minutes.',
+      demoTitle: 'Integration Example',
+      demoHint: 'Replace the Base URL in your production code with the GPTK endpoint.',
+      demoComment: 'Keep the official OpenAI request format and send requests as usual.',
+      steps: {
+        register: {
+          title: 'Get your API key',
+          description: 'Complete phone-based personal or enterprise verification and receive your dedicated access key.'
+        },
+        baseUrl: {
+          title: 'Replace the Base URL',
+          description: 'Point requests to https://token.gepinapi.com/v1 while keeping the rest of your SDK usage unchanged.'
+        },
+        request: {
+          title: 'Send requests',
+          description: 'Continue using Chat Completions and related APIs with the same developer experience you already know.'
+        }
+      }
     },
     footer: {
       allRightsReserved: 'All rights reserved.'
+    },
+    landing: {
+      brand: 'GPTK',
+      logoTagline: 'Enterprise OpenAI Relay',
+      nav: {
+        home: 'Home',
+        pricing: 'Pricing',
+        docs: 'Docs',
+        community: 'Community'
+      },
+      console: {
+        login: 'Get Started',
+        enter: 'Dashboard'
+      },
+      hero: {
+        badge: 'Reliable, secure, and fast OpenAI relay service',
+        titlePrefix: 'GPTK',
+        titleLead: '',
+        titleHighlight: 'AI',
+        titleSuffix: ' builds AI faster',
+        subtitle: 'Enterprise OpenAI API relay | Fast mainland access | One-stop integration',
+        primaryCtaGuest: 'Start Now',
+        primaryCtaAuthed: 'Go to Dashboard',
+        secondaryCta: 'Read Docs',
+        promoTitle: 'Start building your AI application',
+        promoSubtitle: 'A few simple steps to unlock powerful AI capabilities',
+        placeholder: {
+          badge: 'Hero Placeholder',
+          title: 'Reserved hero visual area',
+          description: 'This area is reserved for homepage visuals, product demos, or key brand assets. For now it uses a polished placeholder style to preserve the intended layout hierarchy.',
+          footer: 'Awaiting final imagery'
+        },
+        checks: {
+          availability: '99.9% availability',
+          latency: 'Fast response < 200ms',
+          security: 'Enterprise-grade protection'
+        },
+        stats: {
+          calls: 'API calls',
+          developers: 'trusted developers',
+          sla: 'uptime SLA',
+          support: 'support'
+        }
+      },
+      overview: {
+        kicker: 'Why choose Gepin API',
+        title: 'Fast, stable, and secure AI integration',
+        subtitle: 'We provide stable, fast, and secure OpenAI API relay access so your team can focus on shipping product value.',
+        benefits: {
+          stability: {
+            title: 'High stability',
+            description: 'End-to-end acceleration and elastic routing keep responses stable even during peak traffic.'
+          },
+          security: {
+            title: 'Enterprise security',
+            description: 'TLS encryption and isolated routing architecture balance security and compliance.'
+          },
+          value: {
+            title: 'Strong value',
+            description: 'Usage-based billing and subscription plans cover everything from evaluation to production.'
+          },
+          easy: {
+            title: 'Easy to use',
+            description: 'Compatible with OpenAI APIs, so you can swap the Base URL and go live quickly.'
+          },
+          support: {
+            title: 'Expert support',
+            description: '24/7 support coverage and maintenance updates help teams resolve issues faster.'
+          },
+          updates: {
+            title: 'Always updated',
+            description: 'We track the latest OpenAI models and capabilities and roll supported models forward quickly.'
+          }
+        }
+      },
+      products: {
+        kicker: 'Core capabilities',
+        title: 'One entry point for your AI delivery workflow',
+        subtitle: 'From access and routing to delivery and security, the platform is presented around real production needs for developers, teams, and enterprise projects.',
+        cards: {
+          infrastructure: {
+            title: 'Unified model access',
+            description: 'Expose reasoning, image, and extended capabilities through a more consistent integration surface.'
+          },
+          integration: {
+            title: 'Low-friction go-live',
+            description: 'Keep the familiar OpenAI request shape and reduce migration effort so teams can ship faster.'
+          },
+          delivery: {
+            title: 'Faster mainland delivery',
+            description: 'Optimized for domestic development environments to reduce debugging friction caused by unstable routes.'
+          },
+          security: {
+            title: 'Secure and controllable',
+            description: 'Independent channels, encrypted traffic, and service stability strategies support production confidence.'
+          }
+        }
+      },
+      platforms: {
+        kicker: 'Supported platforms',
+        title: 'Operating systems and devices we support',
+        subtitle: 'Use the API across mainstream environments and devices',
+        mobile: 'Mobile',
+        devices: 'Dev devices'
+      },
+      models: {
+        kicker: 'Current model lineup',
+        cardTitle: 'OpenAI frontier models',
+        cardSubtitle: 'Covering the main reasoning, lightweight, and image workloads currently available in the API.',
+        apiNotice: 'Now featuring GPT-5.5 for complex reasoning, coding, and professional workflows.',
+        viewAll: 'View all models',
+        badges: {
+          latest: 'Latest'
+        },
+        items: {
+          gpt55: 'OpenAI\'s latest supported model for complex reasoning, coding, and professional workflows.',
+          gpt54Mini: 'A more cost-efficient lightweight model for coding, tool use, and low-latency tasks.',
+          gpt54Nano: 'An ultra-low-cost option for high-frequency and basic workloads.',
+          gptImage2: 'OpenAI\'s current image generation model for image creation and editing.'
+        }
+      },
+      showcase: {
+        kicker: 'Trust and showcase',
+        title: 'Built to fit real production expectations',
+        subtitle: 'The redesigned homepage keeps your actual business value while presenting platform strengths, customer confidence, and future case-study content in a more modern way.',
+        stats: {
+          developers: 'trusted developers',
+          sla: 'service availability',
+          support: 'support coverage'
+        },
+        quotes: {
+          team: {
+            quote: 'The integration flow barely changed, which let the team focus more on product delivery than compatibility issues.',
+            author: 'Product team feedback',
+            role: 'Enterprise onboarding scenario'
+          },
+          engineer: {
+            quote: 'From testing to launch, the overall delivery rhythm felt smoother once the integration path became more stable.',
+            author: 'Engineering perspective',
+            role: 'Implementation experience'
+          },
+          ops: {
+            quote: 'For us, stability and support responsiveness matter most, and that is the baseline for long-term use.',
+            author: 'Operations feedback',
+            role: 'Production reliability focus'
+          }
+        }
+      },
+      cta: {
+        badge: 'Get started quickly',
+        title: 'Ready to bring your AI app to production faster?',
+        subtitle: 'Keep the workflow your team already knows, while using a more stable path for integration, testing, launch, and ongoing support.',
+        trust: {
+          freeTrial: 'Fast trial and evaluation',
+          noCard: 'No complex migration path',
+          fastSupport: 'Direct technical support'
+        }
+      },
+      pricing: {
+        kicker: 'Flexible pricing',
+        title: 'Choose the plan that fits',
+        subtitle: 'Usage billing, lightweight subscriptions, and enterprise plans are all available.',
+        viewDetails: 'View pricing details',
+        plans: {
+          standard: {
+            plan: 'Standard',
+            description: 'A good fit for individual developers and lighter projects',
+            badge: 'Light'
+          },
+          pro: {
+            plan: 'Professional',
+            description: 'Best for growing teams and reliable production use',
+            badge: 'Recommended'
+          },
+          enterprise: {
+            plan: 'Enterprise',
+            description: 'Tailored for large organizations and custom requirements',
+            badge: 'Enterprise',
+            price: 'Custom pricing'
+          }
+        }
+      },
+      setup: {
+        kicker: 'Three-step integration',
+        title: 'Connect your models with ease',
+        subtitle: 'A few simple steps are all you need to get started.',
+        steps: {
+          register: {
+            title: 'Create an account',
+            description: 'Sign up and generate your dedicated API key.'
+          },
+          integrate: {
+            title: 'Integrate the API',
+            description: 'Replace the documented endpoint in your app configuration.'
+          },
+          start: {
+            title: 'Start calling',
+            description: 'Send requests and build your AI-powered workflows.'
+          }
+        }
+      },
+      community: {
+        kicker: 'Join the developer community',
+        title: 'Community QR codes',
+        lead: 'Scan to join via QQ or WeChat',
+        body: 'Get onboarding help, model updates, and fast troubleshooting.',
+        qrLabels: {
+          qq: 'QQ Group',
+          wechat: 'WeChat'
+        },
+        qrAlt: {
+          qq: 'QQ group QR code',
+          wechat: 'WeChat QR code'
+        }
+      },
+      placeholders: {
+        visual: {
+          badge: 'Visual area',
+          title: 'Reserved for demos, architecture visuals, or key screenshots',
+          description: 'This area is intended for homepage visuals, product demos, customer screenshots, or other graphic storytelling assets. The placeholder keeps the presentation complete until final assets are ready.',
+          footer: 'Imagery to be replaced later'
+        },
+        caseStudy: {
+          badge: 'Showcase area',
+          title: 'Reserved for case studies, demos, or partner content',
+          description: 'This section can later host platform screenshots, scenario demos, customer stories, or partner showcases.',
+          footer: 'Reserved for future content'
+        }
+      },
+      footer: {
+        about: 'Enterprise OpenAI API relay service that helps teams build AI products faster.',
+        follow: 'Follow us',
+        copyrightOwner: 'Chengdu Gepin Technology Co., Ltd. All rights reserved',
+        columns: {
+          product: {
+            title: 'Product',
+            pricing: 'Pricing',
+            docs: 'API Docs',
+            platforms: 'Platforms',
+            changelog: 'Changelog'
+          },
+          developer: {
+            title: 'Developers',
+            quickstart: 'Quickstart',
+            sdk: 'SDK & Tools',
+            bestPractices: 'Best Practices',
+            status: 'API Status'
+          },
+          company: {
+            title: 'Company',
+            about: 'About',
+            contact: 'Contact',
+            terms: 'Terms',
+            privacy: 'Privacy'
+          },
+          support: {
+            title: 'Support',
+            help: 'Help Center',
+            community: 'Community'
+          }
+        }
+      }
     }
   },
 
@@ -182,8 +465,8 @@ export default {
 
   // Setup Wizard
   setup: {
-    title: 'Sub2API Setup',
-    description: 'Configure your Sub2API instance',
+    title: 'Gepin API Setup',
+    description: 'Configure your Gepin API instance',
     database: {
       title: 'Database Configuration',
       description: 'Connect to your PostgreSQL database',
@@ -355,6 +638,7 @@ export default {
     subscriptions: 'Subscriptions',
     accounts: 'Accounts',
     proxies: 'Proxies',
+    adminAffiliateRelations: 'Affiliate Relations',
     redeemCodes: 'Redeem Codes',
     ops: 'Ops',
     promoCodes: 'Promo Codes',
@@ -3917,6 +4201,32 @@ export default {
       failedToLoadUsages: 'Failed to load usage records'
     },
 
+    affiliates: {
+      title: 'Affiliate Relations',
+      description: 'Browse inviters and inspect their invitees and rebate details',
+      searchPlaceholder: 'Search inviter email or username',
+      empty: 'No invite relationship data yet',
+      viewInvitees: 'View invitees',
+      totalLabel: '{total} total',
+      inviteesTitle: 'Invitees of {email}',
+      inviteesDescription: 'Shows the users currently attributed to this inviter.',
+      inviteesEmpty: 'This inviter has no invitees to display',
+      col: {
+        email: 'Inviter Email',
+        username: 'Inviter Username',
+        code: 'Invite Code',
+        invitedCount: 'Invite Count',
+        totalRebate: 'Total Rebate',
+        actions: 'Actions',
+      },
+      inviteesCol: {
+        email: 'Invitee Email',
+        username: 'Invitee Username',
+        joinedAt: 'Joined At',
+        totalRebate: 'Total Rebate',
+      },
+    },
+
     // Usage Records
     usage: {
       title: 'Usage Records',
@@ -4818,6 +5128,35 @@ export default {
           durationDaysDesc: 'Rebate relationship expires after this many days since invitee registration. 0 = permanent.',
           perInviteeCap: 'Per-Invitee Rebate Cap',
           perInviteeCapDesc: 'Maximum total rebate from a single invitee. 0 = no limit.',
+          signupRewardEnabled: 'Enable Signup Reward',
+          signupRewardEnabledHint: 'When an invited user completes their first registration, credit a fixed reward directly to the inviter balance.',
+          signupRewardAmount: 'Signup Reward Amount',
+          signupRewardAmountDesc: 'This reward is credited directly to balance and counted in historical rebate. 0 = disabled.',
+          inviterRelations: {
+            title: 'Invite Relationships',
+            description: 'Browse every inviter that has invited users and inspect who they invited.',
+            searchPlaceholder: 'Search inviter email or username',
+            empty: 'No invite relationship data yet',
+            viewInvitees: 'View invitees',
+            totalLabel: '{total} total',
+            inviteesTitle: 'Invitees of {email}',
+            inviteesDescription: 'Shows the users currently attributed to this inviter.',
+            inviteesEmpty: 'This inviter has no invitees to display',
+            col: {
+              email: 'Inviter Email',
+              username: 'Inviter Username',
+              code: 'Invite Code',
+              invitedCount: 'Invite Count',
+              totalRebate: 'Total Rebate',
+              actions: 'Actions',
+            },
+            inviteesCol: {
+              email: 'Invitee Email',
+              username: 'Invitee Username',
+              joinedAt: 'Joined At',
+              totalRebate: 'Total Rebate',
+            },
+          },
           customUsers: {
             title: 'Per-User Overrides',
             description: 'Set a custom invite code or exclusive rebate rate for specific users. Lists only users that have an override applied.',
@@ -4902,7 +5241,7 @@ export default {
         secretKeyConfiguredHint: 'Secret key configured. Leave empty to keep the current value.'      },
       linuxdo: {
         title: 'LinuxDo Connect Login',
-        description: 'Configure LinuxDo Connect OAuth for Sub2API end-user login',
+        description: 'Configure LinuxDo Connect OAuth for Gepin API end-user login',
         enable: 'Enable LinuxDo Login',
         enableHint: 'Show LinuxDo login on the login/register pages',
         clientId: 'Client ID',
@@ -5061,7 +5400,7 @@ export default {
         backendModeDescription:
           'Disables user registration, public site, and self-service features. Only admin can log in and manage the platform.',
         siteName: 'Site Name',
-        siteNamePlaceholder: 'Sub2API',
+        siteNamePlaceholder: 'GPTK',
         siteNameHint: 'Displayed in emails and page titles',
         siteSubtitle: 'Site Subtitle',
         siteSubtitlePlaceholder: 'Subscription to API Conversion Platform',
@@ -5330,7 +5669,7 @@ export default {
         fromEmail: 'From Email',
         fromEmailPlaceholder: "noreply{'@'}example.com",
         fromName: 'From Name',
-        fromNamePlaceholder: 'Sub2API',
+        fromNamePlaceholder: 'GPTK',
         useTls: 'Use TLS',
         useTlsHint: 'Enable TLS encryption for SMTP connection'
       },
@@ -5928,14 +6267,14 @@ export default {
     // Admin tour steps
     admin: {
       welcome: {
-        title: '👋 Welcome to Sub2API',
-        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Sub2API is a powerful AI service gateway platform that helps you easily manage and distribute AI services.</p><p style="margin-bottom: 12px;"><b>🎯 Core Features:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>Group Management</b> - Create service tiers (VIP, Free Trial, etc.)</li><li>🔗 <b>Account Pool</b> - Connect multiple upstream AI service accounts</li><li>🔑 <b>Key Distribution</b> - Generate independent API Keys for users</li><li>💰 <b>Billing Control</b> - Flexible rate and quota management</li></ul><p style="color: #10b981; font-weight: 600;">Let\'s complete the initial setup in 3 minutes →</p></div>',
+        title: '👋 Welcome to GPTK',
+        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">GPTK is a powerful AI service gateway platform that helps you easily manage and distribute AI services.</p><p style="margin-bottom: 12px;"><b>🎯 Core Features:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>Group Management</b> - Create service tiers (VIP, Free Trial, etc.)</li><li>🔗 <b>Account Pool</b> - Connect multiple upstream AI service accounts</li><li>🔑 <b>Key Distribution</b> - Generate independent API Keys for users</li><li>💰 <b>Billing Control</b> - Flexible rate and quota management</li></ul><p style="color: #10b981; font-weight: 600;">Let\'s complete the initial setup in 3 minutes →</p></div>',
         nextBtn: 'Start Setup 🚀',
         prevBtn: 'Skip'
       },
       groupManage: {
         title: '📦 Step 1: Group Management',
-        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>What is a Group?</b></p><p style="margin-bottom: 12px;">Groups are the core concept of Sub2API, like a "service package":</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 Each group can contain multiple upstream accounts</li><li>💰 Each group has independent billing multiplier</li><li>👥 Can be set as public or exclusive</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Example:</b> You can create "VIP Premium" (high rate) and "Free Trial" (low rate) groups</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 Click "Group Management" on the left sidebar</p></div>'
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>What is a Group?</b></p><p style="margin-bottom: 12px;">Groups are the core concept of GPTK, like a "service package":</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 Each group can contain multiple upstream accounts</li><li>💰 Each group has independent billing multiplier</li><li>👥 Can be set as public or exclusive</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Example:</b> You can create "VIP Premium" (high rate) and "Free Trial" (low rate) groups</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 Click "Group Management" on the left sidebar</p></div>'
       },
       createGroup: {
         title: '➕ Create New Group',
@@ -6028,8 +6367,8 @@ export default {
     // User tour steps
     user: {
       welcome: {
-        title: '👋 Welcome to Sub2API',
-        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Hello! Welcome to the Sub2API AI service platform.</p><p style="margin-bottom: 12px;"><b>🎯 Quick Start:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 Create API Key</li><li>📋 Copy key to your application</li><li>🚀 Start using AI services</li></ul><p style="color: #10b981; font-weight: 600;">Just 1 minute, let\'s get started →</p></div>',
+        title: '👋 Welcome to GPTK',
+        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Hello! Welcome to the GPTK AI service platform.</p><p style="margin-bottom: 12px;"><b>🎯 Quick Start:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 Create API Key</li><li>📋 Copy key to your application</li><li>🚀 Start using AI services</li></ul><p style="color: #10b981; font-weight: 600;">Just 1 minute, let\'s get started →</p></div>',
         nextBtn: 'Start 🚀',
         prevBtn: 'Skip'
       },

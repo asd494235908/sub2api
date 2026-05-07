@@ -52,6 +52,7 @@ describe('ModelDistributionChart', () => {
       cache_read_tokens: 0,
       total_tokens: 1000,
       cost: 1.5,
+      account_cost: 0.4,
       actual_cost: 0.2,
     },
     {
@@ -63,6 +64,7 @@ describe('ModelDistributionChart', () => {
       cache_read_tokens: 0,
       total_tokens: 500,
       cost: 0.5,
+      account_cost: 0.3,
       actual_cost: 1.4,
     },
   ]
@@ -123,7 +125,7 @@ describe('ModelDistributionChart', () => {
       raw: 1.4,
       dataset: { data: [1.4, 0.2] },
     })
-    expect(label).toBe('model-b: $1.40 (87.5%)')
+    expect(label).toBe('model-b: ¥1.40 (87.5%)')
   })
 
   it('renders Others in the spending ranking table and uses a dedicated chart color', async () => {
@@ -166,6 +168,6 @@ describe('ModelDistributionChart', () => {
     expect(rows[2].text()).toContain('Others')
     expect(rows[2].text()).toContain('4')
     expect(rows[2].text()).toContain('400')
-    expect(rows[2].text()).toContain('$10.00')
+    expect(rows[2].text()).toContain('¥10.00')
   })
 })

@@ -194,4 +194,19 @@ describe('ProfileInfoCard', () => {
     expect(wrapper.get('[data-testid="profile-basics-panel"]').exists()).toBe(true)
     expect(wrapper.get('[data-testid="profile-auth-bindings-panel"]').exists()).toBe(true)
   })
+
+  it('renders account balance with the yuan symbol', () => {
+    const wrapper = mount(ProfileInfoCard, {
+      props: {
+        user: createUser({ balance: 10 })
+      },
+      global: {
+        stubs: {
+          Icon: true
+        }
+      }
+    })
+
+    expect(wrapper.get('[data-testid="profile-overview-metric-balance"]').text()).toContain('¥10.00')
+  })
 })

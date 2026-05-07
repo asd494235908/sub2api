@@ -5,6 +5,8 @@ import { flushPromises, mount } from "@vue/test-utils";
 import SettingsView from "../SettingsView.vue";
 
 const {
+  listAffiliateInviters,
+  listAffiliateInviterInvitees,
   getSettings,
   updateSettings,
   getWebSearchEmulationConfig,
@@ -25,6 +27,8 @@ const {
   showError,
   showSuccess,
 } = vi.hoisted(() => ({
+  listAffiliateInviters: vi.fn(),
+  listAffiliateInviterInvitees: vi.fn(),
   getSettings: vi.fn(),
   updateSettings: vi.fn(),
   getWebSearchEmulationConfig: vi.fn(),
@@ -75,6 +79,22 @@ vi.mock("@/api", () => ({
     },
   },
 }));
+
+vi.mock("@/api/admin/affiliates", () => {
+  const api = {
+    listUsers: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+    listInviters: listAffiliateInviters,
+    listInviterInvitees: listAffiliateInviterInvitees,
+    lookupUsers: vi.fn().mockResolvedValue([]),
+    updateUserSettings: vi.fn().mockResolvedValue({ user_id: 1 }),
+    clearUserSettings: vi.fn().mockResolvedValue({ user_id: 1 }),
+    batchSetRate: vi.fn().mockResolvedValue({ affected: 0 }),
+  };
+  return {
+    affiliatesAPI: api,
+    default: api,
+  };
+});
 
 vi.mock("@/stores", () => ({
   useAppStore: () => ({
@@ -157,6 +177,25 @@ vi.mock("vue-i18n", async () => {
     "admin.settings.openaiExperimentalScheduler.description": "默认关闭。开启后仅影响本网关在 OpenAI 账号间的实验性调度选择逻辑，不代表上游 OpenAI 官方能力。",
     "admin.settings.site.uploadImage": "上传图片",
     "admin.settings.site.remove": "移除",
+    "admin.settings.features.affiliate.inviterRelations.title": "邀请关系查看",
+    "admin.settings.features.affiliate.inviterRelations.description": "查看所有有邀请记录的用户，以及他们邀请了哪些人。",
+    "admin.settings.features.affiliate.inviterRelations.searchPlaceholder": "搜索邀请人邮箱或用户名",
+    "admin.settings.features.affiliate.inviterRelations.empty": "暂无邀请关系数据",
+    "admin.settings.features.affiliate.inviterRelations.viewInvitees": "查看邀请用户",
+    "admin.settings.features.affiliate.inviterRelations.totalLabel": "共 {total} 条",
+    "admin.settings.features.affiliate.inviterRelations.inviteesTitle": "{email} 邀请的用户",
+    "admin.settings.features.affiliate.inviterRelations.inviteesDescription": "展示该邀请人当前关联的被邀请用户明细。",
+    "admin.settings.features.affiliate.inviterRelations.inviteesEmpty": "该邀请人暂无可展示的邀请用户",
+    "admin.settings.features.affiliate.inviterRelations.col.email": "邀请人邮箱",
+    "admin.settings.features.affiliate.inviterRelations.col.username": "邀请人用户名",
+    "admin.settings.features.affiliate.inviterRelations.col.code": "邀请码",
+    "admin.settings.features.affiliate.inviterRelations.col.invitedCount": "邀请人数",
+    "admin.settings.features.affiliate.inviterRelations.col.totalRebate": "累计返利",
+    "admin.settings.features.affiliate.inviterRelations.col.actions": "操作",
+    "admin.settings.features.affiliate.inviterRelations.inviteesCol.email": "被邀请用户邮箱",
+    "admin.settings.features.affiliate.inviterRelations.inviteesCol.username": "被邀请用户名",
+    "admin.settings.features.affiliate.inviterRelations.inviteesCol.joinedAt": "加入时间",
+    "admin.settings.features.affiliate.inviterRelations.inviteesCol.totalRebate": "累计返利",
   };
   return {
     ...actual,
@@ -285,7 +324,7 @@ const baseSettingsResponse = {
   default_balance: 0,
   default_concurrency: 1,
   default_subscriptions: [],
-  site_name: "Sub2API",
+  site_name: "GPTK",
   site_logo: "",
   site_subtitle: "",
   api_base_url: "",
@@ -392,6 +431,13 @@ const baseSettingsResponse = {
   balance_low_notify_recharge_url: "",
   account_quota_notify_enabled: false,
   account_quota_notify_emails: [],
+  affiliate_enabled: true,
+  affiliate_rebate_rate: 20,
+  affiliate_rebate_freeze_hours: 0,
+  affiliate_rebate_duration_days: 0,
+  affiliate_rebate_per_invitee_cap: 0,
+  affiliate_signup_reward_enabled: false,
+  affiliate_signup_reward_amount: 0,
 };
 
 function mountView() {
@@ -399,6 +445,7 @@ function mountView() {
     global: {
       stubs: {
         AppLayout: AppLayoutStub,
+        RouterLink: { template: "<a><slot /></a>" },
         Select: SelectStub,
         Toggle: ToggleStub,
         Icon: true,
@@ -445,6 +492,16 @@ async function openUsersTab(wrapper: ReturnType<typeof mountView>) {
   await flushPromises();
 }
 
+async function openFeaturesTab(wrapper: ReturnType<typeof mountView>) {
+  const featuresTabButton = wrapper
+    .findAll("button")
+    .find((node) => node.text().includes("admin.settings.tabs.features"));
+
+  expect(featuresTabButton).toBeDefined();
+  await featuresTabButton?.trigger("click");
+  await flushPromises();
+}
+
 describe("admin SettingsView payment visible method controls", () => {
   beforeEach(() => {
     getSettings.mockReset();
@@ -462,6 +519,8 @@ describe("admin SettingsView payment visible method controls", () => {
     updateProvider.mockReset();
     createProvider.mockReset();
     deleteProvider.mockReset();
+    listAffiliateInviters.mockReset();
+    listAffiliateInviterInvitees.mockReset();
     fetchPublicSettings.mockReset();
     adminSettingsFetch.mockReset();
     showError.mockReset();
@@ -513,6 +572,31 @@ describe("admin SettingsView payment visible method controls", () => {
     getProviders.mockResolvedValue({
       data: [],
     });
+    listAffiliateInviters.mockResolvedValue({
+      items: [
+        {
+          user_id: 11,
+          email: "owner@example.com",
+          username: "owner",
+          aff_code: "AFFOWNER",
+          aff_count: 2,
+          total_rebate: 18.8,
+        },
+      ],
+      total: 1,
+      page: 1,
+      page_size: 20,
+      pages: 1,
+    });
+    listAffiliateInviterInvitees.mockResolvedValue([
+      {
+        user_id: 101,
+        email: "friend@example.com",
+        username: "friend",
+        created_at: "2026-04-01T00:00:00Z",
+        total_rebate: 6.6,
+      },
+    ]);
     fetchPublicSettings.mockResolvedValue(undefined);
     adminSettingsFetch.mockResolvedValue(undefined);
   });
@@ -658,6 +742,19 @@ describe("admin SettingsView payment visible method controls", () => {
     expect(paymentHelpImageUpload).toBeDefined();
     expect(paymentHelpImageUpload?.attributes("data-upload-label")).toBe("上传图片");
     expect(paymentHelpImageUpload?.attributes("data-remove-label")).toBe("移除");
+  });
+
+  it("renders affiliate inviter relationships and loads invitee details", async () => {
+    const wrapper = mountView();
+
+    await flushPromises();
+    await openFeaturesTab(wrapper);
+    await flushPromises();
+
+    expect(wrapper.text()).not.toContain("邀请关系查看");
+    expect(wrapper.text()).not.toContain("查看邀请用户");
+    expect(listAffiliateInviters).not.toHaveBeenCalled();
+    expect(listAffiliateInviterInvitees).not.toHaveBeenCalled();
   });
 });
 
