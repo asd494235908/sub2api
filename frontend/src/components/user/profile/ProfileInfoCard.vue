@@ -259,6 +259,8 @@ const memberSinceLabel = computed(() => {
   }).format(date)
 })
 
+const hiddenProfileProviders = new Set<UserAuthProvider>(['github'])
+
 const providerLabels = computed<Record<UserAuthProvider, string>>(() => ({
   email: t('profile.authBindings.providers.email'),
   linuxdo: t('profile.authBindings.providers.linuxdo'),
@@ -269,7 +271,7 @@ const providerLabels = computed<Record<UserAuthProvider, string>>(() => ({
 }))
 
 function formatCurrency(value: number): string {
-  return `$${value.toFixed(2)}`
+  return `¥${value.toFixed(2)}`
 }
 
 function normalizeProvider(value: string): UserAuthProvider | null {
@@ -308,7 +310,7 @@ function resolveThirdPartySource(
 
   if (typeof rawSource === 'string') {
     const provider = normalizeProvider(rawSource)
-    if (!provider || provider === 'email') {
+    if (!provider || provider === 'email' || hiddenProfileProviders.has(provider)) {
       return null
     }
     return {
@@ -321,7 +323,7 @@ function resolveThirdPartySource(
   const provider = normalizeProvider(
     readObjectString(sourceRecord, 'provider', 'source', 'provider_type', 'auth_provider')
   )
-  if (!provider || provider === 'email') {
+  if (!provider || provider === 'email' || hiddenProfileProviders.has(provider)) {
     return null
   }
 

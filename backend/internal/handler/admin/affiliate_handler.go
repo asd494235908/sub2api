@@ -46,6 +46,41 @@ func (h *AffiliateHandler) ListUsers(c *gin.Context) {
 	response.Paginated(c, entries, total, page, pageSize)
 }
 
+// ListInviters returns paginated inviters who have invited at least one user.
+// GET /api/v1/admin/affiliates/inviters
+func (h *AffiliateHandler) ListInviters(c *gin.Context) {
+	page, pageSize := response.ParsePagination(c)
+	search := c.Query("search")
+
+	entries, total, err := h.affiliateService.AdminListInvitersWithInvitees(c.Request.Context(), service.AffiliateAdminFilter{
+		Search:   search,
+		Page:     page,
+		PageSize: pageSize,
+	})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Paginated(c, entries, total, page, pageSize)
+}
+
+// ListInviterInvitees returns the invitees for a single inviter.
+// GET /api/v1/admin/affiliates/inviters/:user_id/invitees
+func (h *AffiliateHandler) ListInviterInvitees(c *gin.Context) {
+	userID, err := strconv.ParseInt(c.Param("user_id"), 10, 64)
+	if err != nil || userID <= 0 {
+		response.BadRequest(c, "Invalid user_id")
+		return
+	}
+
+	items, err := h.affiliateService.AdminListInviteesByInviter(c.Request.Context(), userID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, items)
+}
+
 // UpdateUserSettings updates a user's affiliate settings.
 // PUT /api/v1/admin/affiliates/users/:user_id
 //

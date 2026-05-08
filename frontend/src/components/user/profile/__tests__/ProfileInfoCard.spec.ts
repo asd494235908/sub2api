@@ -131,6 +131,28 @@ describe('ProfileInfoCard', () => {
     expect(wrapper.text()).toContain('Username synced from ExampleID')
   })
 
+  it('does not display GitHub source hints in personal profile information', () => {
+    const wrapper = mount(ProfileInfoCard, {
+      props: {
+        user: createUser({
+          profile_sources: {
+            avatar: { provider: 'github', source: 'github' },
+            username: { provider: 'github', source: 'github' }
+          }
+        })
+      },
+      global: {
+        stubs: {
+          Icon: true
+        }
+      }
+    })
+
+    expect(wrapper.text()).not.toContain('GitHub')
+    expect(wrapper.text()).not.toContain('Avatar synced from GitHub')
+    expect(wrapper.text()).not.toContain('Username synced from GitHub')
+  })
+
   it('does not display synthetic oauth-only emails as a real bound email', () => {
     const wrapper = mount(ProfileInfoCard, {
       props: {

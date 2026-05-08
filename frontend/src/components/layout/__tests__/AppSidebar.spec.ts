@@ -19,6 +19,13 @@ describe('AppSidebar custom SVG styles', () => {
   })
 })
 
+describe('AppSidebar version display', () => {
+  it('does not render the version badge in the sidebar header', () => {
+    expect(componentSource).not.toContain('<VersionBadge')
+    expect(componentSource).not.toContain("from '@/components/common/VersionBadge.vue'")
+  })
+})
+
 describe('AppSidebar header styles', () => {
   it('does not clip the version badge dropdown', () => {
     const sidebarHeaderBlockMatch = styleSource.match(/\.sidebar-header\s*\{[\s\S]*?\n {2}\}/)

@@ -4820,6 +4820,37 @@
                 </p>
               </div>
 
+              <div class="rounded-xl border border-gray-200 p-4 dark:border-dark-700">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {{ t('admin.settings.features.affiliate.signupRewardEnabled') }}
+                    </label>
+                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.features.affiliate.signupRewardEnabledHint') }}
+                    </p>
+                  </div>
+                  <Toggle v-model="form.affiliate_signup_reward_enabled" />
+                </div>
+
+                <div v-if="form.affiliate_signup_reward_enabled" class="mt-4">
+                  <label class="input-label">
+                    {{ t('admin.settings.features.affiliate.signupRewardAmount') }}
+                  </label>
+                  <input
+                    v-model.number="form.affiliate_signup_reward_amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="input"
+                    placeholder="5"
+                  />
+                  <p class="mt-1 text-xs text-gray-400">
+                    {{ t('admin.settings.features.affiliate.signupRewardAmountDesc') }}
+                  </p>
+                </div>
+              </div>
+
               <!-- 专属用户管理 -->
               <div class="border-t border-gray-100 pt-6 dark:border-dark-700">
                 <div class="mb-3 flex items-center justify-between">
@@ -6332,6 +6363,8 @@ const form = reactive<SettingsForm>({
   affiliate_rebate_freeze_hours: 0,
   affiliate_rebate_duration_days: 0,
   affiliate_rebate_per_invitee_cap: 0,
+  affiliate_signup_reward_enabled: false,
+  affiliate_signup_reward_amount: 0,
   default_concurrency: 1,
   default_subscriptions: [],
   force_email_on_third_party_signup: false,
@@ -7441,6 +7474,8 @@ async function saveSettings() {
       affiliate_rebate_freeze_hours: Math.max(0, Math.min(720, Number(form.affiliate_rebate_freeze_hours) || 0)),
       affiliate_rebate_duration_days: Math.max(0, Math.min(3650, Math.floor(Number(form.affiliate_rebate_duration_days) || 0))),
       affiliate_rebate_per_invitee_cap: Math.max(0, Number(form.affiliate_rebate_per_invitee_cap) || 0),
+      affiliate_signup_reward_enabled: form.affiliate_signup_reward_enabled,
+      affiliate_signup_reward_amount: Math.max(0, Number(form.affiliate_signup_reward_amount) || 0),
       default_concurrency: form.default_concurrency,
       default_subscriptions: normalizedDefaultSubscriptions,
       force_email_on_third_party_signup: form.force_email_on_third_party_signup,

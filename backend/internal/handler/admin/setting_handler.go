@@ -204,6 +204,8 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		AffiliateRebateFreezeHours:             settings.AffiliateRebateFreezeHours,
 		AffiliateRebateDurationDays:            settings.AffiliateRebateDurationDays,
 		AffiliateRebatePerInviteeCap:           settings.AffiliateRebatePerInviteeCap,
+		AffiliateSignupRewardEnabled:           settings.AffiliateSignupRewardEnabled,
+		AffiliateSignupRewardAmount:            settings.AffiliateSignupRewardAmount,
 		DefaultUserRPMLimit:                    settings.DefaultUserRPMLimit,
 		DefaultSubscriptions:                   defaultSubscriptions,
 		EnableModelFallback:                    settings.EnableModelFallback,
@@ -450,6 +452,8 @@ type UpdateSettingsRequest struct {
 	AffiliateRebateFreezeHours               *int                              `json:"affiliate_rebate_freeze_hours"`
 	AffiliateRebateDurationDays              *int                              `json:"affiliate_rebate_duration_days"`
 	AffiliateRebatePerInviteeCap             *float64                          `json:"affiliate_rebate_per_invitee_cap"`
+	AffiliateSignupRewardEnabled             *bool                             `json:"affiliate_signup_reward_enabled"`
+	AffiliateSignupRewardAmount              *float64                          `json:"affiliate_signup_reward_amount"`
 	DefaultUserRPMLimit                      int                               `json:"default_user_rpm_limit"`
 	DefaultSubscriptions                     []dto.DefaultSubscriptionSetting  `json:"default_subscriptions"`
 	AuthSourceDefaultEmailBalance            *float64                          `json:"auth_source_default_email_balance"`
@@ -1354,6 +1358,18 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		AffiliateRebateFreezeHours:       affiliateRebateFreezeHours,
 		AffiliateRebateDurationDays:      affiliateRebateDurationDays,
 		AffiliateRebatePerInviteeCap:     affiliateRebatePerInviteeCap,
+		AffiliateSignupRewardEnabled: func() bool {
+			if req.AffiliateSignupRewardEnabled != nil {
+				return *req.AffiliateSignupRewardEnabled
+			}
+			return previousSettings.AffiliateSignupRewardEnabled
+		}(),
+		AffiliateSignupRewardAmount: func() float64 {
+			if req.AffiliateSignupRewardAmount != nil {
+				return *req.AffiliateSignupRewardAmount
+			}
+			return previousSettings.AffiliateSignupRewardAmount
+		}(),
 		DefaultUserRPMLimit:              req.DefaultUserRPMLimit,
 		DefaultSubscriptions:             defaultSubscriptions,
 		EnableModelFallback:              req.EnableModelFallback,
@@ -1726,6 +1742,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		AffiliateRebateFreezeHours:             updatedSettings.AffiliateRebateFreezeHours,
 		AffiliateRebateDurationDays:            updatedSettings.AffiliateRebateDurationDays,
 		AffiliateRebatePerInviteeCap:           updatedSettings.AffiliateRebatePerInviteeCap,
+		AffiliateSignupRewardEnabled:           updatedSettings.AffiliateSignupRewardEnabled,
+		AffiliateSignupRewardAmount:            updatedSettings.AffiliateSignupRewardAmount,
 		DefaultUserRPMLimit:                    updatedSettings.DefaultUserRPMLimit,
 		DefaultSubscriptions:                   updatedDefaultSubscriptions,
 		EnableModelFallback:                    updatedSettings.EnableModelFallback,

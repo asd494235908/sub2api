@@ -1,7 +1,7 @@
 <template>
-  <AdminAffiliateRecordsTable type="invites" />
+  <AffiliatesView />
 </template>
 
 <script setup lang="ts">
-import AdminAffiliateRecordsTable from './AdminAffiliateRecordsTable.vue'
+import AffiliatesView from '../AffiliatesView.vue'
 </script>

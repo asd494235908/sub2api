@@ -226,17 +226,7 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, passw
 	}
 	s.postAuthUserBootstrap(ctx, user, "email", true)
 	s.assignSubscriptions(ctx, user.ID, grantPlan.Subscriptions, "auto assigned by signup defaults")
-	if s.affiliateService != nil {
-		if _, err := s.affiliateService.EnsureUserAffiliate(ctx, user.ID); err != nil {
-			logger.LegacyPrintf("service.auth", "[Auth] Failed to initialize affiliate profile for user %d: %v", user.ID, err)
-		}
-		if code := strings.TrimSpace(affiliateCode); code != "" {
-			if err := s.affiliateService.BindInviterByCode(ctx, user.ID, code); err != nil {
-				// 邀请返利码绑定失败不影响注册，只记录日志
-				logger.LegacyPrintf("service.auth", "[Auth] Failed to bind affiliate inviter for user %d: %v", user.ID, err)
-			}
-		}
-	}
+	s.bindAffiliateAndApplySignupBonus(ctx, user.ID, affiliateCode, "email")
 
 	// 标记邀请码为已使用（如果使用了邀请码）
 	if invitationRedeemCode != nil {
@@ -667,7 +657,7 @@ func (s *AuthService) LoginOrRegisterOAuthWithTokenPair(ctx context.Context, ema
 					user = newUser
 					s.postAuthUserBootstrap(ctx, user, signupSource, false)
 					s.assignSubscriptions(ctx, user.ID, grantPlan.Subscriptions, "auto assigned by signup defaults")
-					s.bindOAuthAffiliate(ctx, user.ID, affiliateCode)
+					s.bindAffiliateAndApplySignupBonus(ctx, user.ID, affiliateCode, "oauth")
 				}
 			} else {
 				if err := s.userRepo.Create(ctx, newUser); err != nil {
@@ -685,7 +675,7 @@ func (s *AuthService) LoginOrRegisterOAuthWithTokenPair(ctx context.Context, ema
 					user = newUser
 					s.postAuthUserBootstrap(ctx, user, signupSource, false)
 					s.assignSubscriptions(ctx, user.ID, grantPlan.Subscriptions, "auto assigned by signup defaults")
-					s.bindOAuthAffiliate(ctx, user.ID, affiliateCode)
+					s.bindAffiliateAndApplySignupBonus(ctx, user.ID, affiliateCode, "oauth")
 					if invitationRedeemCode != nil {
 						if err := s.redeemRepo.Use(ctx, invitationRedeemCode.ID, user.ID); err != nil {
 							return nil, nil, ErrInvitationCodeInvalid
@@ -784,9 +774,9 @@ func authSourceSignupSettings(defaults *AuthSourceDefaultSettings, signupSource 
 	}
 }
 
-// bindOAuthAffiliate initializes the affiliate profile and binds the inviter
-// for an OAuth-registered user. Failures are logged but never block registration.
-func (s *AuthService) bindOAuthAffiliate(ctx context.Context, userID int64, affiliateCode string) {
+// bindAffiliateAndApplySignupBonus initializes affiliate state, binds the inviter,
+// and applies the one-time signup reward. Failures are logged but never block registration.
+func (s *AuthService) bindAffiliateAndApplySignupBonus(ctx context.Context, userID int64, affiliateCode string, signupKind string) {
 	if s.affiliateService == nil || userID <= 0 {
 		return
 	}
@@ -798,6 +788,13 @@ func (s *AuthService) bindOAuthAffiliate(ctx context.Context, userID int64, affi
 			logger.LegacyPrintf("service.auth", "[Auth] Failed to bind affiliate inviter for user %d: %v", userID, err)
 		}
 	}
+	if _, _, err := s.affiliateService.ApplySignupBonus(ctx, userID); err != nil {
+		logger.LegacyPrintf("service.auth", "[Auth] Failed to apply affiliate signup bonus for %s user %d: %v", signupKind, userID, err)
+	}
+}
+
+func (s *AuthService) bindOAuthAffiliate(ctx context.Context, userID int64, affiliateCode string) {
+	s.bindAffiliateAndApplySignupBonus(ctx, userID, affiliateCode, "oauth")
 }
 
 func (s *AuthService) postAuthUserBootstrap(ctx context.Context, user *User, signupSource string, touchLogin bool) {

@@ -100,6 +100,107 @@ LIMIT 1`, u.ID)
 	require.InDelta(t, 12.34, historyAfter, 1e-9)
 }
 
+func TestAffiliateRepository_AwardSignupBonus_IsIdempotentAndCreditsBalance(t *testing.T) {
+	ctx := context.Background()
+	tx := testEntTx(t)
+	txCtx := dbent.NewTxContext(ctx, tx)
+	client := tx.Client()
+
+	repo := NewAffiliateRepository(client, integrationDB)
+
+	inviter := mustCreateUser(t, client, &service.User{
+		Email:        fmt.Sprintf("affiliate-signup-bonus-inviter-%d@example.com", time.Now().UnixNano()),
+		PasswordHash: "hash",
+		Role:         service.RoleUser,
+		Status:       service.StatusActive,
+		Balance:      12.5,
+		Concurrency:  5,
+	})
+	invitee := mustCreateUser(t, client, &service.User{
+		Email:        fmt.Sprintf("affiliate-signup-bonus-invitee-%d@example.com", time.Now().UnixNano()+1),
+		PasswordHash: "hash",
+		Role:         service.RoleUser,
+		Status:       service.StatusActive,
+		Concurrency:  5,
+	})
+
+	_, err := repo.EnsureUserAffiliate(txCtx, inviter.ID)
+	require.NoError(t, err)
+	_, err = repo.EnsureUserAffiliate(txCtx, invitee.ID)
+	require.NoError(t, err)
+	bound, err := repo.BindInviter(txCtx, invitee.ID, inviter.ID)
+	require.NoError(t, err)
+	require.True(t, bound)
+
+	applied, balance, err := repo.AwardSignupBonus(txCtx, inviter.ID, invitee.ID, 8.25)
+	require.NoError(t, err)
+	require.True(t, applied)
+	require.InDelta(t, 20.75, balance, 1e-9)
+
+	applied, balance, err = repo.AwardSignupBonus(txCtx, inviter.ID, invitee.ID, 8.25)
+	require.NoError(t, err)
+	require.False(t, applied)
+	require.InDelta(t, 20.75, balance, 1e-9)
+
+	history := querySingleFloat(t, txCtx, client,
+		"SELECT aff_history_quota::double precision FROM user_affiliates WHERE user_id = $1", inviter.ID)
+	require.InDelta(t, 8.25, history, 1e-9)
+
+	quota := querySingleFloat(t, txCtx, client,
+		"SELECT aff_quota::double precision FROM user_affiliates WHERE user_id = $1", inviter.ID)
+	require.InDelta(t, 0.0, quota, 1e-9)
+
+	ledgerCount := querySingleInt(t, txCtx, client,
+		"SELECT COUNT(*) FROM user_affiliate_ledger WHERE user_id = $1 AND source_user_id = $2 AND action = 'signup_bonus'", inviter.ID, invitee.ID)
+	require.Equal(t, 1, ledgerCount)
+}
+
+func TestAffiliateRepository_ListInvitees_IncludesSignupBonusInTotalRebate(t *testing.T) {
+	ctx := context.Background()
+	tx := testEntTx(t)
+	txCtx := dbent.NewTxContext(ctx, tx)
+	client := tx.Client()
+
+	repo := NewAffiliateRepository(client, integrationDB)
+
+	inviter := mustCreateUser(t, client, &service.User{
+		Email:        fmt.Sprintf("affiliate-list-bonus-inviter-%d@example.com", time.Now().UnixNano()),
+		PasswordHash: "hash",
+		Role:         service.RoleUser,
+		Status:       service.StatusActive,
+		Concurrency:  5,
+	})
+	invitee := mustCreateUser(t, client, &service.User{
+		Email:        fmt.Sprintf("affiliate-list-bonus-invitee-%d@example.com", time.Now().UnixNano()+1),
+		PasswordHash: "hash",
+		Role:         service.RoleUser,
+		Status:       service.StatusActive,
+		Concurrency:  5,
+	})
+
+	_, err := repo.EnsureUserAffiliate(txCtx, inviter.ID)
+	require.NoError(t, err)
+	_, err = repo.EnsureUserAffiliate(txCtx, invitee.ID)
+	require.NoError(t, err)
+	bound, err := repo.BindInviter(txCtx, invitee.ID, inviter.ID)
+	require.NoError(t, err)
+	require.True(t, bound)
+
+	applied, _, err := repo.AwardSignupBonus(txCtx, inviter.ID, invitee.ID, 5)
+	require.NoError(t, err)
+	require.True(t, applied)
+
+	applied, err = repo.AccrueQuota(txCtx, inviter.ID, invitee.ID, 3.5, 0, nil)
+	require.NoError(t, err)
+	require.True(t, applied)
+
+	invitees, err := repo.ListInvitees(txCtx, inviter.ID, 10)
+	require.NoError(t, err)
+	require.Len(t, invitees, 1)
+	require.Equal(t, invitee.ID, invitees[0].UserID)
+	require.InDelta(t, 8.5, invitees[0].TotalRebate, 1e-9)
+}
+
 // TestAffiliateRepository_AccrueQuota_ReusesOuterTransaction guards the
 // cross-layer tx propagation invariant: when AccrueQuota is called with a ctx
 // that already carries a transaction (via dbent.NewTxContext), repo.withTx

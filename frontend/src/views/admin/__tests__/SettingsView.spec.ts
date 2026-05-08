@@ -291,6 +291,8 @@ const baseSettingsResponse = {
   default_balance: 0,
   default_concurrency: 1,
   default_subscriptions: [],
+  affiliate_signup_reward_enabled: false,
+  affiliate_signup_reward_amount: 0,
   site_name: "Sub2API",
   site_logo: "",
   site_subtitle: "",
@@ -597,6 +599,23 @@ describe("admin SettingsView payment visible method controls", () => {
     expect(updateSettings).toHaveBeenCalledWith(
       expect.objectContaining({
         enable_anthropic_cache_ttl_1h_injection: true,
+      }),
+    );
+  });
+
+  it("submits affiliate signup reward settings", async () => {
+    const wrapper = mountView();
+
+    await flushPromises();
+    await openUsersTab(wrapper);
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    expect(updateSettings).toHaveBeenCalledTimes(1);
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        affiliate_signup_reward_enabled: false,
+        affiliate_signup_reward_amount: 0,
       }),
     );
   });
