@@ -7,10 +7,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
@@ -405,18 +410,12 @@ func (s *PromptArchiveService) processEnvelope(ctx context.Context, env *PromptA
 
 func (s *PromptArchiveService) normalizeAttachment(ctx context.Context, record *PromptArchivePersistedRecord, attachment PromptArchiveAttachment) (PromptArchiveAttachment, error) {
 	out := attachment
-	if out.SourceType != PromptArchiveAttachmentSourceDataURI && out.SourceType != PromptArchiveAttachmentSourceInline {
-		return out, nil
-	}
-
-	payload := strings.TrimSpace(out.SourceURL)
-	if out.SourceType == PromptArchiveAttachmentSourceInline {
-		payload = strings.TrimSpace(out.SourceURL)
-	}
-
-	mimeType, rawData, err := decodePromptArchiveInlineData(payload, out.SourceType)
+	mimeType, rawData, err := s.resolvePromptArchiveAttachmentData(ctx, out)
 	if err != nil {
 		return out, err
+	}
+	if len(rawData) == 0 {
+		return out, nil
 	}
 	if out.MIMEType == "" {
 		out.MIMEType = mimeType
@@ -425,8 +424,8 @@ func (s *PromptArchiveService) normalizeAttachment(ctx context.Context, record *
 	sum := sha256.Sum256(rawData)
 	out.SHA256 = hex.EncodeToString(sum[:])
 
-	if len(rawData) > s.cfg.InlineDataMaxBytes {
-		out.SourceURL = ""
+	if promptArchiveShouldEnforceInlineSizeLimit(out.SourceType) && len(rawData) > s.cfg.InlineDataMaxBytes {
+		out.SourceURL = strings.TrimSpace(out.SourceURL)
 		return out, nil
 	}
 
@@ -436,6 +435,21 @@ func (s *PromptArchiveService) normalizeAttachment(ctx context.Context, record *
 	}
 	out.ObjectKey = objectKey
 	return out, nil
+}
+
+func (s *PromptArchiveService) resolvePromptArchiveAttachmentData(ctx context.Context, attachment PromptArchiveAttachment) (string, []byte, error) {
+	switch attachment.SourceType {
+	case PromptArchiveAttachmentSourceDataURI, PromptArchiveAttachmentSourceInline:
+		return decodePromptArchiveInlineData(strings.TrimSpace(attachment.SourceURL), attachment.SourceType)
+	case PromptArchiveAttachmentSourceURL:
+		return fetchPromptArchiveURLData(ctx, strings.TrimSpace(attachment.SourceURL), attachment.MIMEType)
+	default:
+		return "", nil, nil
+	}
+}
+
+func promptArchiveShouldEnforceInlineSizeLimit(sourceType PromptArchiveAttachmentSourceType) bool {
+	return sourceType == PromptArchiveAttachmentSourceDataURI || sourceType == PromptArchiveAttachmentSourceInline
 }
 
 func decodePromptArchiveInlineData(raw string, sourceType PromptArchiveAttachmentSourceType) (string, []byte, error) {
@@ -469,6 +483,60 @@ func decodePromptArchiveInlineData(raw string, sourceType PromptArchiveAttachmen
 		return "application/octet-stream", decoded, nil
 	default:
 		return "", nil, fmt.Errorf("unsupported source type")
+	}
+}
+
+func fetchPromptArchiveURLData(ctx context.Context, rawURL string, fallbackMIME string) (string, []byte, error) {
+	rawURL = strings.TrimSpace(rawURL)
+	if rawURL == "" {
+		return "", nil, nil
+	}
+	if strings.HasPrefix(rawURL, "file://") {
+		path := strings.TrimPrefix(rawURL, "file://")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return "", nil, fmt.Errorf("read file url: %w", err)
+		}
+		mimeType := firstNonEmptyPromptArchiveString(fallbackMIME, mimeTypeFromExtension(path))
+		return mimeType, data, nil
+	}
+	if strings.HasPrefix(rawURL, "http://") || strings.HasPrefix(rawURL, "https://") {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+		if err != nil {
+			return "", nil, fmt.Errorf("build attachment request: %w", err)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return "", nil, fmt.Errorf("fetch attachment url: %w", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			return "", nil, fmt.Errorf("fetch attachment url status=%d", resp.StatusCode)
+		}
+		data, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", nil, fmt.Errorf("read attachment body: %w", err)
+		}
+		mimeType := firstNonEmptyPromptArchiveString(resp.Header.Get("Content-Type"), fallbackMIME, mimeTypeFromExtension(rawURL))
+		return strings.TrimSpace(strings.Split(mimeType, ";")[0]), data, nil
+	}
+	return "", nil, nil
+}
+
+func mimeTypeFromExtension(raw string) string {
+	switch strings.ToLower(filepath.Ext(raw)) {
+	case ".png":
+		return "image/png"
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".webp":
+		return "image/webp"
+	case ".mp4":
+		return "video/mp4"
+	case ".mov":
+		return "video/quicktime"
+	default:
+		return ""
 	}
 }
 
@@ -529,13 +597,13 @@ func buildPromptArchiveMarkdown(record *PromptArchivePersistedRecord) string {
 
 func buildPromptArchiveMarkdownObjectKey(record *PromptArchivePersistedRecord) string {
 	ts := record.CreatedAt.UTC().Format("20060102T150405.000000000Z")
-	return fmt.Sprintf("prompt-archive/%d/%d/%s/%s_%s.md", record.GroupID, record.UserID, firstNonEmptyPromptArchiveString(record.SessionID, "unknown-session"), ts, firstNonEmptyPromptArchiveString(record.RequestID, "unknown-request"))
+	return fmt.Sprintf("%s/%s_%s.md", buildPromptArchiveSessionPrefix(record), ts, firstNonEmptyPromptArchiveString(record.RequestID, "unknown-request"))
 }
 
 func buildPromptArchiveAttachmentObjectKey(record *PromptArchivePersistedRecord, attachment PromptArchiveAttachment) string {
 	ts := record.CreatedAt.UTC().Format("20060102T150405.000000000Z")
 	ext := promptArchiveExtensionFromMIME(attachment.MIMEType)
-	return fmt.Sprintf("prompt-archive/%d/%d/%s/assets/%s_%03d_%s.%s", record.GroupID, record.UserID, firstNonEmptyPromptArchiveString(record.SessionID, "unknown-session"), ts, attachment.Sequence, firstNonEmptyPromptArchiveString(attachment.SHA256, "unknown"), ext)
+	return fmt.Sprintf("%s/assets/%s_%03d_%s.%s", buildPromptArchiveSessionPrefix(record), ts, attachment.Sequence, firstNonEmptyPromptArchiveString(attachment.SHA256, "unknown"), ext)
 }
 
 func promptArchiveExtensionFromMIME(mimeType string) string {
@@ -560,6 +628,46 @@ func firstNonEmptyPromptArchiveString(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func buildPromptArchiveSessionPrefix(record *PromptArchivePersistedRecord) string {
+	datePath := record.CreatedAt.UTC().Format("2006/01/02")
+	userSegment := buildPromptArchiveUserSegment(record)
+	sessionSegment := "session_" + sanitizePromptArchivePathSegment(firstNonEmptyPromptArchiveString(record.SessionID, "unknown-session"))
+	return fmt.Sprintf("prompt-archive/%s/%s/group_%d/%s", datePath, userSegment, record.GroupID, sessionSegment)
+}
+
+func buildPromptArchiveUserSegment(record *PromptArchivePersistedRecord) string {
+	identity := firstNonEmptyPromptArchiveString(record.UsernameSnapshot, record.EmailSnapshot, "unknown-user")
+	slug := sanitizePromptArchivePathSegment(identity)
+	return fmt.Sprintf("user_%d_%s", record.UserID, slug)
+}
+
+func sanitizePromptArchivePathSegment(raw string) string {
+	raw = strings.TrimSpace(strings.ToLower(raw))
+	if raw == "" {
+		return "unknown"
+	}
+
+	var b strings.Builder
+	lastDash := false
+	for _, r := range raw {
+		switch {
+		case unicode.IsLetter(r), unicode.IsNumber(r):
+			b.WriteRune(r)
+			lastDash = false
+		default:
+			if !lastDash {
+				b.WriteByte('-')
+				lastDash = true
+			}
+		}
+	}
+	out := strings.Trim(b.String(), "-")
+	if out == "" {
+		return "unknown"
+	}
+	return out
 }
 
 func BuildPromptArchiveEnvelopeFromParsedRequest(apiKey *APIKey, endpoint, protocol string, parsed *ParsedRequest, now time.Time) *PromptArchiveEnvelope {

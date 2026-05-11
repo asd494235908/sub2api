@@ -3,6 +3,10 @@ package service
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -237,5 +241,184 @@ func TestPromptArchiveService_ProcessStoreFailureMarksRecordFailed(t *testing.T)
 	}
 	if repo.records[0].ErrorMessage == "" {
 		t.Fatalf("failed record should include error message")
+	}
+}
+
+func TestPromptArchiveService_NormalizeAttachment_UploadsFileURL(t *testing.T) {
+	dir := t.TempDir()
+	videoPath := filepath.Join(dir, "demo.mov")
+	if err := os.WriteFile(videoPath, []byte("video-bytes"), 0o600); err != nil {
+		t.Fatalf("write temp file: %v", err)
+	}
+
+	repo := &promptArchiveRepoStub{
+		settings: &PromptArchiveSettings{Enabled: true, AllGroups: true},
+	}
+	store := &promptArchiveStoreStub{}
+	cfg := &config.Config{
+		Archive: config.ArchiveConfig{
+			Enabled:              true,
+			QueueCapacity:        8,
+			WorkerCount:          1,
+			BatchSize:            1,
+			FlushIntervalSeconds: 1,
+			OverflowPolicy:       config.PromptArchiveOverflowPolicyDropAndLog,
+			InlineDataMaxBytes:   1024,
+		},
+	}
+	svc := NewPromptArchiveService(repo, store, cfg)
+	record := &PromptArchivePersistedRecord{
+		RequestID: "req-file-url",
+		SessionID: "sess-file-url",
+		UserID:    1,
+		GroupID:   2,
+		CreatedAt: time.Now().UTC(),
+	}
+
+	attachment, err := svc.normalizeAttachment(context.Background(), record, PromptArchiveAttachment{
+		Kind:       PromptArchiveAttachmentKindVideo,
+		SourceType: PromptArchiveAttachmentSourceURL,
+		SourceURL:  "file://" + videoPath,
+		Sequence:   1,
+	})
+	if err != nil {
+		t.Fatalf("normalizeAttachment error: %v", err)
+	}
+	if attachment.ObjectKey == "" {
+		t.Fatalf("expected uploaded object key")
+	}
+	if attachment.SizeBytes != int64(len("video-bytes")) {
+		t.Fatalf("size=%d", attachment.SizeBytes)
+	}
+	if len(store.keys) != 1 {
+		t.Fatalf("uploads=%d, want 1", len(store.keys))
+	}
+}
+
+func TestPromptArchiveService_NormalizeAttachment_UploadsHTTPURL(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "video/mp4")
+		_, _ = w.Write([]byte("remote-video"))
+	}))
+	defer server.Close()
+
+	repo := &promptArchiveRepoStub{
+		settings: &PromptArchiveSettings{Enabled: true, AllGroups: true},
+	}
+	store := &promptArchiveStoreStub{}
+	cfg := &config.Config{
+		Archive: config.ArchiveConfig{
+			Enabled:              true,
+			QueueCapacity:        8,
+			WorkerCount:          1,
+			BatchSize:            1,
+			FlushIntervalSeconds: 1,
+			OverflowPolicy:       config.PromptArchiveOverflowPolicyDropAndLog,
+			InlineDataMaxBytes:   1024,
+		},
+	}
+	svc := NewPromptArchiveService(repo, store, cfg)
+	record := &PromptArchivePersistedRecord{
+		RequestID: "req-http-url",
+		SessionID: "sess-http-url",
+		UserID:    1,
+		GroupID:   2,
+		CreatedAt: time.Now().UTC(),
+	}
+
+	attachment, err := svc.normalizeAttachment(context.Background(), record, PromptArchiveAttachment{
+		Kind:       PromptArchiveAttachmentKindVideo,
+		SourceType: PromptArchiveAttachmentSourceURL,
+		SourceURL:  server.URL + "/demo.mp4",
+		Sequence:   1,
+	})
+	if err != nil {
+		t.Fatalf("normalizeAttachment error: %v", err)
+	}
+	if attachment.ObjectKey == "" {
+		t.Fatalf("expected uploaded object key")
+	}
+	if attachment.MIMEType != "video/mp4" {
+		t.Fatalf("mime=%q, want video/mp4", attachment.MIMEType)
+	}
+	if len(store.keys) != 1 {
+		t.Fatalf("uploads=%d, want 1", len(store.keys))
+	}
+}
+
+func TestPromptArchiveService_NormalizeAttachment_LargeHTTPURLStillUploads(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "video/mp4")
+		_, _ = w.Write(make([]byte, 2*1024*1024))
+	}))
+	defer server.Close()
+
+	repo := &promptArchiveRepoStub{
+		settings: &PromptArchiveSettings{Enabled: true, AllGroups: true},
+	}
+	store := &promptArchiveStoreStub{}
+	cfg := &config.Config{
+		Archive: config.ArchiveConfig{
+			Enabled:              true,
+			QueueCapacity:        8,
+			WorkerCount:          1,
+			BatchSize:            1,
+			FlushIntervalSeconds: 1,
+			OverflowPolicy:       config.PromptArchiveOverflowPolicyDropAndLog,
+			InlineDataMaxBytes:   1024,
+		},
+	}
+	svc := NewPromptArchiveService(repo, store, cfg)
+	record := &PromptArchivePersistedRecord{
+		RequestID: "req-http-large-url",
+		SessionID: "sess-http-large-url",
+		UserID:    1,
+		GroupID:   2,
+		CreatedAt: time.Now().UTC(),
+	}
+
+	attachment, err := svc.normalizeAttachment(context.Background(), record, PromptArchiveAttachment{
+		Kind:       PromptArchiveAttachmentKindVideo,
+		SourceType: PromptArchiveAttachmentSourceURL,
+		SourceURL:  server.URL + "/demo.mp4",
+		Sequence:   1,
+	})
+	if err != nil {
+		t.Fatalf("normalizeAttachment error: %v", err)
+	}
+	if attachment.ObjectKey == "" {
+		t.Fatalf("expected uploaded object key for large remote video")
+	}
+	if attachment.SizeBytes <= int64(cfg.Archive.InlineDataMaxBytes) {
+		t.Fatalf("size=%d should be above inline max bytes", attachment.SizeBytes)
+	}
+	if len(store.keys) != 1 {
+		t.Fatalf("uploads=%d, want 1", len(store.keys))
+	}
+}
+
+func TestBuildPromptArchiveObjectKeys_UseDateAndUserFolders(t *testing.T) {
+	record := &PromptArchivePersistedRecord{
+		RequestID:        "req-123",
+		SessionID:        "sess-xyz",
+		UserID:           42,
+		UsernameSnapshot: "Alice Demo",
+		EmailSnapshot:    "alice@example.com",
+		GroupID:          7,
+		CreatedAt:        time.Date(2026, time.May, 11, 18, 30, 0, 0, time.UTC),
+	}
+
+	mdKey := buildPromptArchiveMarkdownObjectKey(record)
+	if !strings.Contains(mdKey, "prompt-archive/2026/05/11/user_42_alice-demo/group_7/session_sess-xyz/") {
+		t.Fatalf("unexpected markdown key: %s", mdKey)
+	}
+
+	attachmentKey := buildPromptArchiveAttachmentObjectKey(record, PromptArchiveAttachment{
+		MIMEType: "video/mp4",
+		SHA256:   "abc123",
+		Sequence: 2,
+	})
+	if !strings.Contains(attachmentKey, "prompt-archive/2026/05/11/user_42_alice-demo/group_7/session_sess-xyz/assets/") {
+		t.Fatalf("unexpected attachment key: %s", attachmentKey)
 	}
 }
