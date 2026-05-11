@@ -58,5 +58,10 @@ declare module 'vue-router' {
      * i18n key for the page description
      */
     descriptionKey?: string
+
+    /**
+     * Whether the resolved title should be treated as absolute and not append site name again
+     */
+    titleAbsolute?: boolean
   }
 }

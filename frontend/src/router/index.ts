@@ -9,7 +9,7 @@ import { useAppStore } from '@/stores/app'
 import { useAdminSettingsStore } from '@/stores/adminSettings'
 import { useNavigationLoadingState } from '@/composables/useNavigationLoading'
 import { useRoutePrefetch } from '@/composables/useRoutePrefetch'
-import { resolveDocumentTitle } from './title'
+import { syncDocumentHead } from './title'
 
 /**
  * Route definitions with lazy loading
@@ -33,7 +33,10 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/HomeView.vue'),
     meta: {
       requiresAuth: false,
-      title: 'Home'
+      title: 'Home',
+      titleKey: 'home.landing.seo.title',
+      titleAbsolute: true,
+      descriptionKey: 'home.landing.seo.description'
     }
   },
   {
@@ -656,10 +659,10 @@ router.beforeEach((to, _from, next) => {
       const siteName = appStore.siteName || 'GPTK'
       document.title = `${menuItem.label} - ${siteName}`
     } else {
-      document.title = resolveDocumentTitle(to.meta.title, appStore.siteName, to.meta.titleKey as string)
+      syncDocumentHead(to.meta, appStore.siteName)
     }
   } else {
-    document.title = resolveDocumentTitle(to.meta.title, appStore.siteName, to.meta.titleKey as string)
+    syncDocumentHead(to.meta, appStore.siteName)
   }
 
   // Check if route requires authentication

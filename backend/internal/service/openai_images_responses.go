@@ -361,21 +361,21 @@ func collectOpenAIImagesFromResponsesBody(body []byte) ([]openAIResponsesImageRe
 	var (
 		fallbackResults []openAIResponsesImageResult
 		fallbackSeen    = make(map[string]struct{})
+		finalResults    []openAIResponsesImageResult
+		finalMeta       openAIResponsesImageResult
+		collectErr      error
 		createdAt       int64
 		usageRaw        []byte
 		foundFinal      bool
 		responseMeta    openAIResponsesImageResult
 	)
 
-	for _, line := range bytes.Split(body, []byte("\n")) {
-		line = bytes.TrimRight(line, "\r")
-		data, ok := extractOpenAISSEDataLine(string(line))
-		if !ok || data == "" || data == "[DONE]" {
-			continue
+	forEachOpenAISSEDataPayload(string(body), func(payload []byte) {
+		if collectErr != nil || len(finalResults) > 0 {
+			return
 		}
-		payload := []byte(data)
 		if !gjson.ValidBytes(payload) {
-			continue
+			return
 		}
 		if meta, eventCreatedAt, ok := extractOpenAIResponsesImageMetaFromLifecycleEvent(payload); ok {
 			mergeOpenAIResponsesImageMeta(&responseMeta, meta)
@@ -388,7 +388,8 @@ func collectOpenAIImagesFromResponsesBody(body []byte) ([]openAIResponsesImageRe
 		case "response.output_item.done":
 			result, itemID, ok, err := extractOpenAIImageFromResponsesOutputItemDone(payload)
 			if err != nil {
-				return nil, 0, nil, openAIResponsesImageResult{}, false, err
+				collectErr = err
+				return
 			}
 			if ok {
 				mergeOpenAIResponsesImageMeta(&result, responseMeta)
@@ -397,7 +398,8 @@ func collectOpenAIImagesFromResponsesBody(body []byte) ([]openAIResponsesImageRe
 		case "response.completed":
 			results, completedAt, completedUsageRaw, firstMeta, err := extractOpenAIImagesFromResponsesCompleted(payload)
 			if err != nil {
-				return nil, 0, nil, openAIResponsesImageResult{}, false, err
+				collectErr = err
+				return
 			}
 			foundFinal = true
 			if completedAt > 0 {
@@ -408,14 +410,24 @@ func collectOpenAIImagesFromResponsesBody(body []byte) ([]openAIResponsesImageRe
 			}
 			if len(results) > 0 {
 				mergeOpenAIResponsesImageMeta(&firstMeta, responseMeta)
-				return results, createdAt, usageRaw, firstMeta, true, nil
+				finalResults = results
+				finalMeta = firstMeta
+				return
 			}
 			if len(fallbackResults) > 0 {
 				firstMeta = fallbackResults[0]
 				mergeOpenAIResponsesImageMeta(&firstMeta, responseMeta)
-				return fallbackResults, createdAt, usageRaw, firstMeta, true, nil
+				finalResults = fallbackResults
+				finalMeta = firstMeta
+				return
 			}
 		}
+	})
+	if collectErr != nil {
+		return nil, 0, nil, openAIResponsesImageResult{}, false, collectErr
+	}
+	if len(finalResults) > 0 {
+		return finalResults, createdAt, usageRaw, finalMeta, true, nil
 	}
 
 	if len(fallbackResults) > 0 {
@@ -517,15 +529,9 @@ func (s *OpenAIGatewayService) handleOpenAIImagesOAuthNonStreamingResponse(
 	}
 
 	var usage OpenAIUsage
-	for _, line := range bytes.Split(body, []byte("\n")) {
-		line = bytes.TrimRight(line, "\r")
-		data, ok := extractOpenAISSEDataLine(string(line))
-		if !ok || data == "" || data == "[DONE]" {
-			continue
-		}
-		dataBytes := []byte(data)
-		s.parseSSEUsageBytes(dataBytes, &usage)
-	}
+	forEachOpenAISSEDataPayload(string(body), func(data []byte) {
+		s.parseSSEUsageBytes(data, &usage)
+	})
 	results, createdAt, usageRaw, firstMeta, _, err := collectOpenAIImagesFromResponsesBody(body)
 	if err != nil {
 		return OpenAIUsage{}, 0, err

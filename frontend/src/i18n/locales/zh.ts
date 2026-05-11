@@ -133,6 +133,8 @@ export default {
       nav: {
         home: '首页',
         pricing: '定价',
+        gpshop: '格品购物',
+        gpci: '格品生图',
         docs: 'API文档',
         community: '技术社群'
       },
@@ -146,7 +148,7 @@ export default {
         titleLead: '让 ',
         titleHighlight: 'AI',
         titleSuffix: ' 开发更简单',
-        subtitle: '企业级 OpenAI API 中转服务 | 国内极速响应 | 一站式接入',
+        subtitle: 'AI API接口服务 | 企业级安全接入 | 国内稳定快速响应',
         primaryCtaGuest: '立即开始接入',
         primaryCtaAuthed: '进入控制台',
         secondaryCta: '查看文档',
@@ -169,6 +171,11 @@ export default {
           sla: '可用性保障',
           support: '技术支持'
         }
+      },
+      seo: {
+        title: 'AI API接口服务平台 - 企业级安全接入 | {siteName}',
+        description:
+          'GPTK 提供面向开发者与企业的 AI API 接口服务，支持企业级安全接入、国内稳定快速响应与便捷集成，适合 AI 应用开发、测试与生产环境落地。'
       },
       overview: {
         kicker: '为什么选择 GPTK',
@@ -242,7 +249,7 @@ export default {
         },
         items: {
           gpt55: 'OpenAI 最新支持模型，适合复杂推理、编码与专业工作流。',
-          gpt54Mini: '更高性价比的轻量版本，适合编码、工具调用与低延迟任务。',
+          gpt54: '稳定均衡的前沿模型版本，适合编码、工具调用与通用生产任务。',
           gpt54Nano: '面向高频与基础任务的超低成本版本。',
           gptImage2: 'OpenAI 当前图像生成模型，适合图片生成与编辑场景。'
         }
@@ -373,6 +380,11 @@ export default {
             sdk: 'SDK & 工具',
             bestPractices: '最佳实践',
             status: 'API 状态'
+          },
+          links: {
+            title: '链接',
+            gpshop: '格品购物',
+            gpci: '格品生图'
           },
           company: {
             title: '公司',

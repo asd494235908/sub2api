@@ -26,7 +26,15 @@ vi.mock('@/stores', () => ({
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
-    t: (key: string) => key
+    t: (key: string) => ({
+      'home.landing.nav.gpshop': '格品购物',
+      'home.landing.nav.gpci': '格品生图',
+      'home.landing.footer.columns.links.gpshop': '格品购物',
+      'home.landing.footer.columns.links.gpci': '格品生图',
+      'home.landing.nav.community': '技术社群',
+      'home.landing.footer.columns.links.title': '链接',
+      'home.landing.hero.subtitle': 'AI API接口服务 | 企业级安全接入 | 国内稳定快速响应'
+    }[key] ?? key)
   })
 }))
 
@@ -90,7 +98,41 @@ describe('HomeView', () => {
 
     expect(wrapper.text()).toContain('home.landing.hero.badge')
     expect(wrapper.text()).toContain('home.landing.overview.title')
+    expect(wrapper.text()).toContain('AI API接口服务 | 企业级安全接入 | 国内稳定快速响应')
     expect(wrapper.find('[data-test="locale-switcher"]').exists()).toBe(true)
+  })
+
+  it('renders updated home model, nav links, and footer links', () => {
+    const wrapper = mount(HomeView, {
+      global: {
+        stubs: {
+          RouterLink: {
+            props: ['to'],
+            template: '<a :href="typeof to === \'string\' ? to : to?.path"><slot /></a>'
+          }
+        }
+      }
+    })
+
+    const text = wrapper.text()
+    const links = wrapper.findAll('a')
+
+    expect(text).toContain('GPT-5.4')
+    expect(text).not.toContain('GPT-5.4 mini')
+    expect(text).toContain('GPT Image 2')
+
+    expect(text).toContain('格品购物')
+    expect(text).toContain('格品生图')
+    expect(links.some((link) => link.attributes('href') === 'https://card.gepinkeji.com')).toBe(true)
+    expect(links.some((link) => link.attributes('href') === 'https://chat.gepinkeji.com/')).toBe(true)
+    expect(links.some((link) => link.text().includes('技术社群') && link.attributes('href') === '#footer')).toBe(true)
+
+    expect(text).toContain('链接')
+    expect(text).toContain('格品购物')
+    expect(text).toContain('格品生图')
+    expect(text).not.toContain('home.landing.footer.columns.support.title')
+    expect(text).not.toContain('home.landing.footer.columns.support.help')
+    expect(text).not.toContain('home.landing.footer.columns.support.community')
   })
 
   it('shows iframe when home content is a URL', () => {

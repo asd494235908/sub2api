@@ -4,6 +4,7 @@ import App from './App.vue'
 import router from './router'
 import i18n, { initI18n } from './i18n'
 import { useAppStore } from '@/stores/app'
+import { syncDocumentHead } from '@/router/title'
 import './style.css'
 
 function initThemeClass() {
@@ -27,12 +28,9 @@ async function bootstrap() {
   const appStore = useAppStore()
   appStore.initFromInjectedConfig()
 
-  // Set document title immediately after config is loaded
-  if (appStore.siteName && appStore.siteName !== 'GPTK') {
-    document.title = `${appStore.siteName} - AI API Gateway`
-  }
-
   await initI18n()
+
+  syncDocumentHead({ titleKey: 'home.landing.seo.title', titleAbsolute: true, descriptionKey: 'home.landing.seo.description' }, appStore.siteName)
 
   app.use(router)
   app.use(i18n)

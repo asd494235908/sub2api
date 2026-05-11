@@ -1,0 +1,4 @@
+services:
+  sub2api:
+    container_name: sub2api-remote-direct-v0125
+    image: sub2api-local:v0.1.125-remote-direct

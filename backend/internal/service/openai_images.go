@@ -16,6 +16,7 @@ import (
 	"net/textproto"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
@@ -807,39 +808,151 @@ func (s *OpenAIGatewayService) handleOpenAIImagesStreamingResponse(
 		return OpenAIUsage{}, 0, nil, fmt.Errorf("streaming is not supported by response writer")
 	}
 
-	reader := bufio.NewReader(resp.Body)
 	usage := OpenAIUsage{}
-	imageCount := 0
+	imageCounter := newOpenAIImageOutputCounter()
 	var firstTokenMs *int
+	clientDisconnected := false
+	lastDownstreamWriteAt := time.Now()
+	var fallbackBody bytes.Buffer
+	fallbackBytes := int64(0)
+	fallbackLimit := resolveUpstreamResponseReadLimit(s.cfg)
+	seenSSEData := false
+	fallbackTooLarge := false
+	var sseData openAISSEDataAccumulator
 
-	for {
-		line, err := reader.ReadBytes('\n')
-		if len(line) > 0 {
-			if firstTokenMs == nil {
-				ms := int(time.Since(startTime).Milliseconds())
-				firstTokenMs = &ms
-			}
+	processSSEData := func(dataBytes []byte) {
+		seenSSEData = true
+		fallbackBody.Reset()
+		fallbackBytes = 0
+		mergeOpenAIUsage(&usage, dataBytes)
+		imageCounter.AddSSEData(dataBytes)
+	}
+
+	flushSSEEvent := func() {
+		sseData.Flush(processSSEData)
+	}
+
+	processLine := func(line []byte) {
+		if len(line) == 0 {
+			return
+		}
+		if firstTokenMs == nil {
+			ms := int(time.Since(startTime).Milliseconds())
+			firstTokenMs = &ms
+		}
+		if !clientDisconnected {
 			if _, writeErr := c.Writer.Write(line); writeErr != nil {
-				return OpenAIUsage{}, 0, firstTokenMs, writeErr
+				clientDisconnected = true
+				logger.LegacyPrintf("service.openai_gateway", "[OpenAI] Images stream client disconnected, continue draining upstream for billing")
+			} else {
+				flusher.Flush()
+				lastDownstreamWriteAt = time.Now()
 			}
-			flusher.Flush()
+		}
 
-			if data, ok := extractOpenAISSEDataLine(strings.TrimRight(string(line), "\r\n")); ok && data != "" && data != "[DONE]" {
-				dataBytes := []byte(data)
-				mergeOpenAIUsage(&usage, dataBytes)
-				if count := extractOpenAIImageCountFromJSONBytes(dataBytes); count > imageCount {
-					imageCount = count
-				}
+		trimmedLine := strings.TrimRight(string(line), "\r\n")
+		if _, ok := extractOpenAISSEDataLine(trimmedLine); ok || strings.TrimSpace(trimmedLine) == "" {
+			sseData.AddLine(trimmedLine, processSSEData)
+			return
+		}
+		if !seenSSEData && !fallbackTooLarge {
+			fallbackBytes += int64(len(line))
+			if fallbackBytes <= fallbackLimit {
+				_, _ = fallbackBody.Write(line)
+			} else {
+				fallbackTooLarge = true
+				fallbackBody.Reset()
 			}
-		}
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return OpenAIUsage{}, 0, firstTokenMs, err
 		}
 	}
-	return usage, imageCount, firstTokenMs, nil
+
+	finalizeFallbackBody := func() {
+		if seenSSEData || fallbackBody.Len() == 0 {
+			return
+		}
+		body := bytes.TrimSpace(fallbackBody.Bytes())
+		if len(body) == 0 {
+			return
+		}
+		mergeOpenAIUsage(&usage, body)
+		imageCounter.AddJSONResponse(body)
+	}
+
+	type readEvent struct {
+		line []byte
+		err  error
+	}
+	events := make(chan readEvent, 16)
+	done := make(chan struct{})
+	sendEvent := func(ev readEvent) bool {
+		select {
+		case events <- ev:
+			return true
+		case <-done:
+			return false
+		}
+	}
+	var lastReadAt int64
+	atomic.StoreInt64(&lastReadAt, time.Now().UnixNano())
+	go func() {
+		defer close(events)
+		reader := bufio.NewReader(resp.Body)
+		for {
+			line, err := reader.ReadBytes('\n')
+			if len(line) > 0 {
+				atomic.StoreInt64(&lastReadAt, time.Now().UnixNano())
+			}
+			if len(line) > 0 && !sendEvent(readEvent{line: line}) {
+				return
+			}
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				_ = sendEvent(readEvent{err: err})
+				return
+			}
+		}
+	}()
+	defer close(done)
+
+	for {
+		ev, ok := <-events
+		if !ok {
+			flushSSEEvent()
+			finalizeFallbackBody()
+			return usage, imageCounter.Count(), firstTokenMs, nil
+		}
+		if ev.err != nil {
+			flushSSEEvent()
+			return usage, imageCounter.Count(), firstTokenMs, ev.err
+		}
+		processLine(ev.line)
+		_ = lastDownstreamWriteAt
+	}
+}
+
+func extractOpenAIImagesBillableCountFromJSONBytes(body []byte) int {
+	if count := extractOpenAIImageCountFromJSONBytes(body); count > 0 {
+		return count
+	}
+	if len(body) == 0 || !gjson.ValidBytes(body) {
+		return 0
+	}
+	if count := int(gjson.GetBytes(body, "usage.images").Int()); count > 0 {
+		return count
+	}
+	if count := int(gjson.GetBytes(body, "tool_usage.image_gen.images").Int()); count > 0 {
+		return count
+	}
+	eventType := strings.TrimSpace(gjson.GetBytes(body, "type").String())
+	if eventType == "" || !strings.HasSuffix(eventType, ".completed") {
+		return 0
+	}
+	if gjson.GetBytes(body, "b64_json").Exists() || gjson.GetBytes(body, "url").Exists() {
+		return 1
+	}
+	return 0
 }
 
 func mergeOpenAIUsage(dst *OpenAIUsage, body []byte) {

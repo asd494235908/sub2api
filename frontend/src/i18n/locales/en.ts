@@ -135,6 +135,8 @@ export default {
       nav: {
         home: 'Home',
         pricing: 'Pricing',
+        gpshop: '格品购物',
+        gpci: '格品生图',
         docs: 'Docs',
         community: 'Community'
       },
@@ -148,7 +150,7 @@ export default {
         titleLead: '',
         titleHighlight: 'AI',
         titleSuffix: ' builds AI faster',
-        subtitle: 'Enterprise OpenAI API relay | Fast mainland access | One-stop integration',
+        subtitle: 'AI API services | Enterprise-grade secure access | Stable fast response in mainland China',
         primaryCtaGuest: 'Start Now',
         primaryCtaAuthed: 'Go to Dashboard',
         secondaryCta: 'Read Docs',
@@ -171,6 +173,11 @@ export default {
           sla: 'uptime SLA',
           support: 'support'
         }
+      },
+      seo: {
+        title: 'AI API Service Platform - Enterprise Secure Access | {siteName}',
+        description:
+          'GPTK provides AI API services for developers and businesses, with enterprise-grade secure access, stable fast mainland connectivity, and streamlined integration for development, testing, and production use.'
       },
       overview: {
         kicker: 'Why choose Gepin API',
@@ -244,7 +251,7 @@ export default {
         },
         items: {
           gpt55: 'OpenAI\'s latest supported model for complex reasoning, coding, and professional workflows.',
-          gpt54Mini: 'A more cost-efficient lightweight model for coding, tool use, and low-latency tasks.',
+          gpt54: 'A balanced frontier model for coding, tool use, and general production workloads.',
           gpt54Nano: 'An ultra-low-cost option for high-frequency and basic workloads.',
           gptImage2: 'OpenAI\'s current image generation model for image creation and editing.'
         }
@@ -375,6 +382,11 @@ export default {
             sdk: 'SDK & Tools',
             bestPractices: 'Best Practices',
             status: 'API Status'
+          },
+          links: {
+            title: 'Links',
+            gpshop: '格品购物',
+            gpci: '格品生图'
           },
           company: {
             title: 'Company',

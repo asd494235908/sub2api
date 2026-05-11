@@ -192,8 +192,10 @@ const headerOffset = ref(120)
 const navItems = computed(() => [
   { href: '#top', label: t('home.landing.nav.home') },
   { href: '#pricing', label: t('home.landing.nav.pricing') },
+  { href: 'https://card.gepinkeji.com', label: t('home.landing.nav.gpshop'), external: true },
+  { href: 'https://chat.gepinkeji.com/', label: t('home.landing.nav.gpci'), external: true },
   { href: docUrl, label: t('home.landing.nav.docs'), external: true },
-  { href: '#community', label: t('home.landing.nav.community') }
+  { href: '#footer', label: t('home.landing.nav.community') }
 ])
 
 const heroChecks = computed(() => [
@@ -253,7 +255,7 @@ const productCards = computed<Array<{ icon: 'cpu' | 'sparkles' | 'globe' | 'shie
 
 const modelChoices = computed(() => [
   { name: 'GPT-5.5', description: t('home.landing.models.items.gpt55'), badge: t('home.landing.models.badges.latest') },
-  { name: 'GPT-5.4 mini', description: t('home.landing.models.items.gpt54Mini'), badge: '' },
+  { name: 'GPT-5.4', description: t('home.landing.models.items.gpt54'), badge: '' },
   { name: 'GPT-5.4 nano', description: t('home.landing.models.items.gpt54Nano'), badge: '' },
   { name: 'GPT Image 2', description: t('home.landing.models.items.gptImage2'), badge: '' }
 ])
@@ -315,19 +317,19 @@ const footerColumns = computed(() => [
     ]
   },
   {
-    title: t('home.landing.footer.columns.company.title'),
+    title: t('home.landing.footer.columns.links.title'),
     items: [
-      { label: t('home.landing.footer.columns.company.about'), href: '#overview' },
-      { label: t('home.landing.footer.columns.company.contact'), href: '#community' },
-      { label: t('home.landing.footer.columns.company.terms'), href: docUrl, external: true },
-      { label: t('home.landing.footer.columns.company.privacy'), href: docUrl, external: true }
+      { label: t('home.landing.footer.columns.links.gpshop'), href: 'https://card.gepinkeji.com', external: true },
+      { label: t('home.landing.footer.columns.links.gpci'), href: 'https://chat.gepinkeji.com/', external: true }
     ]
   },
   {
-    title: t('home.landing.footer.columns.support.title'),
+    title: t('home.landing.footer.columns.company.title'),
     items: [
-      { label: t('home.landing.footer.columns.support.help'), href: docUrl, external: true },
-      { label: t('home.landing.footer.columns.support.community'), href: '#community' }
+      { label: t('home.landing.footer.columns.company.about'), href: '#overview' },
+      { label: t('home.landing.footer.columns.company.contact'), href: '#footer' },
+      { label: t('home.landing.footer.columns.company.terms'), href: docUrl, external: true },
+      { label: t('home.landing.footer.columns.company.privacy'), href: docUrl, external: true }
     ]
   }
 ])
