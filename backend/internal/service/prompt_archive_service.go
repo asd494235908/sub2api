@@ -753,25 +753,55 @@ func extractPromptArchiveOpenAIAttachments(body []byte) []PromptArchiveAttachmen
 			continue
 		}
 		for _, part := range content.Array() {
-			if strings.TrimSpace(part.Get("type").String()) != "input_image" {
-				continue
+			partType := strings.TrimSpace(part.Get("type").String())
+			switch partType {
+			case "input_image":
+				imageURL := strings.TrimSpace(part.Get("image_url").String())
+				if imageURL == "" {
+					continue
+				}
+				sourceType := PromptArchiveAttachmentSourceURL
+				if strings.HasPrefix(imageURL, "data:") {
+					sourceType = PromptArchiveAttachmentSourceDataURI
+				}
+				attachments = append(attachments, PromptArchiveAttachment{
+					Kind:       PromptArchiveAttachmentKindImage,
+					MIMEType:   inferPromptArchiveMIMEFromURL(imageURL),
+					SourceType: sourceType,
+					SourceURL:  imageURL,
+					Sequence:   sequence,
+				})
+				sequence++
+			case "input_video":
+				videoURL := strings.TrimSpace(part.Get("video_url").String())
+				if videoURL == "" {
+					continue
+				}
+				attachments = append(attachments, PromptArchiveAttachment{
+					Kind:       PromptArchiveAttachmentKindVideo,
+					MIMEType:   inferPromptArchiveMIMEFromURL(videoURL),
+					SourceType: PromptArchiveAttachmentSourceURL,
+					SourceURL:  videoURL,
+					Sequence:   sequence,
+				})
+				sequence++
+			case "image_url":
+				imageURL := strings.TrimSpace(part.Get("image_url.url").String())
+				if imageURL == "" {
+					imageURL = strings.TrimSpace(part.Get("image_url").String())
+				}
+				if imageURL == "" {
+					continue
+				}
+				attachments = append(attachments, PromptArchiveAttachment{
+					Kind:       PromptArchiveAttachmentKindImage,
+					MIMEType:   inferPromptArchiveMIMEFromURL(imageURL),
+					SourceType: PromptArchiveAttachmentSourceURL,
+					SourceURL:  imageURL,
+					Sequence:   sequence,
+				})
+				sequence++
 			}
-			imageURL := strings.TrimSpace(part.Get("image_url").String())
-			if imageURL == "" {
-				continue
-			}
-			sourceType := PromptArchiveAttachmentSourceURL
-			if strings.HasPrefix(imageURL, "data:") {
-				sourceType = PromptArchiveAttachmentSourceDataURI
-			}
-			attachments = append(attachments, PromptArchiveAttachment{
-				Kind:       PromptArchiveAttachmentKindImage,
-				MIMEType:   inferPromptArchiveMIMEFromURL(imageURL),
-				SourceType: sourceType,
-				SourceURL:  imageURL,
-				Sequence:   sequence,
-			})
-			sequence++
 		}
 	}
 	return attachments
@@ -809,21 +839,40 @@ func extractPromptArchiveGeminiAttachments(body []byte) []PromptArchiveAttachmen
 		}
 		for _, part := range item.Get("parts").Array() {
 			inlineData := part.Get("inline_data")
-			if !inlineData.Exists() {
-				continue
+			if inlineData.Exists() {
+				data := strings.TrimSpace(inlineData.Get("data").String())
+				if data == "" {
+					continue
+				}
+				attachments = append(attachments, PromptArchiveAttachment{
+					Kind:       PromptArchiveAttachmentKindImage,
+					MIMEType:   strings.TrimSpace(inlineData.Get("mime_type").String()),
+					SourceType: PromptArchiveAttachmentSourceInline,
+					SourceURL:  data,
+					Sequence:   sequence,
+				})
+				sequence++
 			}
-			data := strings.TrimSpace(inlineData.Get("data").String())
-			if data == "" {
-				continue
+			fileData := part.Get("file_data")
+			if fileData.Exists() {
+				fileURL := strings.TrimSpace(fileData.Get("file_uri").String())
+				if fileURL == "" {
+					continue
+				}
+				kind := PromptArchiveAttachmentKindImage
+				mimeType := strings.TrimSpace(fileData.Get("mime_type").String())
+				if strings.HasPrefix(strings.ToLower(mimeType), "video/") || strings.HasSuffix(strings.ToLower(fileURL), ".mp4") {
+					kind = PromptArchiveAttachmentKindVideo
+				}
+				attachments = append(attachments, PromptArchiveAttachment{
+					Kind:       kind,
+					MIMEType:   mimeType,
+					SourceType: PromptArchiveAttachmentSourceURL,
+					SourceURL:  fileURL,
+					Sequence:   sequence,
+				})
+				sequence++
 			}
-			attachments = append(attachments, PromptArchiveAttachment{
-				Kind:       PromptArchiveAttachmentKindImage,
-				MIMEType:   strings.TrimSpace(inlineData.Get("mime_type").String()),
-				SourceType: PromptArchiveAttachmentSourceInline,
-				SourceURL:  data,
-				Sequence:   sequence,
-			})
-			sequence++
 		}
 	}
 	return attachments

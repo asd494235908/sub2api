@@ -65,6 +65,23 @@ services:
       - REDIS_ENABLE_TLS=${REDIS_ENABLE_TLS:-false}
 
       # =======================================================================
+      # Prompt Archive / MinIO Configuration
+      # =======================================================================
+      - ARCHIVE_ENABLED=${ARCHIVE_ENABLED:-false}
+      - ARCHIVE_QUEUE_CAPACITY=${ARCHIVE_QUEUE_CAPACITY:-1024}
+      - ARCHIVE_WORKER_COUNT=${ARCHIVE_WORKER_COUNT:-8}
+      - ARCHIVE_BATCH_SIZE=${ARCHIVE_BATCH_SIZE:-32}
+      - ARCHIVE_FLUSH_INTERVAL_SECONDS=${ARCHIVE_FLUSH_INTERVAL_SECONDS:-2}
+      - ARCHIVE_OVERFLOW_POLICY=${ARCHIVE_OVERFLOW_POLICY:-drop_and_log}
+      - ARCHIVE_INLINE_DATA_MAX_BYTES=${ARCHIVE_INLINE_DATA_MAX_BYTES:-1048576}
+      - ARCHIVE_MINIO_ENDPOINT=${ARCHIVE_MINIO_ENDPOINT:-}
+      - ARCHIVE_MINIO_BUCKET=${ARCHIVE_MINIO_BUCKET:-}
+      - ARCHIVE_MINIO_ACCESS_KEY=${ARCHIVE_MINIO_ACCESS_KEY:-}
+      - ARCHIVE_MINIO_SECRET_KEY=${ARCHIVE_MINIO_SECRET_KEY:-}
+      - ARCHIVE_MINIO_REGION=${ARCHIVE_MINIO_REGION:-auto}
+      - ARCHIVE_MINIO_FORCE_PATH_STYLE=${ARCHIVE_MINIO_FORCE_PATH_STYLE:-true}
+
+      # =======================================================================
       # Admin Account (auto-created on first run)
       # =======================================================================
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@sub2api.local}
