@@ -75,6 +75,13 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 	}
 	reqModel := modelResult.String()
 	reqStream := gjson.GetBytes(body, "stream").Bool()
+	if h.promptArchiveService != nil {
+		env := service.BuildPromptArchiveEnvelopeFromOpenAIResponsesBody(apiKey, "/v1/chat/completions", body, time.Now().UTC())
+		if env != nil {
+			env.Endpoint = "/v1/chat/completions"
+		}
+		_ = h.promptArchiveService.Capture(c.Request.Context(), enrichPromptArchiveEnvelope(c, service.EnsurePromptArchiveSessionID(env, h.gatewayService.GenerateSessionHash(c, body))))
+	}
 
 	reqLog = reqLog.With(zap.String("model", reqModel), zap.Bool("stream", reqStream))
 

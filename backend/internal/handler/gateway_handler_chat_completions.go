@@ -155,6 +155,10 @@ func (h *GatewayHandler) ChatCompletions(c *gin.Context) {
 	if parsedReq == nil {
 		parsedReq = &service.ParsedRequest{Model: reqModel, Stream: reqStream, Body: body}
 	}
+	if h.promptArchiveService != nil {
+		env := service.BuildPromptArchiveEnvelopeFromParsedRequest(apiKey, "/v1/chat/completions", "chat_completions", parsedReq, time.Now().UTC())
+		_ = h.promptArchiveService.Capture(c.Request.Context(), enrichPromptArchiveEnvelope(c, service.EnsurePromptArchiveSessionID(env, h.gatewayService.GenerateSessionHash(parsedReq))))
+	}
 	parsedReq.SessionContext = &service.SessionContext{
 		ClientIP:  ip.GetClientIP(c),
 		UserAgent: c.GetHeader("User-Agent"),

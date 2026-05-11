@@ -4030,6 +4030,41 @@ func (s *SettingService) SetOpenAIFastPolicySettings(ctx context.Context, settin
 	return s.settingRepo.Set(ctx, SettingKeyOpenAIFastPolicySettings, string(data))
 }
 
+func (s *SettingService) GetPromptArchiveSettings(ctx context.Context) (*PromptArchiveSettingsView, error) {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyPromptArchiveSettings)
+	if err != nil {
+		if errors.Is(err, ErrSettingNotFound) {
+			return &PromptArchiveSettingsView{GroupIDs: []int64{}}, nil
+		}
+		return nil, fmt.Errorf("get prompt archive settings: %w", err)
+	}
+	if strings.TrimSpace(value) == "" {
+		return &PromptArchiveSettingsView{GroupIDs: []int64{}}, nil
+	}
+	var settings PromptArchiveSettingsView
+	if err := json.Unmarshal([]byte(value), &settings); err != nil {
+		return &PromptArchiveSettingsView{GroupIDs: []int64{}}, nil
+	}
+	if settings.GroupIDs == nil {
+		settings.GroupIDs = []int64{}
+	}
+	return &settings, nil
+}
+
+func (s *SettingService) SetPromptArchiveSettings(ctx context.Context, settings *PromptArchiveSettingsView) error {
+	if settings == nil {
+		return fmt.Errorf("settings cannot be nil")
+	}
+	if settings.GroupIDs == nil {
+		settings.GroupIDs = []int64{}
+	}
+	data, err := json.Marshal(settings)
+	if err != nil {
+		return fmt.Errorf("marshal prompt archive settings: %w", err)
+	}
+	return s.settingRepo.Set(ctx, SettingKeyPromptArchiveSettings, string(data))
+}
+
 // SetStreamTimeoutSettings 设置流超时处理配置
 func (s *SettingService) SetStreamTimeoutSettings(ctx context.Context, settings *StreamTimeoutSettings) error {
 	if settings == nil {

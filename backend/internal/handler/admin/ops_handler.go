@@ -16,7 +16,8 @@ import (
 )
 
 type OpsHandler struct {
-	opsService *service.OpsService
+	opsService           *service.OpsService
+	promptArchiveService *service.PromptArchiveService
 }
 
 // GetErrorLogByID returns ops error log detail.
@@ -70,8 +71,75 @@ func parseOpsViewParam(c *gin.Context) string {
 	}
 }
 
-func NewOpsHandler(opsService *service.OpsService) *OpsHandler {
-	return &OpsHandler{opsService: opsService}
+func NewOpsHandler(opsService *service.OpsService, promptArchiveService *service.PromptArchiveService) *OpsHandler {
+	return &OpsHandler{opsService: opsService, promptArchiveService: promptArchiveService}
+}
+
+func (h *OpsHandler) GetPromptArchiveHealth(c *gin.Context) {
+	if h.promptArchiveService == nil {
+		response.Error(c, http.StatusServiceUnavailable, "Prompt archive service not available")
+		return
+	}
+	response.Success(c, h.promptArchiveService.Health())
+}
+
+func (h *OpsHandler) ListPromptArchiveRecords(c *gin.Context) {
+	if h.promptArchiveService == nil {
+		response.Error(c, http.StatusServiceUnavailable, "Prompt archive service not available")
+		return
+	}
+	page, pageSize := response.ParsePagination(c)
+	result, err := h.promptArchiveService.ListRecords(c.Request.Context(), &service.PromptArchiveRecordFilter{
+		Page:     page,
+		PageSize: pageSize,
+		Query:    strings.TrimSpace(c.Query("q")),
+	})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Paginated(c, result.Items, int64(result.Total), result.Page, result.PageSize)
+}
+
+func (h *OpsHandler) GetPromptArchiveRecord(c *gin.Context) {
+	if h.promptArchiveService == nil {
+		response.Error(c, http.StatusServiceUnavailable, "Prompt archive service not available")
+		return
+	}
+	id, err := strconv.ParseInt(strings.TrimSpace(c.Param("id")), 10, 64)
+	if err != nil || id <= 0 {
+		response.BadRequest(c, "Invalid archive record id")
+		return
+	}
+	record, err := h.promptArchiveService.GetRecordByID(c.Request.Context(), id)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, record)
+}
+
+func (h *OpsHandler) GetPromptArchiveSession(c *gin.Context) {
+	if h.promptArchiveService == nil {
+		response.Error(c, http.StatusServiceUnavailable, "Prompt archive service not available")
+		return
+	}
+	groupID, err := strconv.ParseInt(strings.TrimSpace(c.Query("group_id")), 10, 64)
+	if err != nil || groupID <= 0 {
+		response.BadRequest(c, "Invalid group_id")
+		return
+	}
+	sessionID := strings.TrimSpace(c.Param("sessionId"))
+	if sessionID == "" {
+		response.BadRequest(c, "Invalid session id")
+		return
+	}
+	result, err := h.promptArchiveService.GetSessionByID(c.Request.Context(), sessionID, groupID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, result)
 }
 
 // GetErrorLogs lists ops error logs.

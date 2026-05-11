@@ -199,6 +199,10 @@ func registerOpsRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		ops.GET("/system-logs", h.Admin.Ops.ListSystemLogs)
 		ops.POST("/system-logs/cleanup", h.Admin.Ops.CleanupSystemLogs)
 		ops.GET("/system-logs/health", h.Admin.Ops.GetSystemLogIngestionHealth)
+		ops.GET("/prompt-archive/health", h.Admin.Ops.GetPromptArchiveHealth)
+		ops.GET("/prompt-archive/records", h.Admin.Ops.ListPromptArchiveRecords)
+		ops.GET("/prompt-archive/records/:id", h.Admin.Ops.GetPromptArchiveRecord)
+		ops.GET("/prompt-archive/sessions/:sessionId", h.Admin.Ops.GetPromptArchiveSession)
 
 		// Dashboard (vNext - raw path for MVP)
 		ops.GET("/dashboard/snapshot-v2", h.Admin.Ops.GetDashboardSnapshotV2)
@@ -439,6 +443,9 @@ func registerSettingsRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		// Beta 策略配置
 		adminSettings.GET("/beta-policy", h.Admin.Setting.GetBetaPolicySettings)
 		adminSettings.PUT("/beta-policy", h.Admin.Setting.UpdateBetaPolicySettings)
+		// 提示词归档配置
+		adminSettings.GET("/prompt-archive", h.Admin.Setting.GetPromptArchiveSettings)
+		adminSettings.PUT("/prompt-archive", h.Admin.Setting.UpdatePromptArchiveSettings)
 		// Web Search 模拟配置
 		adminSettings.GET("/web-search-emulation", h.Admin.Setting.GetWebSearchEmulationConfig)
 		adminSettings.PUT("/web-search-emulation", h.Admin.Setting.UpdateWebSearchEmulationConfig)
