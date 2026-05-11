@@ -290,6 +290,12 @@ func ProvideOpsSystemLogSink(opsRepo OpsRepository) *OpsSystemLogSink {
 	return sink
 }
 
+func ProvidePromptArchiveService(repo PromptArchiveRepository, store PromptArchiveObjectStore, cfg *config.Config) *PromptArchiveService {
+	svc := NewPromptArchiveService(repo, store, cfg)
+	svc.Start()
+	return svc
+}
+
 func buildIdempotencyConfig(cfg *config.Config) IdempotencyConfig {
 	idempotencyCfg := DefaultIdempotencyConfig()
 	if cfg != nil {
@@ -476,6 +482,7 @@ var ProviderSet = wire.NewSet(
 	ProvideConcurrencyService,
 	ProvideUserMessageQueueService,
 	NewUsageRecordWorkerPool,
+	ProvidePromptArchiveService,
 	ProvideSchedulerSnapshotService,
 	NewIdentityService,
 	NewCRSSyncService,

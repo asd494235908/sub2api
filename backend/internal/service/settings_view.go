@@ -175,6 +175,12 @@ type SystemSettings struct {
 	// Account quota notification
 	AccountQuotaNotifyEnabled bool
 	AccountQuotaNotifyEmails  []NotifyEmailEntry
+
+	// Prompt archive settings
+	PromptArchiveEnabled   bool
+	PromptArchiveAllGroups bool
+	PromptArchiveGroupIDs  []int64
+	PromptArchiveBucket    string
 }
 
 type DefaultSubscriptionSetting struct {
@@ -234,6 +240,14 @@ type PublicSettings struct {
 
 	// Affiliate (邀请返利) feature toggle
 	AffiliateEnabled bool `json:"affiliate_enabled"`
+}
+
+type PromptArchiveSettingsView struct {
+	Enabled         bool    `json:"enabled"`
+	AllGroups       bool    `json:"all_groups"`
+	GroupIDs        []int64 `json:"group_ids"`
+	Bucket          string  `json:"bucket"`
+	UpdatedByUserID int64   `json:"updated_by_user_id"`
 }
 
 type WeChatConnectOAuthConfig struct {

@@ -45,6 +45,7 @@ type GatewayHandler struct {
 	apiKeyService             *service.APIKeyService
 	usageRecordWorkerPool     *service.UsageRecordWorkerPool
 	errorPassthroughService   *service.ErrorPassthroughService
+	promptArchiveService      *service.PromptArchiveService
 	concurrencyHelper         *ConcurrencyHelper
 	userMsgQueueHelper        *UserMsgQueueHelper
 	maxAccountSwitches        int
@@ -65,6 +66,7 @@ func NewGatewayHandler(
 	apiKeyService *service.APIKeyService,
 	usageRecordWorkerPool *service.UsageRecordWorkerPool,
 	errorPassthroughService *service.ErrorPassthroughService,
+	promptArchiveService *service.PromptArchiveService,
 	userMsgQueueService *service.UserMessageQueueService,
 	cfg *config.Config,
 	settingService *service.SettingService,
@@ -98,6 +100,7 @@ func NewGatewayHandler(
 		apiKeyService:             apiKeyService,
 		usageRecordWorkerPool:     usageRecordWorkerPool,
 		errorPassthroughService:   errorPassthroughService,
+		promptArchiveService:      promptArchiveService,
 		concurrencyHelper:         NewConcurrencyHelper(concurrencyService, SSEPingFormatClaude, pingInterval),
 		userMsgQueueHelper:        umqHelper,
 		maxAccountSwitches:        maxAccountSwitches,
@@ -153,6 +156,10 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 	if err != nil {
 		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "Failed to parse request body")
 		return
+	}
+	if h.promptArchiveService != nil {
+		env := service.BuildPromptArchiveEnvelopeFromParsedRequest(apiKey, "/v1/messages", "anthropic", parsedReq, time.Now().UTC())
+		_ = h.promptArchiveService.Capture(c.Request.Context(), enrichPromptArchiveEnvelope(c, env))
 	}
 	reqModel := parsedReq.Model
 	reqStream := parsedReq.Stream

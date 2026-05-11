@@ -315,6 +315,13 @@ type OpenAIFastPolicySettings struct {
 	Rules []OpenAIFastPolicyRule `json:"rules"`
 }
 
+type PromptArchiveSettings struct {
+	Enabled   bool    `json:"enabled"`
+	AllGroups bool    `json:"all_groups"`
+	GroupIDs  []int64 `json:"group_ids"`
+	Bucket    string  `json:"bucket"`
+}
+
 // ParseCustomMenuItems parses a JSON string into a slice of CustomMenuItem.
 // Returns empty slice on empty/invalid input.
 func ParseCustomMenuItems(raw string) []CustomMenuItem {

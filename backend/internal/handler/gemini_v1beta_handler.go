@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/domain"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/antigravity"
@@ -181,6 +182,10 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 		googleError(c, http.StatusBadRequest, "Request body is empty")
 		return
 	}
+	if h.promptArchiveService != nil {
+		env := service.BuildPromptArchiveEnvelopeFromGeminiBody(apiKey, c.FullPath(), modelName, "", body, time.Now().UTC())
+		_ = h.promptArchiveService.Capture(c.Request.Context(), enrichPromptArchiveEnvelope(c, env))
+	}
 
 	setOpsRequestContext(c, modelName, stream, body)
 	setOpsEndpointContext(c, "", int16(service.RequestTypeFromLegacy(stream, false)))
@@ -264,6 +269,10 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 			}
 		}
 		sessionHash = h.gatewayService.GenerateSessionHash(parsedReq)
+	}
+	if h.promptArchiveService != nil {
+		env := service.BuildPromptArchiveEnvelopeFromGeminiBody(apiKey, c.FullPath(), modelName, "", body, time.Now().UTC())
+		_ = h.promptArchiveService.Capture(c.Request.Context(), enrichPromptArchiveEnvelope(c, service.EnsurePromptArchiveSessionID(env, sessionHash)))
 	}
 	sessionKey := sessionHash
 	if sessionHash != "" {

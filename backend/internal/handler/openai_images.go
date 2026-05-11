@@ -73,6 +73,14 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", err.Error())
 		return
 	}
+	if h.promptArchiveService != nil && !parsed.Multipart {
+		env := service.BuildPromptArchiveEnvelopeFromOpenAIResponsesBody(apiKey, c.FullPath(), body, time.Now().UTC())
+		if env != nil {
+			env.Endpoint = c.FullPath()
+			env.Model = parsed.Model
+		}
+		_ = h.promptArchiveService.Capture(c.Request.Context(), enrichPromptArchiveEnvelope(c, service.EnsurePromptArchiveSessionID(env, h.gatewayService.GenerateExplicitSessionHash(c, body))))
+	}
 
 	reqLog = reqLog.With(
 		zap.String("model", parsed.Model),

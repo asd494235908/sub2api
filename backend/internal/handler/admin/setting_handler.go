@@ -60,10 +60,11 @@ type SettingHandler struct {
 	opsService           *service.OpsService
 	paymentConfigService *service.PaymentConfigService
 	paymentService       *service.PaymentService
+	promptArchiveService *service.PromptArchiveService
 }
 
 // NewSettingHandler 创建系统设置处理器
-func NewSettingHandler(settingService *service.SettingService, emailService *service.EmailService, turnstileService *service.TurnstileService, opsService *service.OpsService, paymentConfigService *service.PaymentConfigService, paymentService *service.PaymentService) *SettingHandler {
+func NewSettingHandler(settingService *service.SettingService, emailService *service.EmailService, turnstileService *service.TurnstileService, opsService *service.OpsService, paymentConfigService *service.PaymentConfigService, paymentService *service.PaymentService, promptArchiveService *service.PromptArchiveService) *SettingHandler {
 	return &SettingHandler{
 		settingService:       settingService,
 		emailService:         emailService,
@@ -71,6 +72,7 @@ func NewSettingHandler(settingService *service.SettingService, emailService *ser
 		opsService:           opsService,
 		paymentConfigService: paymentConfigService,
 		paymentService:       paymentService,
+		promptArchiveService: promptArchiveService,
 	}
 }
 
@@ -2472,6 +2474,70 @@ func (h *SettingHandler) UpdateOverloadCooldownSettings(c *gin.Context) {
 	response.Success(c, dto.OverloadCooldownSettings{
 		Enabled:         updatedSettings.Enabled,
 		CooldownMinutes: updatedSettings.CooldownMinutes,
+	})
+}
+
+func (h *SettingHandler) GetPromptArchiveSettings(c *gin.Context) {
+	settings, err := h.settingService.GetPromptArchiveSettings(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, dto.PromptArchiveSettings{
+		Enabled:   settings.Enabled,
+		AllGroups: settings.AllGroups,
+		GroupIDs:  settings.GroupIDs,
+		Bucket:    settings.Bucket,
+	})
+}
+
+type UpdatePromptArchiveSettingsRequest struct {
+	Enabled   bool    `json:"enabled"`
+	AllGroups bool    `json:"all_groups"`
+	GroupIDs  []int64 `json:"group_ids"`
+	Bucket    string  `json:"bucket"`
+}
+
+func (h *SettingHandler) UpdatePromptArchiveSettings(c *gin.Context) {
+	var req UpdatePromptArchiveSettingsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	subject, ok := middleware.GetAuthSubjectFromContext(c)
+	if !ok || subject.UserID <= 0 {
+		response.Error(c, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	view := &service.PromptArchiveSettingsView{
+		Enabled:         req.Enabled,
+		AllGroups:       req.AllGroups,
+		GroupIDs:        req.GroupIDs,
+		Bucket:          strings.TrimSpace(req.Bucket),
+		UpdatedByUserID: subject.UserID,
+	}
+	if err := h.settingService.SetPromptArchiveSettings(c.Request.Context(), view); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	if h.promptArchiveService != nil {
+		_, _ = h.promptArchiveService.UpdateSettings(c.Request.Context(), &service.PromptArchiveSettings{
+			Enabled:   req.Enabled,
+			AllGroups: req.AllGroups,
+			GroupIDs:  req.GroupIDs,
+			Bucket:    strings.TrimSpace(req.Bucket),
+		}, subject.UserID)
+	}
+	updated, err := h.settingService.GetPromptArchiveSettings(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, dto.PromptArchiveSettings{
+		Enabled:   updated.Enabled,
+		AllGroups: updated.AllGroups,
+		GroupIDs:  updated.GroupIDs,
+		Bucket:    updated.Bucket,
 	})
 }
 
