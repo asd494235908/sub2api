@@ -89,9 +89,20 @@ type PromptArchivePersistedRecord struct {
 }
 
 type PromptArchiveRecordFilter struct {
-	Page     int
-	PageSize int
-	Query    string
+	Page            int
+	PageSize        int
+	Query           string
+	Username        string
+	Email           string
+	SessionID       string
+	Model           string
+	Protocol        string
+	GroupID         *int64
+	UserID          *int64
+	APIKeyID        *int64
+	Status          string
+	StartTime       *time.Time
+	EndTime         *time.Time
 }
 
 type PromptArchiveRecordList struct {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { opsAPI, type OpsRuntimeLogConfig, type OpsSystemLog, type OpsSystemLogSinkHealth } from '@/api/admin/ops'
+import { opsAPI, type OpsRuntimeLogConfig, type OpsSystemLog, type OpsSystemLogSinkHealth, type PromptArchiveHealth, type PromptArchiveRecord } from '@/api/admin/ops'
 import Pagination from '@/components/common/Pagination.vue'
 import Select from '@/components/common/Select.vue'
 import { useAppStore } from '@/stores'
@@ -28,6 +28,31 @@ const health = ref<OpsSystemLogSinkHealth>({
   write_failed_count: 0,
   written_count: 0,
   avg_write_delay_ms: 0
+})
+
+const promptArchiveHealth = ref<PromptArchiveHealth>({
+  queue_depth: 0,
+  queue_capacity: 0,
+  dropped_count: 0,
+  failed_count: 0,
+  stored_count: 0
+})
+const promptArchiveLoading = ref(false)
+const promptArchiveRecords = ref<PromptArchiveRecord[]>([])
+const promptArchiveTotal = ref(0)
+const promptArchivePage = ref(1)
+const promptArchivePageSize = ref(10)
+const promptArchiveFilters = reactive({
+  q: '',
+  username: '',
+  email: '',
+  session_id: '',
+  model: '',
+  protocol: '',
+  status: '',
+  group_id: '',
+  user_id: '',
+  api_key_id: ''
 })
 
 const runtimeLoading = ref(false)
@@ -206,8 +231,40 @@ const fetchLogs = async () => {
 const fetchHealth = async () => {
   try {
     health.value = await opsAPI.getSystemLogSinkHealth()
+    promptArchiveHealth.value = await opsAPI.getPromptArchiveHealth()
   } catch {
     // 忽略健康数据读取失败，不影响主流程。
+  }
+}
+
+const buildPromptArchiveQuery = () => {
+  const query: Record<string, any> = {
+    page: promptArchivePage.value,
+    page_size: promptArchivePageSize.value
+  }
+  for (const key of ['q', 'username', 'email', 'session_id', 'model', 'protocol', 'status'] as const) {
+    const value = promptArchiveFilters[key].trim()
+    if (value) query[key] = value
+  }
+  for (const key of ['group_id', 'user_id', 'api_key_id'] as const) {
+    const raw = promptArchiveFilters[key].trim()
+    const parsed = Number.parseInt(raw, 10)
+    if (Number.isFinite(parsed) && parsed > 0) query[key] = parsed
+  }
+  return query
+}
+
+const fetchPromptArchiveRecords = async () => {
+  promptArchiveLoading.value = true
+  try {
+    const res = await opsAPI.listPromptArchiveRecords(buildPromptArchiveQuery())
+    promptArchiveRecords.value = res.items || []
+    promptArchiveTotal.value = res.total || 0
+  } catch (err: any) {
+    console.error('[OpsSystemLogTable] Failed to fetch prompt archive records', err)
+    appStore.showError(err?.response?.data?.detail || '提示词归档记录加载失败')
+  } finally {
+    promptArchiveLoading.value = false
   }
 }
 
@@ -352,7 +409,7 @@ onMounted(async () => {
   if (props.platformFilter) {
     filters.platform = props.platformFilter
   }
-  await Promise.all([fetchLogs(), fetchHealth(), loadRuntimeConfig()])
+  await Promise.all([fetchLogs(), fetchHealth(), loadRuntimeConfig(), fetchPromptArchiveRecords()])
 })
 </script>
 
@@ -514,6 +571,140 @@ onMounted(async () => {
         :page-size="pageSize"
         @update:page="onPageChange"
         @update:page-size="onPageSizeChange"
+      />
+    </div>
+  </section>
+
+  <section class="mt-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-dark-700 dark:bg-dark-900/60">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h3 class="text-sm font-bold text-gray-900 dark:text-white">提示词归档</h3>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">支持按用户名、邮箱、会话、模型和状态筛选归档记录。</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <span class="rounded-md bg-gray-100 px-2 py-1 text-gray-700 dark:bg-dark-700 dark:text-gray-200">队列 {{ promptArchiveHealth.queue_depth }}/{{ promptArchiveHealth.queue_capacity }}</span>
+        <span class="rounded-md bg-green-100 px-2 py-1 text-green-700 dark:bg-green-900/30 dark:text-green-300">成功 {{ promptArchiveHealth.stored_count }}</span>
+        <span class="rounded-md bg-amber-100 px-2 py-1 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">丢弃 {{ promptArchiveHealth.dropped_count }}</span>
+        <span class="rounded-md bg-red-100 px-2 py-1 text-red-700 dark:bg-red-900/30 dark:text-red-300">失败 {{ promptArchiveHealth.failed_count }}</span>
+      </div>
+    </div>
+
+    <div class="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4 xl:grid-cols-5">
+      <label class="text-xs text-gray-600 dark:text-gray-300">
+        关键词
+        <input v-model="promptArchiveFilters.q" type="text" class="input mt-1" placeholder="摘要/请求 ID" />
+      </label>
+      <label class="text-xs text-gray-600 dark:text-gray-300">
+        用户名
+        <input v-model="promptArchiveFilters.username" type="text" class="input mt-1" />
+      </label>
+      <label class="text-xs text-gray-600 dark:text-gray-300">
+        邮箱
+        <input v-model="promptArchiveFilters.email" type="text" class="input mt-1" />
+      </label>
+      <label class="text-xs text-gray-600 dark:text-gray-300">
+        Session ID
+        <input v-model="promptArchiveFilters.session_id" type="text" class="input mt-1" />
+      </label>
+      <label class="text-xs text-gray-600 dark:text-gray-300">
+        模型
+        <input v-model="promptArchiveFilters.model" type="text" class="input mt-1" />
+      </label>
+      <label class="text-xs text-gray-600 dark:text-gray-300">
+        协议
+        <input v-model="promptArchiveFilters.protocol" type="text" class="input mt-1" />
+      </label>
+      <label class="text-xs text-gray-600 dark:text-gray-300">
+        状态
+        <input v-model="promptArchiveFilters.status" type="text" class="input mt-1" placeholder="stored / failed / dropped" />
+      </label>
+      <label class="text-xs text-gray-600 dark:text-gray-300">
+        group_id
+        <input v-model="promptArchiveFilters.group_id" type="text" class="input mt-1" />
+      </label>
+      <label class="text-xs text-gray-600 dark:text-gray-300">
+        user_id
+        <input v-model="promptArchiveFilters.user_id" type="text" class="input mt-1" />
+      </label>
+      <label class="text-xs text-gray-600 dark:text-gray-300">
+        api_key_id
+        <input v-model="promptArchiveFilters.api_key_id" type="text" class="input mt-1" />
+      </label>
+    </div>
+
+    <div class="mb-3 flex flex-wrap gap-2">
+      <button type="button" class="btn btn-primary btn-sm" @click="promptArchivePage = 1; fetchPromptArchiveRecords()">查询归档</button>
+      <button
+        type="button"
+        class="btn btn-secondary btn-sm"
+        @click="
+          promptArchiveFilters.q = '';
+          promptArchiveFilters.username = '';
+          promptArchiveFilters.email = '';
+          promptArchiveFilters.session_id = '';
+          promptArchiveFilters.model = '';
+          promptArchiveFilters.protocol = '';
+          promptArchiveFilters.status = '';
+          promptArchiveFilters.group_id = '';
+          promptArchiveFilters.user_id = '';
+          promptArchiveFilters.api_key_id = '';
+          promptArchivePage = 1;
+          fetchPromptArchiveRecords();
+        "
+      >
+        重置
+      </button>
+    </div>
+
+    <div class="overflow-hidden rounded-xl border border-gray-200 dark:border-dark-700">
+      <div v-if="promptArchiveLoading" class="px-4 py-8 text-center text-sm text-gray-500">加载中...</div>
+      <div v-else-if="promptArchiveRecords.length === 0" class="px-4 py-8 text-center text-sm text-gray-500">暂无归档记录</div>
+      <div v-else class="overflow-auto">
+        <table class="min-w-full table-fixed divide-y divide-gray-200 dark:divide-dark-700">
+          <thead class="bg-gray-50 dark:bg-dark-900">
+            <tr>
+              <th class="w-[165px] px-3 py-2 text-left text-[11px] font-semibold text-gray-500">时间</th>
+              <th class="w-[90px] px-3 py-2 text-left text-[11px] font-semibold text-gray-500">状态</th>
+              <th class="w-[110px] px-3 py-2 text-left text-[11px] font-semibold text-gray-500">协议</th>
+              <th class="w-[160px] px-3 py-2 text-left text-[11px] font-semibold text-gray-500">用户</th>
+              <th class="px-3 py-2 text-left text-[11px] font-semibold text-gray-500">摘要</th>
+              <th class="w-[160px] px-3 py-2 text-left text-[11px] font-semibold text-gray-500">正文</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-dark-800">
+            <tr v-for="row in promptArchiveRecords" :key="row.id" class="align-top">
+              <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-300">{{ formatTime(row.created_at) }}</td>
+              <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-300">{{ row.status }}</td>
+              <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-300">{{ row.protocol }}</td>
+              <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-300 break-all">
+                {{ row.username_snapshot || '-' }}<br />
+                <span class="text-gray-500 dark:text-gray-400">{{ row.email_snapshot || '-' }}</span>
+              </td>
+              <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-300 break-all">
+                {{ row.prompt_summary || row.user_prompt_text || '-' }}
+              </td>
+              <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-300 break-all">
+                <a
+                  v-if="row.presigned_url"
+                  :href="row.presigned_url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  查看归档
+                </a>
+                <span v-else>{{ row.object_key || '-' }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <Pagination
+        :total="promptArchiveTotal"
+        :page="promptArchivePage"
+        :page-size="promptArchivePageSize"
+        @update:page="(next) => { promptArchivePage = next; fetchPromptArchiveRecords() }"
+        @update:page-size="(next) => { promptArchivePageSize = next; promptArchivePage = 1; fetchPromptArchiveRecords() }"
       />
     </div>
   </section>

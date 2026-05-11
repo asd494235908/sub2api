@@ -1617,6 +1617,21 @@ func setDefaults() {
 	viper.SetDefault("idempotency.cleanup_interval_seconds", 60)
 	viper.SetDefault("idempotency.cleanup_batch_size", 500)
 
+	// Prompt archive
+	viper.SetDefault("archive.enabled", false)
+	viper.SetDefault("archive.queue_capacity", 1024)
+	viper.SetDefault("archive.worker_count", 8)
+	viper.SetDefault("archive.batch_size", 32)
+	viper.SetDefault("archive.flush_interval_seconds", 2)
+	viper.SetDefault("archive.overflow_policy", PromptArchiveOverflowPolicyDropAndLog)
+	viper.SetDefault("archive.inline_data_max_bytes", 1024*1024)
+	viper.SetDefault("archive.minio.endpoint", "")
+	viper.SetDefault("archive.minio.bucket", "")
+	viper.SetDefault("archive.minio.access_key", "")
+	viper.SetDefault("archive.minio.secret_key", "")
+	viper.SetDefault("archive.minio.region", "auto")
+	viper.SetDefault("archive.minio.force_path_style", true)
+
 	// Gateway
 	viper.SetDefault("gateway.response_header_timeout", 600) // 600秒(10分钟)等待上游响应头，LLM高负载时可能排队较久
 	viper.SetDefault("gateway.log_upstream_error_body", true)
@@ -2088,6 +2103,41 @@ func (c *Config) Validate() error {
 	}
 	if c.Redis.MinIdleConns > c.Redis.PoolSize {
 		return fmt.Errorf("redis.min_idle_conns cannot exceed redis.pool_size")
+	}
+	if c.Archive.QueueCapacity < 0 {
+		return fmt.Errorf("archive.queue_capacity must be non-negative")
+	}
+	if c.Archive.WorkerCount < 0 {
+		return fmt.Errorf("archive.worker_count must be non-negative")
+	}
+	if c.Archive.BatchSize < 0 {
+		return fmt.Errorf("archive.batch_size must be non-negative")
+	}
+	if c.Archive.FlushIntervalSeconds < 0 {
+		return fmt.Errorf("archive.flush_interval_seconds must be non-negative")
+	}
+	if c.Archive.InlineDataMaxBytes < 0 {
+		return fmt.Errorf("archive.inline_data_max_bytes must be non-negative")
+	}
+	if c.Archive.Enabled {
+		if c.Archive.QueueCapacity <= 0 {
+			return fmt.Errorf("archive.queue_capacity must be positive")
+		}
+		if c.Archive.WorkerCount <= 0 {
+			return fmt.Errorf("archive.worker_count must be positive")
+		}
+		if c.Archive.BatchSize <= 0 {
+			return fmt.Errorf("archive.batch_size must be positive")
+		}
+		if c.Archive.FlushIntervalSeconds <= 0 {
+			return fmt.Errorf("archive.flush_interval_seconds must be positive")
+		}
+		if c.Archive.InlineDataMaxBytes <= 0 {
+			return fmt.Errorf("archive.inline_data_max_bytes must be positive")
+		}
+		if strings.TrimSpace(c.Archive.OverflowPolicy) != PromptArchiveOverflowPolicyDropAndLog {
+			return fmt.Errorf("archive.overflow_policy must be %q", PromptArchiveOverflowPolicyDropAndLog)
+		}
 	}
 	if c.Dashboard.Enabled {
 		if c.Dashboard.StatsFreshTTLSeconds <= 0 {

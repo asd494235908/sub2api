@@ -908,6 +908,13 @@ export interface OpenAIFastPolicySettings {
   rules: OpenAIFastPolicyRule[];
 }
 
+export interface PromptArchiveSettings {
+  enabled: boolean;
+  all_groups: boolean;
+  group_ids: number[];
+  bucket: string;
+}
+
 // ==================== Beta Policy Settings ====================
 
 /**
@@ -951,6 +958,23 @@ export async function updateBetaPolicySettings(
 ): Promise<BetaPolicySettings> {
   const { data } = await apiClient.put<BetaPolicySettings>(
     "/admin/settings/beta-policy",
+    settings,
+  );
+  return data;
+}
+
+export async function getPromptArchiveSettings(): Promise<PromptArchiveSettings> {
+  const { data } = await apiClient.get<PromptArchiveSettings>(
+    "/admin/settings/prompt-archive",
+  );
+  return data;
+}
+
+export async function updatePromptArchiveSettings(
+  settings: PromptArchiveSettings,
+): Promise<PromptArchiveSettings> {
+  const { data } = await apiClient.put<PromptArchiveSettings>(
+    "/admin/settings/prompt-archive",
     settings,
   );
   return data;
@@ -1032,6 +1056,8 @@ export const settingsAPI = {
   updateRectifierSettings,
   getBetaPolicySettings,
   updateBetaPolicySettings,
+  getPromptArchiveSettings,
+  updatePromptArchiveSettings,
   getWebSearchEmulationConfig,
   updateWebSearchEmulationConfig,
   testWebSearchEmulation,
