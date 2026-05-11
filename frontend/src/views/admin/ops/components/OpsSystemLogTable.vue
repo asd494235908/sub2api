@@ -4,6 +4,8 @@ import { opsAPI, type OpsRuntimeLogConfig, type OpsSystemLog, type OpsSystemLogS
 import Pagination from '@/components/common/Pagination.vue'
 import Select from '@/components/common/Select.vue'
 import { useAppStore } from '@/stores'
+import OpsPromptArchiveDetailModal from './OpsPromptArchiveDetailModal.vue'
+import OpsPromptArchiveSessionModal from './OpsPromptArchiveSessionModal.vue'
 
 const appStore = useAppStore()
 
@@ -42,6 +44,11 @@ const promptArchiveRecords = ref<PromptArchiveRecord[]>([])
 const promptArchiveTotal = ref(0)
 const promptArchivePage = ref(1)
 const promptArchivePageSize = ref(10)
+const selectedPromptArchiveRecord = ref<PromptArchiveRecord | null>(null)
+const showPromptArchiveDetail = ref(false)
+const selectedPromptArchiveSessionId = ref('')
+const selectedPromptArchiveGroupId = ref<number | null>(null)
+const showPromptArchiveSession = ref(false)
 const promptArchiveFilters = reactive({
   q: '',
   username: '',
@@ -266,6 +273,21 @@ const fetchPromptArchiveRecords = async () => {
   } finally {
     promptArchiveLoading.value = false
   }
+}
+
+const openPromptArchiveDetail = async (id: number) => {
+  try {
+    selectedPromptArchiveRecord.value = await opsAPI.getPromptArchiveRecord(id)
+    showPromptArchiveDetail.value = true
+  } catch (err: any) {
+    appStore.showError(err?.response?.data?.detail || '加载归档详情失败')
+  }
+}
+
+const openPromptArchiveSession = (sessionId: string, groupId: number) => {
+  selectedPromptArchiveSessionId.value = sessionId
+  selectedPromptArchiveGroupId.value = groupId
+  showPromptArchiveSession.value = true
 }
 
 const loadRuntimeConfig = async () => {
@@ -668,7 +690,7 @@ onMounted(async () => {
               <th class="w-[110px] px-3 py-2 text-left text-[11px] font-semibold text-gray-500">协议</th>
               <th class="w-[160px] px-3 py-2 text-left text-[11px] font-semibold text-gray-500">用户</th>
               <th class="px-3 py-2 text-left text-[11px] font-semibold text-gray-500">摘要</th>
-              <th class="w-[160px] px-3 py-2 text-left text-[11px] font-semibold text-gray-500">正文</th>
+              <th class="w-[190px] px-3 py-2 text-left text-[11px] font-semibold text-gray-500">操作</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100 dark:divide-dark-800">
@@ -684,16 +706,28 @@ onMounted(async () => {
                 {{ row.prompt_summary || row.user_prompt_text || '-' }}
               </td>
               <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-300 break-all">
-                <a
-                  v-if="row.presigned_url"
-                  :href="row.presigned_url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-blue-600 hover:underline dark:text-blue-400"
-                >
-                  查看归档
-                </a>
-                <span v-else>{{ row.object_key || '-' }}</span>
+                <div class="flex flex-wrap gap-2">
+                  <button type="button" class="text-blue-600 hover:underline dark:text-blue-400" @click="openPromptArchiveDetail(row.id)">
+                    详情
+                  </button>
+                  <button
+                    v-if="row.session_id && row.group_id"
+                    type="button"
+                    class="text-indigo-600 hover:underline dark:text-indigo-400"
+                    @click="openPromptArchiveSession(row.session_id, row.group_id)"
+                  >
+                    会话
+                  </button>
+                  <a
+                    v-if="row.presigned_url"
+                    :href="row.presigned_url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-green-600 hover:underline dark:text-green-400"
+                  >
+                    Markdown
+                  </a>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -708,4 +742,17 @@ onMounted(async () => {
       />
     </div>
   </section>
+
+  <OpsPromptArchiveDetailModal
+    :show="showPromptArchiveDetail"
+    :record="selectedPromptArchiveRecord"
+    @close="showPromptArchiveDetail = false"
+  />
+
+  <OpsPromptArchiveSessionModal
+    :show="showPromptArchiveSession"
+    :session-id="selectedPromptArchiveSessionId"
+    :group-id="selectedPromptArchiveGroupId"
+    @close="showPromptArchiveSession = false"
+  />
 </template>
