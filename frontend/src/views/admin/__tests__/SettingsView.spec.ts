@@ -16,6 +16,8 @@ const {
   getStreamTimeoutSettings,
   getRectifierSettings,
   getBetaPolicySettings,
+  getPromptArchiveSettings,
+  updatePromptArchiveSettings,
   getGroups,
   listProxies,
   getProviders,
@@ -38,6 +40,8 @@ const {
   getStreamTimeoutSettings: vi.fn(),
   getRectifierSettings: vi.fn(),
   getBetaPolicySettings: vi.fn(),
+  getPromptArchiveSettings: vi.fn(),
+  updatePromptArchiveSettings: vi.fn(),
   getGroups: vi.fn(),
   listProxies: vi.fn(),
   getProviders: vi.fn(),
@@ -66,6 +70,8 @@ vi.mock("@/api", () => ({
       getStreamTimeoutSettings,
       getRectifierSettings,
       getBetaPolicySettings,
+      getPromptArchiveSettings,
+      updatePromptArchiveSettings,
     },
     groups: {
       getAll: getGroups,
@@ -467,6 +473,8 @@ describe("admin SettingsView payment visible method controls", () => {
     getStreamTimeoutSettings.mockReset();
     getRectifierSettings.mockReset();
     getBetaPolicySettings.mockReset();
+    getPromptArchiveSettings.mockReset();
+    updatePromptArchiveSettings.mockReset();
     getGroups.mockReset();
     listProxies.mockReset();
     getProviders.mockReset();
@@ -521,6 +529,18 @@ describe("admin SettingsView payment visible method controls", () => {
     });
     getBetaPolicySettings.mockResolvedValue({
       rules: [],
+    });
+    getPromptArchiveSettings.mockResolvedValue({
+      enabled: false,
+      all_groups: false,
+      group_ids: [],
+      bucket: "",
+    });
+    updatePromptArchiveSettings.mockResolvedValue({
+      enabled: false,
+      all_groups: false,
+      group_ids: [],
+      bucket: "",
     });
     getGroups.mockResolvedValue([]);
     listProxies.mockResolvedValue({

@@ -3918,6 +3918,100 @@
               </div>
             </div>
           </div>
+
+          <!-- Prompt Archive -->
+          <div class="card">
+            <div
+              class="border-b border-gray-100 px-6 py-4 dark:border-dark-700"
+            >
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                提示词归档
+              </h2>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                管理提示词与多模态会话的默认归档开关、归档范围和对象存储桶。
+              </p>
+            </div>
+            <div class="space-y-5 p-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    启用归档
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    开启后，将对允许范围内的请求进行默认归档。
+                  </p>
+                </div>
+                <Toggle v-model="promptArchiveForm.enabled" />
+              </div>
+
+              <div class="flex items-center justify-between">
+                <div>
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    覆盖全部分组
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    开启后，对所有分组默认生效；关闭时仅对指定分组生效。
+                  </p>
+                </div>
+                <Toggle v-model="promptArchiveForm.all_groups" />
+              </div>
+
+              <div v-if="!promptArchiveForm.all_groups">
+                <label
+                  class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  分组 ID 列表
+                </label>
+                <input
+                  :value="promptArchiveForm.group_ids.join(', ')"
+                  type="text"
+                  class="input"
+                  placeholder="例如：1, 2, 3"
+                  @change="
+                    promptArchiveForm.group_ids = String(($event.target as HTMLInputElement).value || '')
+                      .split(',')
+                      .map((item) => Number.parseInt(item.trim(), 10))
+                      .filter((value) => Number.isFinite(value) && value > 0)
+                  "
+                />
+                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  使用英文逗号分隔多个分组 ID。
+                </p>
+              </div>
+
+              <div>
+                <label
+                  class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  MinIO Bucket
+                </label>
+                <input
+                  v-model="promptArchiveForm.bucket"
+                  type="text"
+                  class="input"
+                  placeholder="prompt-archive"
+                />
+                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  用于保存 Markdown 归档正文与附件对象键。
+                </p>
+              </div>
+
+              <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/10 dark:text-amber-200">
+                满载时归档任务会丢弃并记日志，不会阻塞客户主链路请求。
+              </div>
+
+              <div v-if="promptArchiveLoading" class="text-xs text-gray-500">
+                正在加载归档配置...
+              </div>
+              <div v-else-if="promptArchiveSaving" class="text-xs text-gray-500">
+                正在保存归档配置...
+              </div>
+            </div>
+          </div>
         </div>
         <!-- /Tab: Gateway — Claude Code, Scheduling -->
 
@@ -6169,6 +6263,7 @@ import type {
   UpdateSettingsRequest,
   DefaultSubscriptionSetting,
   OpenAIFastPolicyRule,
+  PromptArchiveSettings,
   WeChatConnectMode,
   WebSearchEmulationConfig,
   WebSearchProviderConfig,
@@ -6381,6 +6476,14 @@ const openaiFastPolicyForm = reactive({
 // 标记 openai_fast_policy_settings 是否已成功从后端加载，
 // 避免后端 GET 出错或字段缺失时，保存把默认规则覆盖成空数组。
 const openaiFastPolicyLoaded = ref(false);
+const promptArchiveLoading = ref(true);
+const promptArchiveSaving = ref(false);
+const promptArchiveForm = reactive<PromptArchiveSettings>({
+  enabled: false,
+  all_groups: false,
+  group_ids: [],
+  bucket: "",
+});
 
 const tablePageSizeMin = 5;
 const tablePageSizeMax = 1000;
@@ -6839,6 +6942,41 @@ async function loadWebSearchConfig() {
     if (status !== 404 && status !== undefined) {
       appStore.showError(extractApiErrorMessage(err, t("common.error")));
     }
+  }
+}
+
+async function loadPromptArchiveConfig() {
+  promptArchiveLoading.value = true;
+  try {
+    const settings = await adminAPI.settings.getPromptArchiveSettings();
+    promptArchiveForm.enabled = Boolean(settings.enabled);
+    promptArchiveForm.all_groups = Boolean(settings.all_groups);
+    promptArchiveForm.group_ids = Array.isArray(settings.group_ids)
+      ? [...settings.group_ids]
+      : [];
+    promptArchiveForm.bucket = String(settings.bucket || "");
+  } finally {
+    promptArchiveLoading.value = false;
+  }
+}
+
+async function savePromptArchiveConfig() {
+  promptArchiveSaving.value = true;
+  try {
+    const updated = await adminAPI.settings.updatePromptArchiveSettings({
+      enabled: promptArchiveForm.enabled,
+      all_groups: promptArchiveForm.all_groups,
+      group_ids: promptArchiveForm.group_ids,
+      bucket: promptArchiveForm.bucket.trim(),
+    });
+    promptArchiveForm.enabled = updated.enabled;
+    promptArchiveForm.all_groups = updated.all_groups;
+    promptArchiveForm.group_ids = Array.isArray(updated.group_ids)
+      ? [...updated.group_ids]
+      : [];
+    promptArchiveForm.bucket = updated.bucket || "";
+  } finally {
+    promptArchiveSaving.value = false;
   }
 }
 
@@ -7351,7 +7489,7 @@ async function loadSettings() {
     }
 
     // Load web search emulation config separately
-    await loadWebSearchConfig();
+    await Promise.all([loadWebSearchConfig(), loadPromptArchiveConfig()]);
   } catch (error: unknown) {
     loadFailed.value = true;
     appStore.showError(
@@ -7852,6 +7990,7 @@ async function saveSettings() {
     }
     // Save web search emulation config separately (errors handled internally)
     const wsOk = await saveWebSearchConfig();
+    await savePromptArchiveConfig();
     // Refresh cached settings so sidebar/header update immediately
     await appStore.fetchPublicSettings(true);
     await adminSettingsStore.fetch(true);

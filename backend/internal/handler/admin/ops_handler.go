@@ -89,11 +89,58 @@ func (h *OpsHandler) ListPromptArchiveRecords(c *gin.Context) {
 		return
 	}
 	page, pageSize := response.ParsePagination(c)
-	result, err := h.promptArchiveService.ListRecords(c.Request.Context(), &service.PromptArchiveRecordFilter{
+	filter := &service.PromptArchiveRecordFilter{
 		Page:     page,
 		PageSize: pageSize,
 		Query:    strings.TrimSpace(c.Query("q")),
-	})
+		Username: strings.TrimSpace(c.Query("username")),
+		Email:    strings.TrimSpace(c.Query("email")),
+		SessionID: strings.TrimSpace(c.Query("session_id")),
+		Model:    strings.TrimSpace(c.Query("model")),
+		Protocol: strings.TrimSpace(c.Query("protocol")),
+		Status:   strings.TrimSpace(c.Query("status")),
+	}
+	if v := strings.TrimSpace(c.Query("group_id")); v != "" {
+		id, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || id <= 0 {
+			response.BadRequest(c, "Invalid group_id")
+			return
+		}
+		filter.GroupID = &id
+	}
+	if v := strings.TrimSpace(c.Query("user_id")); v != "" {
+		id, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || id <= 0 {
+			response.BadRequest(c, "Invalid user_id")
+			return
+		}
+		filter.UserID = &id
+	}
+	if v := strings.TrimSpace(c.Query("api_key_id")); v != "" {
+		id, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || id <= 0 {
+			response.BadRequest(c, "Invalid api_key_id")
+			return
+		}
+		filter.APIKeyID = &id
+	}
+	if v := strings.TrimSpace(c.Query("start_time")); v != "" {
+		ts, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			response.BadRequest(c, "Invalid start_time")
+			return
+		}
+		filter.StartTime = &ts
+	}
+	if v := strings.TrimSpace(c.Query("end_time")); v != "" {
+		ts, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			response.BadRequest(c, "Invalid end_time")
+			return
+		}
+		filter.EndTime = &ts
+	}
+	result, err := h.promptArchiveService.ListRecords(c.Request.Context(), filter)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return

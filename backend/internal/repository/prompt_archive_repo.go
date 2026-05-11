@@ -301,12 +301,56 @@ func scanPromptArchiveRecord(row promptArchiveScanner) (*service.PromptArchiveRe
 }
 
 func buildPromptArchiveRecordsWhere(filter *service.PromptArchiveRecordFilter) (string, []any) {
-	clauses := make([]string, 0, 4)
-	args := make([]any, 0, 4)
+	clauses := make([]string, 0, 16)
+	args := make([]any, 0, 16)
 	if q := strings.TrimSpace(filter.Query); q != "" {
 		args = append(args, "%"+q+"%")
 		n := itoa(len(args))
 		clauses = append(clauses, "(r.username_snapshot ILIKE $"+n+" OR r.email_snapshot ILIKE $"+n+" OR r.session_id ILIKE $"+n+" OR r.model ILIKE $"+n+" OR r.prompt_summary ILIKE $"+n+")")
+	}
+	if v := strings.TrimSpace(filter.Username); v != "" {
+		args = append(args, "%"+v+"%")
+		clauses = append(clauses, "r.username_snapshot ILIKE $"+itoa(len(args)))
+	}
+	if v := strings.TrimSpace(filter.Email); v != "" {
+		args = append(args, "%"+v+"%")
+		clauses = append(clauses, "r.email_snapshot ILIKE $"+itoa(len(args)))
+	}
+	if v := strings.TrimSpace(filter.SessionID); v != "" {
+		args = append(args, v)
+		clauses = append(clauses, "r.session_id = $"+itoa(len(args)))
+	}
+	if v := strings.TrimSpace(filter.Model); v != "" {
+		args = append(args, "%"+v+"%")
+		clauses = append(clauses, "r.model ILIKE $"+itoa(len(args)))
+	}
+	if v := strings.TrimSpace(filter.Protocol); v != "" {
+		args = append(args, v)
+		clauses = append(clauses, "r.protocol = $"+itoa(len(args)))
+	}
+	if filter.GroupID != nil && *filter.GroupID > 0 {
+		args = append(args, *filter.GroupID)
+		clauses = append(clauses, "r.group_id = $"+itoa(len(args)))
+	}
+	if filter.UserID != nil && *filter.UserID > 0 {
+		args = append(args, *filter.UserID)
+		clauses = append(clauses, "r.user_id = $"+itoa(len(args)))
+	}
+	if filter.APIKeyID != nil && *filter.APIKeyID > 0 {
+		args = append(args, *filter.APIKeyID)
+		clauses = append(clauses, "r.api_key_id = $"+itoa(len(args)))
+	}
+	if v := strings.TrimSpace(filter.Status); v != "" {
+		args = append(args, v)
+		clauses = append(clauses, "r.status = $"+itoa(len(args)))
+	}
+	if filter.StartTime != nil && !filter.StartTime.IsZero() {
+		args = append(args, filter.StartTime.UTC())
+		clauses = append(clauses, "r.created_at >= $"+itoa(len(args)))
+	}
+	if filter.EndTime != nil && !filter.EndTime.IsZero() {
+		args = append(args, filter.EndTime.UTC())
+		clauses = append(clauses, "r.created_at <= $"+itoa(len(args)))
 	}
 	if len(clauses) == 0 {
 		return "", args

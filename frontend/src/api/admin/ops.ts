@@ -14,6 +14,75 @@ export interface OpsRequestOptions {
   signal?: AbortSignal
 }
 
+export interface PromptArchiveHealth {
+  queue_depth: number
+  queue_capacity: number
+  dropped_count: number
+  failed_count: number
+  stored_count: number
+  last_success_at?: string
+  last_failure_at?: string
+  last_failure_error?: string
+}
+
+export interface PromptArchiveAttachment {
+  kind: string
+  mime_type: string
+  source_type: string
+  source_url?: string
+  object_key?: string
+  sha256?: string
+  size_bytes?: number
+  sequence?: number
+}
+
+export interface PromptArchiveRecord {
+  id: number
+  request_id: string
+  client_request_id: string
+  session_id: string
+  user_id: number
+  username_snapshot: string
+  email_snapshot: string
+  api_key_id: number
+  group_id: number
+  protocol: string
+  endpoint: string
+  model: string
+  system_prompt: string
+  user_prompt_text: string
+  prompt_summary: string
+  object_key: string
+  status: string
+  error_message: string
+  attachments: PromptArchiveAttachment[]
+  created_at: string
+  presigned_url?: string
+}
+
+export interface PromptArchiveSessionDetail {
+  session_id: string
+  group_id: number
+  records: PromptArchiveRecord[]
+}
+
+export interface PromptArchiveQuery {
+  page?: number
+  page_size?: number
+  q?: string
+  username?: string
+  email?: string
+  session_id?: string
+  model?: string
+  protocol?: string
+  status?: string
+  group_id?: number
+  user_id?: number
+  api_key_id?: number
+  start_time?: string
+  end_time?: string
+}
+
 export interface OpsRetryRequest {
   mode: OpsRetryMode
   pinned_account_id?: number
@@ -1341,6 +1410,28 @@ export async function getSystemLogSinkHealth(): Promise<OpsSystemLogSinkHealth> 
   return data
 }
 
+export async function getPromptArchiveHealth(): Promise<PromptArchiveHealth> {
+  const { data } = await apiClient.get<PromptArchiveHealth>('/admin/ops/prompt-archive/health')
+  return data
+}
+
+export async function listPromptArchiveRecords(params: PromptArchiveQuery): Promise<PaginatedResponse<PromptArchiveRecord>> {
+  const { data } = await apiClient.get<PaginatedResponse<PromptArchiveRecord>>('/admin/ops/prompt-archive/records', { params })
+  return data
+}
+
+export async function getPromptArchiveRecord(id: number): Promise<PromptArchiveRecord> {
+  const { data } = await apiClient.get<PromptArchiveRecord>(`/admin/ops/prompt-archive/records/${id}`)
+  return data
+}
+
+export async function getPromptArchiveSession(sessionId: string, groupId: number): Promise<PromptArchiveSessionDetail> {
+  const { data } = await apiClient.get<PromptArchiveSessionDetail>(`/admin/ops/prompt-archive/sessions/${encodeURIComponent(sessionId)}`, {
+    params: { group_id: groupId }
+  })
+  return data
+}
+
 // Advanced settings (DB-backed)
 export async function getAdvancedSettings(): Promise<OpsAdvancedSettings> {
   const { data } = await apiClient.get<OpsAdvancedSettings>('/admin/ops/advanced-settings')
@@ -1418,7 +1509,11 @@ export const opsAPI = {
   updateMetricThresholds,
   listSystemLogs,
   cleanupSystemLogs,
-  getSystemLogSinkHealth
+  getSystemLogSinkHealth,
+  getPromptArchiveHealth,
+  listPromptArchiveRecords,
+  getPromptArchiveRecord,
+  getPromptArchiveSession
 }
 
 export default opsAPI
