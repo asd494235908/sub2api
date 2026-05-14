@@ -194,6 +194,45 @@ func parseFeatures(raw string) []string {
 	return out
 }
 
+// GetLuckyWheelSummary returns current lucky wheel state for the authenticated user.
+// GET /api/v1/payment/lucky-wheel
+func (h *PaymentHandler) GetLuckyWheelSummary(c *gin.Context) {
+	subject, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+	summary, err := h.paymentService.GetLuckyWheelSummary(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, summary)
+}
+
+// DrawLuckyWheel consumes one lucky wheel chance and returns the draw result.
+// POST /api/v1/payment/lucky-wheel/draw
+func (h *PaymentHandler) DrawLuckyWheel(c *gin.Context) {
+	subject, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+
+	var req struct {
+		SessionID int64 `json:"session_id"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	result, err := h.paymentService.DrawLuckyWheel(c.Request.Context(), subject.UserID, req.SessionID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, result)
+}
+
 // GetLimits returns per-payment-type limits derived from enabled provider instances.
 // GET /api/v1/payment/limits
 func (h *PaymentHandler) GetLimits(c *gin.Context) {

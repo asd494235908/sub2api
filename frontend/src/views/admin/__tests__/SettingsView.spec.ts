@@ -335,6 +335,8 @@ const baseSettingsResponse = {
   site_subtitle: "",
   api_base_url: "",
   contact_info: "",
+  qq_group: "",
+  wechat_contact: "",
   doc_url: "",
   home_content: "",
   hide_ccs_import_button: false,
@@ -444,6 +446,8 @@ const baseSettingsResponse = {
   affiliate_rebate_per_invitee_cap: 0,
   affiliate_signup_reward_enabled: false,
   affiliate_signup_reward_amount: 0,
+  weekly_quota_enabled: true,
+  weekly_quota_amount: 18.8,
 };
 
 function mountView() {
@@ -631,6 +635,31 @@ describe("admin SettingsView payment visible method controls", () => {
     expect(wrapper.text()).not.toContain("支付来源");
   });
 
+  it("loads and submits weekly quota settings from the features tab", async () => {
+    const wrapper = mountView();
+
+    await flushPromises();
+    await openFeaturesTab(wrapper);
+
+    expect(wrapper.text()).toContain("admin.settings.features.weeklyQuota.title");
+
+    const weeklyAmountInput = wrapper
+      .findAll("input")
+      .find((node) => node.element instanceof HTMLInputElement && (node.element as HTMLInputElement).value === "18.8");
+
+    expect(weeklyAmountInput).toBeDefined();
+
+    await weeklyAmountInput?.setValue("25.5");
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    expect(updateSettings).toHaveBeenCalledTimes(1);
+    expect(updateSettings.mock.calls[0]?.[0]).toMatchObject({
+      weekly_quota_enabled: true,
+      weekly_quota_amount: 25.5,
+    });
+  });
+
   it("links payment guidance to README sections instead of removed payment docs", async () => {
     const wrapper = mountView();
 
@@ -669,6 +698,37 @@ describe("admin SettingsView payment visible method controls", () => {
     expect(payload).not.toHaveProperty("payment_visible_method_wxpay_source");
     expect(payload).not.toHaveProperty("payment_visible_method_alipay_enabled");
     expect(payload).not.toHaveProperty("payment_visible_method_wxpay_enabled");
+  });
+
+  it("loads and submits homepage contact fields", async () => {
+    getSettings.mockResolvedValueOnce({
+      ...baseSettingsResponse,
+      qq_group: "123456789",
+      wechat_contact: "sub2api_support",
+    });
+
+    const wrapper = mountView();
+
+    await flushPromises();
+
+    const inputs = wrapper.findAll("input");
+    const qqInput = inputs.find((node) => (node.element as HTMLInputElement).value === "123456789");
+    const wechatInput = inputs.find((node) => (node.element as HTMLInputElement).value === "sub2api_support");
+
+    expect(qqInput).toBeDefined();
+    expect(wechatInput).toBeDefined();
+
+    await qqInput?.setValue("987654321");
+    await wechatInput?.setValue("new_wechat");
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        qq_group: "987654321",
+        wechat_contact: "new_wechat",
+      }),
+    );
   });
 
   it("updates provider enablement immediately and reloads providers", async () => {

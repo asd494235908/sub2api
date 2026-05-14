@@ -39,6 +39,15 @@ func ProvideEmailQueueService(emailService *EmailService) *EmailQueueService {
 	return NewEmailQueueService(emailService, 3)
 }
 
+func ProvideSMSCache(cache EmailCache) SMSCache {
+	return cache
+}
+
+func ProvideSMSService(settingRepo SettingRepository, cache SMSCache) *SMSService {
+	ihuyiSMSSettings := ResolveIHuyiSMSProviderSettings(settingRepo)
+	return NewSMSService(cache, NewIHuyiSMSProvider(ihuyiSMSSettings, nil))
+}
+
 // ProvideOAuthRefreshAPI creates OAuthRefreshAPI with the default lock TTL.
 func ProvideOAuthRefreshAPI(accountRepo AccountRepository, tokenCache GeminiTokenCache) *OAuthRefreshAPI {
 	return NewOAuthRefreshAPI(accountRepo, tokenCache)
@@ -447,6 +456,7 @@ var ProviderSet = wire.NewSet(
 	NewAdminService,
 	NewGatewayService,
 	NewOpenAIGatewayService,
+	ProvideSMSService,
 	NewOAuthService,
 	NewOpenAIOAuthService,
 	NewGeminiOAuthService,
@@ -464,7 +474,6 @@ var ProviderSet = wire.NewSet(
 	ProvideRateLimitService,
 	NewAccountUsageService,
 	NewAccountTestService,
-	ProvideSettingService,
 	NewDataManagementService,
 	ProvideBackupService,
 	ProvideOpsSystemLogSink,
@@ -476,6 +485,9 @@ var ProviderSet = wire.NewSet(
 	ProvideOpsScheduledReportService,
 	NewEmailService,
 	ProvideEmailQueueService,
+	wire.Bind(new(AuthEmailQueue), new(*EmailQueueService)),
+	wire.Bind(new(VerifyCodeEnqueuer), new(*EmailQueueService)),
+	ProvideSMSCache,
 	NewTurnstileService,
 	NewSubscriptionService,
 	wire.Bind(new(DefaultSubscriptionAssigner), new(*SubscriptionService)),

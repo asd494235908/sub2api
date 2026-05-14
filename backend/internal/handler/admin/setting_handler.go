@@ -112,6 +112,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 	payload := dto.SystemSettings{
 		RegistrationEnabled:                    settings.RegistrationEnabled,
 		EmailVerifyEnabled:                     settings.EmailVerifyEnabled,
+		PhoneVerifyEnabled:                     settings.PhoneVerifyEnabled,
 		RegistrationEmailSuffixWhitelist:       settings.RegistrationEmailSuffixWhitelist,
 		PromoCodeEnabled:                       settings.PromoCodeEnabled,
 		PasswordResetEnabled:                   settings.PasswordResetEnabled,
@@ -126,6 +127,10 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		SMTPFrom:                               settings.SMTPFrom,
 		SMTPFromName:                           settings.SMTPFromName,
 		SMTPUseTLS:                             settings.SMTPUseTLS,
+		SMSIHuyiEnabled:                        settings.SMSIHuyiEnabled,
+		SMSIHuyiAPIID:                          settings.SMSIHuyiAPIID,
+		SMSIHuyiAPIKeyConfigured:               settings.SMSIHuyiAPIKeyConfigured,
+		SMSIHuyiTemplateID:                     settings.SMSIHuyiTemplateID,
 		TurnstileEnabled:                       settings.TurnstileEnabled,
 		TurnstileSiteKey:                       settings.TurnstileSiteKey,
 		TurnstileSecretKeyConfigured:           settings.TurnstileSecretKeyConfigured,
@@ -176,7 +181,10 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		SiteSubtitle:                           settings.SiteSubtitle,
 		APIBaseURL:                             settings.APIBaseURL,
 		ContactInfo:                            settings.ContactInfo,
+		QQGroup:                                settings.QQGroup,
+		WeChatContact:                          settings.WeChatContact,
 		DocURL:                                 settings.DocURL,
+		HomeLinks:                              dto.ParseHomeLinks(settings.HomeLinks),
 		HomeContent:                            settings.HomeContent,
 		HideCcsImportButton:                    settings.HideCcsImportButton,
 		PurchaseSubscriptionEnabled:            settings.PurchaseSubscriptionEnabled,
@@ -193,6 +201,8 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		AffiliateRebatePerInviteeCap:           settings.AffiliateRebatePerInviteeCap,
 		AffiliateSignupRewardEnabled:           settings.AffiliateSignupRewardEnabled,
 		AffiliateSignupRewardAmount:            settings.AffiliateSignupRewardAmount,
+		WeeklyQuotaEnabled:                     settings.WeeklyQuotaEnabled,
+		WeeklyQuotaAmount:                      settings.WeeklyQuotaAmount,
 		DefaultUserRPMLimit:                    settings.DefaultUserRPMLimit,
 		DefaultSubscriptions:                   defaultSubscriptions,
 		EnableModelFallback:                    settings.EnableModelFallback,
@@ -302,6 +312,7 @@ type UpdateSettingsRequest struct {
 	// 注册设置
 	RegistrationEnabled              bool     `json:"registration_enabled"`
 	EmailVerifyEnabled               bool     `json:"email_verify_enabled"`
+	PhoneVerifyEnabled               bool     `json:"phone_verify_enabled"`
 	RegistrationEmailSuffixWhitelist []string `json:"registration_email_suffix_whitelist"`
 	PromoCodeEnabled                 bool     `json:"promo_code_enabled"`
 	PasswordResetEnabled             bool     `json:"password_reset_enabled"`
@@ -310,13 +321,17 @@ type UpdateSettingsRequest struct {
 	TotpEnabled                      bool     `json:"totp_enabled"` // TOTP 双因素认证
 
 	// 邮件服务设置
-	SMTPHost     string `json:"smtp_host"`
-	SMTPPort     int    `json:"smtp_port"`
-	SMTPUsername string `json:"smtp_username"`
-	SMTPPassword string `json:"smtp_password"`
-	SMTPFrom     string `json:"smtp_from_email"`
-	SMTPFromName string `json:"smtp_from_name"`
-	SMTPUseTLS   bool   `json:"smtp_use_tls"`
+	SMTPHost           string `json:"smtp_host"`
+	SMTPPort           int    `json:"smtp_port"`
+	SMTPUsername       string `json:"smtp_username"`
+	SMTPPassword       string `json:"smtp_password"`
+	SMTPFrom           string `json:"smtp_from_email"`
+	SMTPFromName       string `json:"smtp_from_name"`
+	SMTPUseTLS         bool   `json:"smtp_use_tls"`
+	SMSIHuyiEnabled    bool   `json:"sms_ihuyi_enabled"`
+	SMSIHuyiAPIID      string `json:"sms_ihuyi_api_id"`
+	SMSIHuyiAPIKey     string `json:"sms_ihuyi_api_key"`
+	SMSIHuyiTemplateID string `json:"sms_ihuyi_template_id"`
 
 	// Cloudflare Turnstile 设置
 	TurnstileEnabled   bool   `json:"turnstile_enabled"`
@@ -377,7 +392,10 @@ type UpdateSettingsRequest struct {
 	SiteSubtitle                string                `json:"site_subtitle"`
 	APIBaseURL                  string                `json:"api_base_url"`
 	ContactInfo                 string                `json:"contact_info"`
+	QQGroup                     string                `json:"qq_group"`
+	WeChatContact               string                `json:"wechat_contact"`
 	DocURL                      string                `json:"doc_url"`
+	HomeLinks                   *[]dto.HomeLink       `json:"home_links"`
 	HomeContent                 string                `json:"home_content"`
 	HideCcsImportButton         bool                  `json:"hide_ccs_import_button"`
 	PurchaseSubscriptionEnabled *bool                 `json:"purchase_subscription_enabled"`
@@ -500,6 +518,13 @@ type UpdateSettingsRequest struct {
 
 	// Affiliate (邀请返利) feature switch
 	AffiliateEnabled *bool `json:"affiliate_enabled"`
+
+	// Weekly quota feature switch
+	WeeklyQuotaEnabled *bool    `json:"weekly_quota_enabled"`
+	WeeklyQuotaAmount  *float64 `json:"weekly_quota_amount"`
+
+	// Lucky wheel feature switch
+	LuckyWheelEnabled *bool `json:"lucky_wheel_enabled"`
 
 	// OpenAI fast/flex policy (optional, only updated when provided)
 	OpenAIFastPolicySettings *dto.OpenAIFastPolicySettings `json:"openai_fast_policy_settings,omitempty"`
@@ -1062,6 +1087,16 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		customMenuJSON = string(menuBytes)
 	}
 
+	homeLinksJSON := previousSettings.HomeLinks
+	if req.HomeLinks != nil {
+		linkBytes, err := json.Marshal(*req.HomeLinks)
+		if err != nil {
+			response.BadRequest(c, "Failed to serialize home links")
+			return
+		}
+		homeLinksJSON = string(linkBytes)
+	}
+
 	// 自定义端点验证
 	const (
 		maxCustomEndpoints        = 10
@@ -1154,9 +1189,26 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		}
 	}
 
+	weeklyQuotaEnabled := previousSettings.WeeklyQuotaEnabled
+	if req.WeeklyQuotaEnabled != nil {
+		weeklyQuotaEnabled = *req.WeeklyQuotaEnabled
+	}
+	weeklyQuotaAmount := previousSettings.WeeklyQuotaAmount
+	if req.WeeklyQuotaAmount != nil {
+		weeklyQuotaAmount = *req.WeeklyQuotaAmount
+	}
+	if weeklyQuotaAmount < 0 {
+		weeklyQuotaAmount = 0
+	}
+	if weeklyQuotaEnabled && weeklyQuotaAmount <= 0 {
+		response.BadRequest(c, "Weekly quota amount must be greater than 0 when enabled")
+		return
+	}
+
 	settings := &service.SystemSettings{
 		RegistrationEnabled:              req.RegistrationEnabled,
 		EmailVerifyEnabled:               req.EmailVerifyEnabled,
+		PhoneVerifyEnabled:               req.PhoneVerifyEnabled,
 		RegistrationEmailSuffixWhitelist: req.RegistrationEmailSuffixWhitelist,
 		PromoCodeEnabled:                 req.PromoCodeEnabled,
 		PasswordResetEnabled:             req.PasswordResetEnabled,
@@ -1170,6 +1222,10 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		SMTPFrom:                         req.SMTPFrom,
 		SMTPFromName:                     req.SMTPFromName,
 		SMTPUseTLS:                       req.SMTPUseTLS,
+		SMSIHuyiEnabled:                  req.SMSIHuyiEnabled,
+		SMSIHuyiAPIID:                    req.SMSIHuyiAPIID,
+		SMSIHuyiAPIKey:                   req.SMSIHuyiAPIKey,
+		SMSIHuyiTemplateID:               req.SMSIHuyiTemplateID,
 		TurnstileEnabled:                 req.TurnstileEnabled,
 		TurnstileSiteKey:                 req.TurnstileSiteKey,
 		TurnstileSecretKey:               req.TurnstileSecretKey,
@@ -1220,7 +1276,10 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		SiteSubtitle:                     req.SiteSubtitle,
 		APIBaseURL:                       req.APIBaseURL,
 		ContactInfo:                      req.ContactInfo,
+		QQGroup:                          req.QQGroup,
+		WeChatContact:                    req.WeChatContact,
 		DocURL:                           req.DocURL,
+		HomeLinks:                        homeLinksJSON,
 		HomeContent:                      req.HomeContent,
 		HideCcsImportButton:              req.HideCcsImportButton,
 		PurchaseSubscriptionEnabled:      purchaseEnabled,
@@ -1237,6 +1296,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		AffiliateRebatePerInviteeCap:     affiliateRebatePerInviteeCap,
 		AffiliateSignupRewardEnabled:     affiliateSignupRewardEnabled,
 		AffiliateSignupRewardAmount:      affiliateSignupRewardAmount,
+		WeeklyQuotaEnabled:               weeklyQuotaEnabled,
+		WeeklyQuotaAmount:                weeklyQuotaAmount,
 		DefaultUserRPMLimit:              req.DefaultUserRPMLimit,
 		DefaultSubscriptions:             defaultSubscriptions,
 		EnableModelFallback:              req.EnableModelFallback,
@@ -1375,6 +1436,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 				return *req.AffiliateEnabled
 			}
 			return previousSettings.AffiliateEnabled
+		}(),
+		LuckyWheelEnabled: func() bool {
+			if req.LuckyWheelEnabled != nil {
+				return *req.LuckyWheelEnabled
+			}
+			return previousSettings.LuckyWheelEnabled
 		}(),
 	}
 
@@ -1554,7 +1621,10 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		SiteSubtitle:                           updatedSettings.SiteSubtitle,
 		APIBaseURL:                             updatedSettings.APIBaseURL,
 		ContactInfo:                            updatedSettings.ContactInfo,
+		QQGroup:                                updatedSettings.QQGroup,
+		WeChatContact:                          updatedSettings.WeChatContact,
 		DocURL:                                 updatedSettings.DocURL,
+		HomeLinks:                              dto.ParseHomeLinks(updatedSettings.HomeLinks),
 		HomeContent:                            updatedSettings.HomeContent,
 		HideCcsImportButton:                    updatedSettings.HideCcsImportButton,
 		PurchaseSubscriptionEnabled:            updatedSettings.PurchaseSubscriptionEnabled,
@@ -1627,7 +1697,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 
 		AvailableChannelsEnabled: updatedSettings.AvailableChannelsEnabled,
 
-		AffiliateEnabled: updatedSettings.AffiliateEnabled,
+		AffiliateEnabled:  updatedSettings.AffiliateEnabled,
+		LuckyWheelEnabled: updatedSettings.LuckyWheelEnabled,
 	}
 	if fastPolicy, err := h.settingService.GetOpenAIFastPolicySettings(c.Request.Context()); err != nil {
 		slog.Error("openai_fast_policy_settings_get_failed", "error", err)
@@ -1868,8 +1939,17 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.ContactInfo != after.ContactInfo {
 		changed = append(changed, "contact_info")
 	}
+	if before.QQGroup != after.QQGroup {
+		changed = append(changed, "qq_group")
+	}
+	if before.WeChatContact != after.WeChatContact {
+		changed = append(changed, "wechat_contact")
+	}
 	if before.DocURL != after.DocURL {
 		changed = append(changed, "doc_url")
+	}
+	if before.HomeLinks != after.HomeLinks {
+		changed = append(changed, "home_links")
 	}
 	if before.HomeContent != after.HomeContent {
 		changed = append(changed, "home_content")
@@ -2018,6 +2098,15 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.AffiliateEnabled != after.AffiliateEnabled {
 		changed = append(changed, "affiliate_enabled")
+	}
+	if before.WeeklyQuotaEnabled != after.WeeklyQuotaEnabled {
+		changed = append(changed, "weekly_quota_enabled")
+	}
+	if before.LuckyWheelEnabled != after.LuckyWheelEnabled {
+		changed = append(changed, "lucky_wheel_enabled")
+	}
+	if before.WeeklyQuotaAmount != after.WeeklyQuotaAmount {
+		changed = append(changed, "weekly_quota_amount")
 	}
 	changed = appendAuthSourceDefaultChanges(changed, beforeAuthSourceDefaults, afterAuthSourceDefaults)
 	return changed

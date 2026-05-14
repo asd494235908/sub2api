@@ -67,6 +67,7 @@ export interface User {
   id: number
   username: string
   email: string
+  phone_number?: string
   avatar_url?: string | null
   avatar_source?: string | UserProfileSourceContext | null
   username_source?: string | UserProfileSourceContext | null
@@ -110,15 +111,20 @@ export interface AdminUser extends User {
 }
 
 export interface LoginRequest {
-  email: string
-  password: string
+  identifier?: string
+  email?: string
+  phone_number?: string
+  sms_code?: string
+  password?: string
   turnstile_token?: string
 }
 
 export interface RegisterRequest {
   email: string
+  phone_number: string
   password: string
   verify_code?: string
+  phone_verify_code?: string
   turnstile_token?: string
   promo_code?: string
   invitation_code?: string
@@ -152,7 +158,9 @@ export interface AffiliateTransferResponse {
 }
 
 export interface SendVerifyCodeRequest {
-  email: string
+  email?: string
+  phone_number?: string
+  purpose?: 'register' | 'login'
   turnstile_token?: string
   pending_auth_token?: string
   pending_oauth_token?: string
@@ -178,9 +186,18 @@ export interface CustomEndpoint {
   description: string
 }
 
+export interface HomeLink {
+  id: string
+  label: string
+  url: string
+  enabled: boolean
+  sort_order: number
+}
+
 export interface PublicSettings {
   registration_enabled: boolean
   email_verify_enabled: boolean
+  phone_verify_enabled: boolean
   force_email_on_third_party_signup: boolean
   registration_email_suffix_whitelist: string[]
   promo_code_enabled: boolean
@@ -193,7 +210,10 @@ export interface PublicSettings {
   site_subtitle: string
   api_base_url: string
   contact_info: string
+  qq_group: string
+  wechat_contact: string
   doc_url: string
+  home_links: HomeLink[]
   home_content: string
   hide_ccs_import_button: boolean
   payment_enabled: boolean
@@ -217,6 +237,8 @@ export interface PublicSettings {
   channel_monitor_default_interval_seconds: number
   available_channels_enabled: boolean
   affiliate_enabled: boolean
+  weekly_quota_enabled: boolean
+  lucky_wheel_enabled: boolean
 }
 
 export interface AuthResponse {
@@ -1402,6 +1424,7 @@ export interface UpdateUserRequest {
 export interface ChangePasswordRequest {
   old_password: string
   new_password: string
+  phone_verify_code?: string
 }
 
 // ==================== User Subscription Types ====================

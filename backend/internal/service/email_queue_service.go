@@ -21,6 +21,20 @@ type EmailTask struct {
 	SiteName string
 	TaskType string // "verify_code" or "password_reset"
 	ResetURL string // Only used for password_reset task type
+	Code     string // Only used for verify_code task type
+}
+
+type VerifyCodeEnqueuer interface {
+	EnqueueVerifyCode(email, siteName, code string) error
+}
+
+type PasswordResetEnqueuer interface {
+	EnqueuePasswordReset(email, siteName, resetURL string) error
+}
+
+type AuthEmailQueue interface {
+	VerifyCodeEnqueuer
+	PasswordResetEnqueuer
 }
 
 // EmailQueueService 异步邮件队列服务
@@ -82,7 +96,7 @@ func (s *EmailQueueService) processTask(workerID int, task EmailTask) {
 
 	switch task.TaskType {
 	case TaskTypeVerifyCode:
-		if err := s.emailService.SendVerifyCode(ctx, task.Email, task.SiteName); err != nil {
+		if err := s.emailService.SendVerifyCodeEmail(ctx, task.Email, task.SiteName, task.Code); err != nil {
 			logger.LegacyPrintf("service.email_queue", "[EmailQueue] Worker %d failed to send verify code to %s: %v", workerID, task.Email, err)
 		} else {
 			logger.LegacyPrintf("service.email_queue", "[EmailQueue] Worker %d sent verify code to %s", workerID, task.Email)
@@ -99,11 +113,12 @@ func (s *EmailQueueService) processTask(workerID int, task EmailTask) {
 }
 
 // EnqueueVerifyCode 将验证码发送任务加入队列
-func (s *EmailQueueService) EnqueueVerifyCode(email, siteName string) error {
+func (s *EmailQueueService) EnqueueVerifyCode(email, siteName, code string) error {
 	task := EmailTask{
 		Email:    email,
 		SiteName: siteName,
 		TaskType: TaskTypeVerifyCode,
+		Code:     code,
 	}
 
 	select {

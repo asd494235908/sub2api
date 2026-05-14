@@ -27,6 +27,8 @@ var (
 	ErrInvalidCredentials      = infraerrors.Unauthorized("INVALID_CREDENTIALS", "invalid email or password")
 	ErrUserNotActive           = infraerrors.Forbidden("USER_NOT_ACTIVE", "user is not active")
 	ErrEmailExists             = infraerrors.Conflict("EMAIL_EXISTS", "email already exists")
+	ErrPhoneExists             = infraerrors.Conflict("PHONE_EXISTS", "phone number already exists")
+	ErrPhoneNotRegistered      = infraerrors.NotFound("PHONE_NOT_REGISTERED", "phone number is not registered")
 	ErrEmailReserved           = infraerrors.BadRequest("EMAIL_RESERVED", "email is reserved")
 	ErrInvalidToken            = infraerrors.Unauthorized("INVALID_TOKEN", "invalid token")
 	ErrTokenExpired            = infraerrors.Unauthorized("TOKEN_EXPIRED", "token has expired")
@@ -69,8 +71,9 @@ type AuthService struct {
 	cfg                *config.Config
 	settingService     *SettingService
 	emailService       *EmailService
+	smsService         *SMSService
 	turnstileService   *TurnstileService
-	emailQueueService  *EmailQueueService
+	emailQueueService  AuthEmailQueue
 	promoService       *PromoService
 	affiliateService   *AffiliateService
 	defaultSubAssigner DefaultSubscriptionAssigner
@@ -86,6 +89,20 @@ type signupGrantPlan struct {
 	Subscriptions []DefaultSubscriptionSetting
 }
 
+func (s *AuthService) SetSMSService(smsService *SMSService) {
+	if s == nil {
+		return
+	}
+	s.smsService = smsService
+}
+
+func (s *AuthService) SMSService() *SMSService {
+	if s == nil {
+		return nil
+	}
+	return s.smsService
+}
+
 // NewAuthService 创建认证服务实例
 func NewAuthService(
 	entClient *dbent.Client,
@@ -96,7 +113,7 @@ func NewAuthService(
 	settingService *SettingService,
 	emailService *EmailService,
 	turnstileService *TurnstileService,
-	emailQueueService *EmailQueueService,
+	emailQueueService AuthEmailQueue,
 	promoService *PromoService,
 	defaultSubAssigner DefaultSubscriptionAssigner,
 	affiliateService *AffiliateService,
@@ -125,12 +142,12 @@ func (s *AuthService) EntClient() *dbent.Client {
 }
 
 // Register 用户注册，返回token和用户
-func (s *AuthService) Register(ctx context.Context, email, password string) (string, *User, error) {
-	return s.RegisterWithVerification(ctx, email, password, "", "", "", "")
+func (s *AuthService) Register(ctx context.Context, email, phoneNumber, password string) (string, *User, error) {
+	return s.RegisterWithVerification(ctx, email, phoneNumber, password, "", "", "", "", "")
 }
 
 // RegisterWithVerification 用户注册（支持邮件验证、优惠码、邀请码和邀请返利码），返回token和用户。
-func (s *AuthService) RegisterWithVerification(ctx context.Context, email, password, verifyCode, promoCode, invitationCode, affiliateCode string) (string, *User, error) {
+func (s *AuthService) RegisterWithVerification(ctx context.Context, email, phoneNumber, password, verifyCode, phoneVerifyCode, promoCode, invitationCode, affiliateCode string) (string, *User, error) {
 	// 检查是否开放注册（默认关闭：settingService 未配置时不允许注册）
 	if s.settingService == nil || !s.settingService.IsRegistrationEnabled(ctx) {
 		return "", nil, ErrRegDisabled
@@ -142,6 +159,10 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, passw
 	}
 	if err := s.validateRegistrationEmailPolicy(ctx, email); err != nil {
 		return "", nil, err
+	}
+	phoneNumber = NormalizePhoneNumber(phoneNumber, "86")
+	if phoneNumber == "" {
+		return "", nil, infraerrors.BadRequest("PHONE_REQUIRED", "phone number is required")
 	}
 
 	// 检查是否需要邀请码
@@ -180,6 +201,18 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, passw
 			return "", nil, fmt.Errorf("verify code: %w", err)
 		}
 	}
+	if s.settingService != nil && s.settingService.IsPhoneVerifyEnabled(ctx) {
+		if s.smsService == nil {
+			logger.LegacyPrintf("service.auth", "%s", "[Auth] Phone verification enabled but sms service not configured, rejecting registration")
+			return "", nil, ErrServiceUnavailable
+		}
+		if strings.TrimSpace(phoneVerifyCode) == "" {
+			return "", nil, infraerrors.BadRequest("PHONE_VERIFY_REQUIRED", "phone verification is required")
+		}
+		if err := s.smsService.VerifyCode(ctx, phoneNumber, strings.TrimSpace(phoneVerifyCode)); err != nil {
+			return "", nil, fmt.Errorf("phone verify code: %w", err)
+		}
+	}
 
 	// 检查邮箱是否已存在
 	existsEmail, err := s.userRepo.ExistsByEmail(ctx, email)
@@ -189,6 +222,11 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, passw
 	}
 	if existsEmail {
 		return "", nil, ErrEmailExists
+	}
+	if existingUser, err := s.userRepo.GetByPhone(ctx, phoneNumber); err == nil && existingUser != nil {
+		return "", nil, ErrPhoneExists
+	} else if err != nil && !errors.Is(err, ErrUserNotFound) {
+		return "", nil, ErrServiceUnavailable
 	}
 
 	// 密码哈希
@@ -208,6 +246,7 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, passw
 	// 创建用户
 	user := &User{
 		Email:        email,
+		PhoneNumber:  phoneNumber,
 		PasswordHash: hashedPassword,
 		Role:         RoleUser,
 		Balance:      grantPlan.Balance,
@@ -333,6 +372,10 @@ func (s *AuthService) SendVerifyCodeAsync(ctx context.Context, email string) (*S
 		logger.LegacyPrintf("service.auth", "%s", "[Auth] Email queue service not configured")
 		return nil, errors.New("email queue service not configured")
 	}
+	if s.emailService == nil {
+		logger.LegacyPrintf("service.auth", "%s", "[Auth] Email service not configured")
+		return nil, ErrServiceUnavailable
+	}
 
 	// 获取网站名称
 	siteName := "Sub2API"
@@ -340,16 +383,22 @@ func (s *AuthService) SendVerifyCodeAsync(ctx context.Context, email string) (*S
 		siteName = s.settingService.GetSiteName(ctx)
 	}
 
+	code, countdown, err := s.emailService.PrepareVerifyCode(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+
 	// 异步发送
 	logger.LegacyPrintf("service.auth", "[Auth] Enqueueing verify code for: %s", email)
-	if err := s.emailQueueService.EnqueueVerifyCode(email, siteName); err != nil {
+	if err := s.emailQueueService.EnqueueVerifyCode(email, siteName, code); err != nil {
 		logger.LegacyPrintf("service.auth", "[Auth] Failed to enqueue: %v", err)
+		_ = s.emailService.cache.DeleteVerificationCode(ctx, email)
 		return nil, fmt.Errorf("enqueue verify code: %w", err)
 	}
 
 	logger.LegacyPrintf("service.auth", "[Auth] Verify code enqueued successfully for: %s", email)
 	return &SendVerifyCodeResult{
-		Countdown: 60, // 60秒倒计时
+		Countdown: countdown,
 	}, nil
 }
 
@@ -421,9 +470,23 @@ func (s *AuthService) IsEmailVerifyEnabled(ctx context.Context) bool {
 }
 
 // Login 用户登录，返回JWT token
-func (s *AuthService) Login(ctx context.Context, email, password string) (string, *User, error) {
-	// 查找用户
-	user, err := s.userRepo.GetByEmail(ctx, email)
+func (s *AuthService) Login(ctx context.Context, identifier, password string) (string, *User, error) {
+	identifier = strings.TrimSpace(identifier)
+
+	var (
+		user *User
+		err  error
+	)
+
+	if strings.Contains(identifier, "@") {
+		user, err = s.userRepo.GetByEmail(ctx, identifier)
+	} else {
+		normalizedPhone := NormalizePhoneNumber(identifier, "86")
+		if normalizedPhone == "" {
+			return "", nil, ErrInvalidCredentials
+		}
+		user, err = s.userRepo.GetByPhone(ctx, normalizedPhone)
+	}
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			return "", nil, ErrInvalidCredentials
@@ -450,6 +513,38 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (string
 	}
 
 	return token, user, nil
+}
+
+// LoginByPhoneCode authenticates an existing active user by verified phone number
+// without requiring a password. SMS code verification is handled by the caller.
+func (s *AuthService) LoginByPhoneCode(ctx context.Context, phoneNumber string) (*User, error) {
+	normalizedPhone := NormalizePhoneNumber(phoneNumber, "86")
+	if normalizedPhone == "" {
+		return nil, ErrInvalidCredentials
+	}
+
+	user, err := s.GetUserByPhone(ctx, normalizedPhone)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			return nil, ErrInvalidCredentials
+		}
+		logger.LegacyPrintf("service.auth", "[Auth] Database error during phone login: %v", err)
+		return nil, ErrServiceUnavailable
+	}
+
+	if !user.IsActive() {
+		return nil, ErrUserNotActive
+	}
+
+	return user, nil
+}
+
+func (s *AuthService) GetUserByPhone(ctx context.Context, phoneNumber string) (*User, error) {
+	normalizedPhone := NormalizePhoneNumber(phoneNumber, "86")
+	if normalizedPhone == "" {
+		return nil, ErrUserNotFound
+	}
+	return s.userRepo.GetByPhone(ctx, normalizedPhone)
 }
 
 // LoginOrRegisterOAuth 用于第三方 OAuth/SSO 登录：

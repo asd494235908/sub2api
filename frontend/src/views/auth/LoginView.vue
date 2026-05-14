@@ -39,32 +39,32 @@
 
       <!-- Login Form -->
       <form @submit.prevent="handleLogin" class="space-y-5">
-        <!-- Email Input -->
+        <!-- Identifier Input -->
         <div>
-          <label for="email" class="input-label">
-            {{ t('auth.emailLabel') }}
+          <label for="identifier" class="input-label">
+            {{ t('auth.identifierLabel') }}
           </label>
           <div class="relative">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
               <Icon name="mail" size="md" class="text-gray-400 dark:text-dark-500" />
             </div>
             <input
-              id="email"
-              v-model="formData.email"
-              type="email"
+              id="identifier"
+              v-model="formData.identifier"
+              type="text"
               required
               autofocus
-              autocomplete="email"
+              autocomplete="username"
               :disabled="isLoading"
               class="input pl-11"
-              :class="{ 'input-error': errors.email }"
-              :placeholder="t('auth.emailPlaceholder')"
+              :class="{ 'input-error': errors.identifier }"
+              :placeholder="t('auth.identifierPlaceholder')"
             />
           </div>
         </div>
 
         <!-- Password Input -->
-        <div>
+        <div v-if="!isPhoneIdentifier">
           <label for="password" class="input-label">
             {{ t('auth.passwordLabel') }}
           </label>
@@ -76,7 +76,7 @@
               id="password"
               v-model="formData.password"
               :type="showPassword ? 'text' : 'password'"
-              required
+              :required="!isPhoneIdentifier"
               autocomplete="current-password"
               :disabled="isLoading"
               class="input pl-11 pr-11"
@@ -101,6 +101,32 @@
             >
               {{ t('auth.forgotPassword') }}
             </router-link>
+          </div>
+        </div>
+
+        <div v-if="phoneVerifyEnabled && isPhoneIdentifier">
+          <label for="sms_code" class="input-label">
+            {{ t('auth.smsCodeLabel') }}
+          </label>
+          <div class="flex gap-3">
+            <input
+              id="sms_code"
+              v-model="formData.sms_code"
+              type="text"
+              required
+              :disabled="isLoading"
+              class="input flex-1"
+              :class="{ 'input-error': errors.sms_code }"
+              :placeholder="t('auth.smsCodePlaceholder')"
+            />
+            <button
+              type="button"
+              class="btn btn-secondary whitespace-nowrap"
+              :disabled="sendingSMSCode || smsCountdown > 0 || !isPhoneIdentifier"
+              @click="sendSMSCode"
+            >
+              {{ smsCountdown > 0 ? `${smsCountdown}s` : (sendingSMSCode ? t('auth.sendingCode') : t('auth.sendCode')) }}
+            </button>
           </div>
         </div>
 
@@ -184,9 +210,11 @@ import TotpLoginModal from '@/components/auth/TotpLoginModal.vue'
 import Icon from '@/components/icons/Icon.vue'
 import TurnstileWidget from '@/components/TurnstileWidget.vue'
 import { useAuthStore, useAppStore } from '@/stores'
+import { apiClient } from '@/api/client'
 import { getPublicSettings, isTotp2FARequired, isWeChatWebOAuthEnabled } from '@/api/auth'
 import type { TotpLoginResponse } from '@/types'
 import { clearAllAffiliateReferralCodes } from '@/utils/oauthAffiliate'
+import { buildAuthErrorMessage } from '@/utils/authError'
 
 const { t } = useI18n()
 
@@ -211,6 +239,7 @@ const backendModeEnabled = ref<boolean>(false)
 const oidcOAuthEnabled = ref<boolean>(false)
 const oidcOAuthProviderName = ref<string>('OIDC')
 const passwordResetEnabled = ref<boolean>(false)
+const phoneVerifyEnabled = ref<boolean>(false)
 
 // Turnstile
 const turnstileRef = ref<InstanceType<typeof TurnstileWidget> | null>(null)
@@ -223,19 +252,31 @@ const totpUserEmailMasked = ref<string>('')
 const totpModalRef = ref<InstanceType<typeof TotpLoginModal> | null>(null)
 
 const formData = reactive({
-  email: '',
+  identifier: '',
+  sms_code: '',
   password: ''
 })
 
 const errors = reactive({
-  email: '',
+  identifier: '',
+  sms_code: '',
   password: '',
   turnstile: ''
 })
 
 const validationToastMessage = computed(
-  () => errors.email || errors.password || errors.turnstile || ''
+  () => errors.identifier || errors.sms_code || errors.password || errors.turnstile || ''
 )
+
+const hasAlphabetIdentifier = computed(() => /[a-zA-Z]/.test(formData.identifier))
+const isEmailIdentifier = computed(() => {
+  const raw = formData.identifier.trim()
+  return raw.includes('@') || hasAlphabetIdentifier.value
+})
+const isPhoneIdentifier = computed(() => {
+  const raw = formData.identifier.trim()
+  return raw.length > 0 && !isEmailIdentifier.value
+})
 
 watch(validationToastMessage, (value, previousValue) => {
   if (value && value !== previousValue) {
@@ -265,6 +306,7 @@ onMounted(async () => {
     oidcOAuthProviderName.value = settings.oidc_oauth_provider_name || 'OIDC'
     backendModeEnabled.value = settings.backend_mode_enabled
     passwordResetEnabled.value = settings.password_reset_enabled
+    phoneVerifyEnabled.value = settings.phone_verify_enabled === true
   } catch (error) {
     console.error('Failed to load public settings:', error)
   }
@@ -291,28 +333,32 @@ function onTurnstileError(): void {
 
 function validateForm(): boolean {
   // Reset errors
-  errors.email = ''
+  errors.identifier = ''
+  errors.sms_code = ''
   errors.password = ''
   errors.turnstile = ''
 
   let isValid = true
 
-  // Email validation
-  if (!formData.email.trim()) {
-    errors.email = t('auth.emailRequired')
+  // Phone validation
+  if (!formData.identifier.trim()) {
+    errors.identifier = t('auth.identifierRequired')
     isValid = false
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-    errors.email = t('auth.invalidEmail')
+  }
+  if (phoneVerifyEnabled.value && isPhoneIdentifier.value && !formData.sms_code.trim()) {
+    errors.sms_code = t('auth.smsCodeRequired')
     isValid = false
   }
 
   // Password validation
-  if (!formData.password) {
-    errors.password = t('auth.passwordRequired')
-    isValid = false
-  } else if (formData.password.length < 6) {
-    errors.password = t('auth.passwordMinLength')
-    isValid = false
+  if (!isPhoneIdentifier.value) {
+    if (!formData.password) {
+      errors.password = t('auth.passwordRequired')
+      isValid = false
+    } else if (formData.password.length < 6) {
+      errors.password = t('auth.passwordMinLength')
+      isValid = false
+    }
   }
 
   // Turnstile validation
@@ -340,8 +386,11 @@ async function handleLogin(): Promise<void> {
   try {
     // Call auth store login
     const response = await authStore.login({
-      email: formData.email,
-      password: formData.password,
+      identifier: formData.identifier,
+      email: isEmailIdentifier.value ? formData.identifier : undefined,
+      phone_number: isPhoneIdentifier.value ? formData.identifier : undefined,
+      sms_code: isPhoneIdentifier.value ? formData.sms_code : undefined,
+      password: isPhoneIdentifier.value ? undefined : formData.password,
       turnstile_token: turnstileEnabled.value ? turnstileToken.value : undefined
     })
 
@@ -370,20 +419,46 @@ async function handleLogin(): Promise<void> {
     }
 
     // Handle login error
-    const err = error as { message?: string; response?: { data?: { detail?: string } } }
-
-    if (err.response?.data?.detail) {
-      errorMessage.value = err.response.data.detail
-    } else if (err.message) {
-      errorMessage.value = err.message
-    } else {
-      errorMessage.value = t('auth.loginFailed')
-    }
+    errorMessage.value = buildAuthErrorMessage(error, { fallback: t('auth.loginFailed') })
 
     // Also show error toast
     appStore.showError(errorMessage.value)
   } finally {
     isLoading.value = false
+  }
+}
+
+const sendingSMSCode = ref(false)
+const smsCountdown = ref(0)
+let smsCountdownTimer: ReturnType<typeof setInterval> | null = null
+
+async function sendSMSCode(): Promise<void> {
+  if (!isPhoneIdentifier.value || sendingSMSCode.value || smsCountdown.value > 0) {
+    return
+  }
+  sendingSMSCode.value = true
+  try {
+    const { data } = await apiClient.post<{ countdown: number }>('/auth/send-verify-code', {
+      phone_number: formData.identifier,
+      purpose: 'login',
+      turnstile_token: turnstileEnabled.value ? turnstileToken.value : undefined
+    })
+    smsCountdown.value = data.countdown || 60
+    if (smsCountdownTimer) {
+      clearInterval(smsCountdownTimer)
+    }
+    smsCountdownTimer = setInterval(() => {
+      smsCountdown.value -= 1
+      if (smsCountdown.value <= 0 && smsCountdownTimer) {
+        clearInterval(smsCountdownTimer)
+        smsCountdownTimer = null
+      }
+    }, 1000)
+    appStore.showSuccess(t('auth.smsCodeSentSuccess'))
+  } catch (error: unknown) {
+    appStore.showError(buildAuthErrorMessage(error, { fallback: t('auth.sendCodeFailed') }))
+  } finally {
+    sendingSMSCode.value = false
   }
 }
 

@@ -142,6 +142,66 @@ security:
     allow_direct_on_error: false
 
 # =============================================================================
+# SMS Provider Fallback Configuration
+# 短信供应商环境变量兜底配置（后台设置优先）
+# =============================================================================
+# Export these environment variables only when you want runtime fallback values
+# for IHuyi SMS. Admin settings stored in DB will override non-empty values.
+# 仅当需要互亿无线短信环境变量兜底时再设置以下变量。
+# 后台设置中的非空值会覆盖环境变量。
+#
+# SMS_IHUYI_ENABLED=true
+# SMS_IHUYI_API_ID=replace-me
+# SMS_IHUYI_API_KEY=replace-me
+# SMS_IHUYI_TEMPLATE_ID=309190
+
+# =============================================================================
+# Prompt Archive Configuration
+# 提示词归档配置
+# =============================================================================
+archive:
+  # Global switch for prompt archive
+  # 提示词归档总开关
+  enabled: false
+  # In-memory queue capacity
+  # 内存队列容量
+  queue_capacity: 1024
+  # Background worker count
+  # 后台 worker 数量
+  worker_count: 8
+  # Reserved batch size setting for future batching behavior
+  # 预留的批处理大小配置，供后续批量归档扩展使用
+  batch_size: 32
+  # Reserved flush interval setting in seconds
+  # 预留的 flush 间隔配置（秒）
+  flush_interval_seconds: 2
+  # Queue overflow policy; currently only supports drop_and_log
+  # 队列溢出策略；当前仅支持 drop_and_log
+  overflow_policy: "drop_and_log"
+  # Max inline attachment size in bytes
+  # 允许内联归档的附件最大字节数
+  inline_data_max_bytes: 1048576
+  minio:
+    # S3-compatible endpoint for archive objects
+    # 归档对象使用的 S3 兼容 endpoint
+    endpoint: ""
+    # Archive bucket name
+    # 归档 bucket 名称
+    bucket: ""
+    # Access key ID
+    # 访问密钥 ID
+    access_key: ""
+    # Secret access key
+    # 访问密钥 Secret
+    secret_key: ""
+    # Region name, use auto for MinIO
+    # 区域名，MinIO 可使用 auto
+    region: "auto"
+    # Force path-style addressing for MinIO and similar services
+    # 是否强制使用 path-style 地址方式
+    force_path_style: true
+
+# =============================================================================
 # Gateway Configuration
 # 网关配置
 # =============================================================================

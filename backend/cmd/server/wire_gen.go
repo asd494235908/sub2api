@@ -51,7 +51,10 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	settingRepository := repository.NewSettingRepository(client)
 	groupRepository := repository.NewGroupRepository(client, db)
 	proxyRepository := repository.NewProxyRepository(client, db)
-	settingService := service.ProvideSettingService(settingRepository, groupRepository, proxyRepository, configConfig)
+	settingService, err := provideInitializedSettingService(settingRepository, groupRepository, proxyRepository, configConfig)
+	if err != nil {
+		return nil, err
+	}
 	emailCache := repository.NewEmailCache(redisClient)
 	emailService := service.NewEmailService(settingRepository, emailCache)
 	turnstileVerifier := repository.NewTurnstileVerifier()
@@ -74,14 +77,18 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	authService := service.NewAuthService(client, userRepository, redeemCodeRepository, refreshTokenCache, configConfig, settingService, emailService, turnstileService, emailQueueService, promoService, subscriptionService, affiliateService)
 	userService := service.NewUserService(userRepository, settingRepository, apiKeyAuthCacheInvalidator, billingCache)
 	redeemCache := repository.NewRedeemCache(redisClient)
-	redeemService := service.NewRedeemService(redeemCodeRepository, userRepository, subscriptionService, redeemCache, billingCacheService, client, apiKeyAuthCacheInvalidator)
+	redeemService := service.NewRedeemService(redeemCodeRepository, userRepository, subscriptionService, redeemCache, billingCacheService, client, apiKeyAuthCacheInvalidator, settingService)
 	secretEncryptor, err := repository.NewAESEncryptor(configConfig)
 	if err != nil {
 		return nil, err
 	}
 	totpCache := repository.NewTotpCache(redisClient)
 	totpService := service.NewTotpService(userRepository, secretEncryptor, totpCache, settingService, emailService, emailQueueService)
-	authHandler := handler.NewAuthHandler(configConfig, authService, userService, settingService, promoService, redeemService, totpService)
+	smsCache := service.ProvideSMSCache(emailCache)
+	smsService := service.ProvideSMSService(settingRepository, smsCache)
+	authService.SetSMSService(smsService)
+	userService.SetSMSService(smsService)
+	authHandler := handler.NewAuthHandler(configConfig, authService, userService, settingService, promoService, redeemService, totpService, smsService)
 	userHandler := handler.NewUserHandler(userService, authService, emailService, emailCache, affiliateService)
 	apiKeyHandler := handler.NewAPIKeyHandler(apiKeyService)
 	usageLogRepository := repository.NewUsageLogRepository(client, db)
@@ -198,11 +205,11 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	registry := payment.ProvideRegistry()
 	defaultLoadBalancer := payment.ProvideDefaultLoadBalancer(client, encryptionKey)
 	paymentService := service.NewPaymentService(client, registry, defaultLoadBalancer, redeemService, subscriptionService, paymentConfigService, userRepository, groupRepository, affiliateService)
-	promptArchiveObjectStore, err := repository.ProvidePromptArchiveObjectStore(configConfig, repository.NewS3BackupStoreFactory())
+	promptArchiveRepository := repository.NewPromptArchiveRepository(db)
+	promptArchiveObjectStore, err := repository.ProvidePromptArchiveObjectStore(configConfig, backupObjectStoreFactory)
 	if err != nil {
 		return nil, err
 	}
-	promptArchiveRepository := repository.NewPromptArchiveRepository(db)
 	promptArchiveService := service.ProvidePromptArchiveService(promptArchiveRepository, promptArchiveObjectStore, configConfig)
 	settingHandler := admin.NewSettingHandler(settingService, emailService, turnstileService, opsService, paymentConfigService, paymentService, promptArchiveService)
 	opsHandler := admin.NewOpsHandler(opsService, promptArchiveService)
@@ -281,6 +288,14 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 type Application struct {
 	Server  *http.Server
 	Cleanup func()
+}
+
+func provideInitializedSettingService(settingRepo service.SettingRepository, groupRepo service.GroupRepository, proxyRepo service.ProxyRepository, cfg *config.Config) (*service.SettingService, error) {
+	svc := service.ProvideSettingService(settingRepo, groupRepo, proxyRepo, cfg)
+	if err := svc.InitializeDefaultSettings(context.Background()); err != nil {
+		return nil, err
+	}
+	return svc, nil
 }
 
 func providePrivacyClientFactory() service.PrivacyClientFactory {

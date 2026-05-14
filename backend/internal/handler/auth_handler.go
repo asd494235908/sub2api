@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"strings"
 
@@ -25,10 +26,11 @@ type AuthHandler struct {
 	promoService  *service.PromoService
 	redeemService *service.RedeemService
 	totpService   *service.TotpService
+	smsService    *service.SMSService
 }
 
 // NewAuthHandler creates a new AuthHandler
-func NewAuthHandler(cfg *config.Config, authService *service.AuthService, userService *service.UserService, settingService *service.SettingService, promoService *service.PromoService, redeemService *service.RedeemService, totpService *service.TotpService) *AuthHandler {
+func NewAuthHandler(cfg *config.Config, authService *service.AuthService, userService *service.UserService, settingService *service.SettingService, promoService *service.PromoService, redeemService *service.RedeemService, totpService *service.TotpService, smsService *service.SMSService) *AuthHandler {
 	return &AuthHandler{
 		cfg:           cfg,
 		authService:   authService,
@@ -37,14 +39,17 @@ func NewAuthHandler(cfg *config.Config, authService *service.AuthService, userSe
 		promoService:  promoService,
 		redeemService: redeemService,
 		totpService:   totpService,
+		smsService:    smsService,
 	}
 }
 
 // RegisterRequest represents the registration request payload
 type RegisterRequest struct {
 	Email          string `json:"email" binding:"required,email"`
+	PhoneNumber    string `json:"phone_number" binding:"required"`
 	Password       string `json:"password" binding:"required,min=6"`
 	VerifyCode     string `json:"verify_code"`
+	PhoneVerifyCode string `json:"phone_verify_code"`
 	TurnstileToken string `json:"turnstile_token"`
 	PromoCode      string `json:"promo_code"`      // 注册优惠码
 	InvitationCode string `json:"invitation_code"` // 邀请码
@@ -53,7 +58,9 @@ type RegisterRequest struct {
 
 // SendVerifyCodeRequest 发送验证码请求
 type SendVerifyCodeRequest struct {
-	Email          string `json:"email" binding:"required,email"`
+	Email          string `json:"email"`
+	PhoneNumber    string `json:"phone_number"`
+	Purpose        string `json:"purpose"`
 	TurnstileToken string `json:"turnstile_token"`
 }
 
@@ -65,8 +72,11 @@ type SendVerifyCodeResponse struct {
 
 // LoginRequest represents the login request payload
 type LoginRequest struct {
-	Email          string `json:"email" binding:"required,email"`
-	Password       string `json:"password" binding:"required"`
+	Identifier     string `json:"identifier"`
+	Email          string `json:"email"`
+	PhoneNumber    string `json:"phone_number"`
+	SMSCode        string `json:"sms_code"`
+	Password       string `json:"password"`
 	TurnstileToken string `json:"turnstile_token"`
 }
 
@@ -168,8 +178,10 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	_, user, err := h.authService.RegisterWithVerification(
 		c.Request.Context(),
 		req.Email,
+		req.PhoneNumber,
 		req.Password,
 		req.VerifyCode,
+		req.PhoneVerifyCode,
 		req.PromoCode,
 		req.InvitationCode,
 		req.AffCode,
@@ -197,6 +209,47 @@ func (h *AuthHandler) SendVerifyCode(c *gin.Context) {
 		return
 	}
 
+	if phoneNumber := service.NormalizePhoneNumber(req.PhoneNumber, "86"); phoneNumber != "" {
+		if h.settingSvc == nil || !h.settingSvc.IsPhoneVerifyEnabled(c.Request.Context()) {
+			response.BadRequest(c, "Phone verification is disabled")
+			return
+		}
+		if h.smsService == nil {
+			response.InternalError(c, "SMS service not configured")
+			return
+		}
+		if h.authService == nil {
+			response.InternalError(c, "Auth service not configured")
+			return
+		}
+		existingUser, err := h.authService.GetUserByPhone(c.Request.Context(), phoneNumber)
+		if err != nil && !errors.Is(err, service.ErrUserNotFound) {
+			response.ErrorFrom(c, err)
+			return
+		}
+		switch strings.ToLower(strings.TrimSpace(req.Purpose)) {
+		case "register":
+			if existingUser != nil {
+				response.ErrorFrom(c, service.ErrPhoneExists)
+				return
+			}
+		case "login":
+			if existingUser == nil {
+				response.ErrorFrom(c, service.ErrPhoneNotRegistered)
+				return
+			}
+		}
+		if err := h.smsService.SendVerifyCode(c.Request.Context(), phoneNumber); err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+		response.Success(c, SendVerifyCodeResponse{
+			Message:   "Verification code sent successfully",
+			Countdown: 60,
+		})
+		return
+	}
+
 	result, err := h.authService.SendVerifyCodeAsync(c.Request.Context(), req.Email)
 	if err != nil {
 		response.ErrorFrom(c, err)
@@ -217,6 +270,22 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
 	}
+	identifier := strings.TrimSpace(req.Identifier)
+	if identifier == "" {
+		identifier = strings.TrimSpace(req.Email)
+	}
+	if identifier == "" {
+		identifier = strings.TrimSpace(req.PhoneNumber)
+	}
+	if identifier == "" {
+		response.BadRequest(c, "Invalid request: identifier is required")
+		return
+	}
+	isEmailIdentifier := service.LooksLikeEmailIdentifier(identifier)
+	normalizedPhone := ""
+	if !isEmailIdentifier {
+		normalizedPhone = service.NormalizePhoneNumber(identifier, "86")
+	}
 
 	// Turnstile 验证
 	if err := h.authService.VerifyTurnstile(c.Request.Context(), req.TurnstileToken, ip.GetClientIP(c)); err != nil {
@@ -224,7 +293,56 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, user, err := h.authService.Login(c.Request.Context(), req.Email, req.Password)
+	if normalizedPhone != "" {
+		if req.SMSCode == "" {
+			response.BadRequest(c, "Invalid request: sms_code is required")
+			return
+		}
+		if h.smsService == nil {
+			response.InternalError(c, "SMS service not configured")
+			return
+		}
+		if err := h.smsService.VerifyCode(c.Request.Context(), normalizedPhone, strings.TrimSpace(req.SMSCode)); err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+		user, err := h.authService.LoginByPhoneCode(c.Request.Context(), normalizedPhone)
+		if err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+
+		if err := h.ensureBackendModeAllowsUser(c.Request.Context(), user); err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+
+		if h.totpService != nil && h.settingSvc.IsTotpEnabled(c.Request.Context()) && user.TotpEnabled {
+			tempToken, err := h.totpService.CreateLoginSession(c.Request.Context(), user.ID, user.Email)
+			if err != nil {
+				response.InternalError(c, "Failed to create 2FA session")
+				return
+			}
+
+			response.Success(c, TotpLoginResponse{
+				Requires2FA:     true,
+				TempToken:       tempToken,
+				UserEmailMasked: service.MaskEmail(user.Email),
+			})
+			return
+		}
+
+		h.authService.RecordSuccessfulLogin(c.Request.Context(), user.ID)
+		h.respondWithTokenPair(c, user)
+		return
+	}
+
+	if strings.TrimSpace(req.Password) == "" {
+		response.BadRequest(c, "Invalid request: password is required")
+		return
+	}
+
+	token, user, err := h.authService.Login(c.Request.Context(), identifier, req.Password)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return

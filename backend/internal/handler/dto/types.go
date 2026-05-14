@@ -9,6 +9,7 @@ import (
 type User struct {
 	ID            int64      `json:"id"`
 	Email         string     `json:"email"`
+	PhoneNumber   string     `json:"phone_number"`
 	Username      string     `json:"username"`
 	Role          string     `json:"role"`
 	Balance       float64    `json:"balance"`
@@ -342,6 +343,35 @@ type RedeemCode struct {
 
 	User  *User  `json:"user,omitempty"`
 	Group *Group `json:"group,omitempty"`
+}
+
+type RedeemHistoryItem struct {
+	RedeemCode
+	Source string `json:"source"`
+	Title  string `json:"title"`
+}
+
+type WeeklyQuotaInfo struct {
+	Enabled          bool       `json:"enabled"`
+	Amount           float64    `json:"amount"`
+	Status           string     `json:"status"`
+	WindowStartedAt  time.Time  `json:"window_started_at"`
+	WindowEndsAt     time.Time  `json:"window_ends_at"`
+	ClaimedAt        *time.Time `json:"claimed_at,omitempty"`
+	NextClaimAt      *time.Time `json:"next_claim_at,omitempty"`
+	TotalClaimCount  int64      `json:"total_claim_count"`
+	TotalClaimAmount float64    `json:"total_claim_amount"`
+}
+
+type WeeklyQuotaClaimResult struct {
+	Message         string    `json:"message"`
+	Type            string    `json:"type"`
+	Value           float64   `json:"value"`
+	NewBalance      float64   `json:"new_balance"`
+	ClaimedAt       time.Time `json:"claimed_at"`
+	WindowStartedAt time.Time `json:"window_started_at"`
+	WindowEndsAt    time.Time `json:"window_ends_at"`
+	NextClaimAt     time.Time `json:"next_claim_at"`
 }
 
 // AdminRedeemCode 是管理员接口使用的 redeem code DTO（包含 notes 等字段）。

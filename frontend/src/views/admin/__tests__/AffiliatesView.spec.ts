@@ -137,4 +137,68 @@ describe("AffiliatesView", () => {
     expect(wrapper.text()).toContain("FMT:2026-04-01T00:00:00Z");
     expect(wrapper.text()).toContain("CNY:6.60");
   });
+
+  it("requests the next inviter page and updates the visible page indicator", async () => {
+    listInviters
+      .mockResolvedValueOnce({
+        items: [
+          {
+            user_id: 11,
+            email: "owner@example.com",
+            username: "owner",
+            aff_code: "AFFOWNER",
+            aff_count: 2,
+            total_rebate: 18.8,
+          },
+        ],
+        total: 21,
+        page: 1,
+        page_size: 20,
+        pages: 2,
+      })
+      .mockResolvedValueOnce({
+        items: [
+          {
+            user_id: 12,
+            email: "page2@example.com",
+            username: "page2",
+            aff_code: "AFFPAGE2",
+            aff_count: 1,
+            total_rebate: 3.2,
+          },
+        ],
+        total: 21,
+        page: 2,
+        page_size: 20,
+        pages: 2,
+      });
+
+    const wrapper = mount(AffiliatesView, {
+      global: {
+        stubs: {
+          AppLayout: { template: "<div><slot /></div>" },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const nextButton = wrapper.findAll("button").find((node) => node.text().includes("下一页"));
+    expect(nextButton).toBeDefined();
+    await nextButton?.trigger("click");
+    await flushPromises();
+
+    expect(listInviters).toHaveBeenNthCalledWith(1, {
+      page: 1,
+      page_size: 20,
+      search: "",
+    });
+    expect(listInviters).toHaveBeenNthCalledWith(2, {
+      page: 2,
+      page_size: 20,
+      search: "",
+    });
+    expect(wrapper.text()).toContain("2 / 2");
+    expect(wrapper.text()).toContain("page2@example.com");
+  });
 });

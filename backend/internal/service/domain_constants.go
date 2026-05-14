@@ -52,10 +52,11 @@ const (
 
 // Redeem type constants
 const (
-	RedeemTypeBalance      = domain.RedeemTypeBalance
-	RedeemTypeConcurrency  = domain.RedeemTypeConcurrency
-	RedeemTypeSubscription = domain.RedeemTypeSubscription
-	RedeemTypeInvitation   = domain.RedeemTypeInvitation
+	RedeemTypeBalance       = domain.RedeemTypeBalance
+	RedeemTypeConcurrency   = domain.RedeemTypeConcurrency
+	RedeemTypeSubscription  = domain.RedeemTypeSubscription
+	RedeemTypeInvitation    = domain.RedeemTypeInvitation
+	RedeemTypeWeeklyBalance = domain.RedeemTypeWeeklyBalance
 )
 
 // PromoCode status constants
@@ -97,6 +98,7 @@ const (
 	// 注册设置
 	SettingKeyRegistrationEnabled              = "registration_enabled"                // 是否开放注册
 	SettingKeyEmailVerifyEnabled               = "email_verify_enabled"                // 是否开启邮件验证
+	SettingKeyPhoneVerifyEnabled               = "phone_verify_enabled"                // 是否开启手机验证功能
 	SettingKeyRegistrationEmailSuffixWhitelist = "registration_email_suffix_whitelist" // 注册邮箱后缀白名单（JSON 数组）
 	SettingKeyPromoCodeEnabled                 = "promo_code_enabled"                  // 是否启用优惠码功能
 	SettingKeyPasswordResetEnabled             = "password_reset_enabled"              // 是否启用忘记密码功能（需要先开启邮件验证）
@@ -109,15 +111,22 @@ const (
 	SettingKeyAffiliateRebatePerInviteeCap     = "affiliate_rebate_per_invitee_cap"    // 单人返利上限（0=无上限）
 	SettingKeyAffiliateSignupRewardEnabled     = "affiliate_signup_reward_enabled"     // 注册成功奖励开关
 	SettingKeyAffiliateSignupRewardAmount      = "affiliate_signup_reward_amount"      // 注册成功奖励金额
+	SettingKeyWeeklyQuotaEnabled               = "weekly_quota_enabled"                // 周额度领取功能开关
+	SettingKeyWeeklyQuotaAmount                = "weekly_quota_amount"                 // 每周可领取余额额度
+	SettingKeyLuckyWheelEnabled                = "lucky_wheel_enabled"                 // 支付转盘活动开关
 
 	// 邮件服务设置
-	SettingKeySMTPHost     = "smtp_host"      // SMTP服务器地址
-	SettingKeySMTPPort     = "smtp_port"      // SMTP端口
-	SettingKeySMTPUsername = "smtp_username"  // SMTP用户名
-	SettingKeySMTPPassword = "smtp_password"  // SMTP密码（加密存储）
-	SettingKeySMTPFrom     = "smtp_from"      // 发件人地址
-	SettingKeySMTPFromName = "smtp_from_name" // 发件人名称
-	SettingKeySMTPUseTLS   = "smtp_use_tls"   // 是否使用TLS
+	SettingKeySMTPHost           = "smtp_host"      // SMTP服务器地址
+	SettingKeySMTPPort           = "smtp_port"      // SMTP端口
+	SettingKeySMTPUsername       = "smtp_username"  // SMTP用户名
+	SettingKeySMTPPassword       = "smtp_password"  // SMTP密码（加密存储）
+	SettingKeySMTPFrom           = "smtp_from"      // 发件人地址
+	SettingKeySMTPFromName       = "smtp_from_name" // 发件人名称
+	SettingKeySMTPUseTLS         = "smtp_use_tls"   // 是否使用TLS
+	SettingKeySMSIHuyiEnabled    = "sms_ihuyi_enabled"
+	SettingKeySMSIHuyiAPIID      = "sms_ihuyi_api_id"
+	SettingKeySMSIHuyiAPIKey     = "sms_ihuyi_api_key"
+	SettingKeySMSIHuyiTemplateID = "sms_ihuyi_template_id"
 
 	// Cloudflare Turnstile 设置
 	SettingKeyTurnstileEnabled   = "turnstile_enabled"    // 是否启用 Turnstile 验证
@@ -181,7 +190,10 @@ const (
 	SettingKeySiteSubtitle                = "site_subtitle"                 // 网站副标题
 	SettingKeyAPIBaseURL                  = "api_base_url"                  // API端点地址（用于客户端配置和导入）
 	SettingKeyContactInfo                 = "contact_info"                  // 客服联系方式
+	SettingKeyQQGroup                     = "qq_group"                      // 首页QQ群联系方式
+	SettingKeyWeChatContact               = "wechat_contact"                // 首页微信联系方式
 	SettingKeyDocURL                      = "doc_url"                       // 文档链接
+	SettingKeyHomeLinks                   = "home_links"                    // 首页顶部导航和页脚链接（JSON 数组）
 	SettingKeyHomeContent                 = "home_content"                  // 首页内容（支持 Markdown/HTML，或 URL 作为 iframe src）
 	SettingKeyHideCcsImportButton         = "hide_ccs_import_button"        // 是否隐藏 API Keys 页面的导入 CCS 按钮
 	SettingKeyPurchaseSubscriptionEnabled = "purchase_subscription_enabled" // 是否展示"购买订阅"页面入口

@@ -28,6 +28,14 @@ type Application struct {
 	Cleanup func()
 }
 
+func provideInitializedSettingService(settingRepo service.SettingRepository, groupRepo service.GroupRepository, proxyRepo service.ProxyRepository, cfg *config.Config) (*service.SettingService, error) {
+	svc := service.ProvideSettingService(settingRepo, groupRepo, proxyRepo, cfg)
+	if err := svc.InitializeDefaultSettings(context.Background()); err != nil {
+		return nil, err
+	}
+	return svc, nil
+}
+
 func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	wire.Build(
 		// Infrastructure layer ProviderSets
@@ -36,6 +44,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 		// Business layer ProviderSets
 		repository.ProviderSet,
 		service.ProviderSet,
+		provideInitializedSettingService,
 		payment.ProviderSet,
 		middleware.ProviderSet,
 		handler.ProviderSet,

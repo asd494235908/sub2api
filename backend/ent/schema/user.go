@@ -40,6 +40,9 @@ func (User) Fields() []ent.Field {
 		field.String("email").
 			MaxLen(255).
 			NotEmpty(),
+		field.String("phone_number").
+			MaxLen(32).
+			Default(""),
 		field.String("password_hash").
 			MaxLen(255).
 			NotEmpty(),

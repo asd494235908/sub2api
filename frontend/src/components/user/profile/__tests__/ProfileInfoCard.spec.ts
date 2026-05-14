@@ -3,6 +3,10 @@ import { describe, expect, it, vi } from 'vitest'
 import ProfileInfoCard from '@/components/user/profile/ProfileInfoCard.vue'
 import type { User } from '@/types'
 
+const { localeState } = vi.hoisted(() => ({
+  localeState: { value: 'en' },
+}))
+
 vi.mock('vue-router', () => ({
   useRoute: () => ({
     fullPath: '/profile'
@@ -24,10 +28,24 @@ vi.mock('@/stores/app', () => ({
 
 vi.mock('vue-i18n', async (importOriginal) => {
   const actual = await importOriginal<typeof import('vue-i18n')>()
+  const messages = {
+    en: {
+      'profile.phoneBinding.currentPhoneValue': ({ phone }: Record<string, string>) => `Phone: ${phone}`,
+      'profile.phoneBinding.unbound': 'Phone: Not bound',
+    },
+    zh: {
+      'profile.phoneBinding.currentPhoneValue': ({ phone }: Record<string, string>) => `手机号：${phone}`,
+      'profile.phoneBinding.unbound': '手机号：未绑定',
+    },
+  }
   return {
     ...actual,
     useI18n: () => ({
+      locale: localeState,
       t: (key: string, params?: Record<string, string>) => {
+        const message = messages[localeState.value as keyof typeof messages]?.[key as keyof typeof messages.en]
+        if (typeof message === 'function') return message(params || {})
+        if (message) return message
         if (key === 'profile.accountBalance') return 'Account Balance'
         if (key === 'profile.concurrencyLimit') return 'Concurrency Limit'
         if (key === 'profile.memberSince') return 'Member Since'
@@ -208,5 +226,45 @@ describe('ProfileInfoCard', () => {
     })
 
     expect(wrapper.get('[data-testid="profile-overview-metric-balance"]').text()).toContain('¥10.00')
+  })
+
+  it.each([
+    ['en', 'Phone: 18380640817', '手机号：'],
+    ['zh', '手机号：18380640817', 'Phone:'],
+  ])('renders bound phone display in %s', (locale, expected, unexpected) => {
+    localeState.value = locale
+    const wrapper = mount(ProfileInfoCard, {
+      props: {
+        user: createUser({ phone_number: '18380640817' })
+      },
+      global: {
+        stubs: {
+          Icon: true
+        }
+      }
+    })
+
+    expect(wrapper.text()).toContain(expected)
+    expect(wrapper.text()).not.toContain(unexpected)
+  })
+
+  it.each([
+    ['en', 'Phone: Not bound', '手机号：未绑定'],
+    ['zh', '手机号：未绑定', 'Phone: Not bound'],
+  ])('renders unbound phone display in %s', (locale, expected, unexpected) => {
+    localeState.value = locale
+    const wrapper = mount(ProfileInfoCard, {
+      props: {
+        user: createUser({ phone_number: '' })
+      },
+      global: {
+        stubs: {
+          Icon: true
+        }
+      }
+    })
+
+    expect(wrapper.text()).toContain(expected)
+    expect(wrapper.text()).not.toContain(unexpected)
   })
 })

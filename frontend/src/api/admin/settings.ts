@@ -4,7 +4,12 @@
  */
 
 import { apiClient } from "../client";
-import type { CustomMenuItem, CustomEndpoint, NotifyEmailEntry } from "@/types";
+import type {
+  CustomMenuItem,
+  CustomEndpoint,
+  HomeLink,
+  NotifyEmailEntry,
+} from "@/types";
 
 export interface DefaultSubscriptionSetting {
   group_id: number;
@@ -299,6 +304,7 @@ export interface SystemSettings {
   // Registration settings
   registration_enabled: boolean;
   email_verify_enabled: boolean;
+  phone_verify_enabled: boolean;
   registration_email_suffix_whitelist: string[];
   promo_code_enabled: boolean;
   password_reset_enabled: boolean;
@@ -344,7 +350,10 @@ export interface SystemSettings {
   site_subtitle: string;
   api_base_url: string;
   contact_info: string;
+  qq_group: string;
+  wechat_contact: string;
   doc_url: string;
+  home_links: HomeLink[];
   home_content: string;
   hide_ccs_import_button: boolean;
   table_default_page_size: number;
@@ -360,6 +369,10 @@ export interface SystemSettings {
   smtp_from_email: string;
   smtp_from_name: string;
   smtp_use_tls: boolean;
+  sms_ihuyi_enabled: boolean;
+  sms_ihuyi_api_id: string;
+  sms_ihuyi_api_key_configured: boolean;
+  sms_ihuyi_template_id: string;
   // Cloudflare Turnstile settings
   turnstile_enabled: boolean;
   turnstile_site_key: string;
@@ -487,6 +500,10 @@ export interface SystemSettings {
   // Affiliate (邀请返利) feature switch
   affiliate_enabled: boolean;
 
+  // Weekly quota feature switch
+  weekly_quota_enabled: boolean;
+  weekly_quota_amount: number;
+
   // OpenAI fast/flex policy
   openai_fast_policy_settings?: OpenAIFastPolicySettings;
 }
@@ -494,6 +511,7 @@ export interface SystemSettings {
 export interface UpdateSettingsRequest {
   registration_enabled?: boolean;
   email_verify_enabled?: boolean;
+  phone_verify_enabled?: boolean;
   registration_email_suffix_whitelist?: string[];
   promo_code_enabled?: boolean;
   password_reset_enabled?: boolean;
@@ -536,7 +554,10 @@ export interface UpdateSettingsRequest {
   site_subtitle?: string;
   api_base_url?: string;
   contact_info?: string;
+  qq_group?: string;
+  wechat_contact?: string;
   doc_url?: string;
+  home_links?: HomeLink[];
   home_content?: string;
   hide_ccs_import_button?: boolean;
   table_default_page_size?: number;
@@ -551,6 +572,10 @@ export interface UpdateSettingsRequest {
   smtp_from_email?: string;
   smtp_from_name?: string;
   smtp_use_tls?: boolean;
+  sms_ihuyi_enabled?: boolean;
+  sms_ihuyi_api_id?: string;
+  sms_ihuyi_api_key?: string;
+  sms_ihuyi_template_id?: string;
   turnstile_enabled?: boolean;
   turnstile_site_key?: string;
   turnstile_secret_key?: string;
@@ -655,6 +680,10 @@ export interface UpdateSettingsRequest {
 
   // Affiliate (邀请返利) feature switch
   affiliate_enabled?: boolean;
+
+  // Weekly quota feature switch
+  weekly_quota_enabled?: boolean;
+  weekly_quota_amount?: number;
 
   // OpenAI fast/flex policy
   openai_fast_policy_settings?: OpenAIFastPolicySettings;

@@ -3,7 +3,8 @@
 # =============================================================================
 # Stage 1: Build frontend
 # Stage 2: Build Go backend with embedded frontend
-# Stage 3: Final minimal image
+# Stage 3: PostgreSQL client
+# Stage 4: Final minimal image
 # =============================================================================
 
 ARG NODE_IMAGE=node:24-alpine
@@ -14,9 +15,22 @@ ARG GOPROXY=https://goproxy.cn,direct
 ARG GOSUMDB=sum.golang.google.cn
 
 # -----------------------------------------------------------------------------
-# Stage 1: Frontend Builder (SKIPPED - pre-built locally)
+# Stage 1: Frontend Builder
 # -----------------------------------------------------------------------------
-FROM ${ALPINE_IMAGE} AS frontend-builder
+FROM ${NODE_IMAGE} AS frontend-builder
+
+WORKDIR /app/frontend
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Install dependencies first (better caching)
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# Copy frontend source and build
+COPY frontend/ ./
+RUN pnpm run build
 
 # -----------------------------------------------------------------------------
 # Stage 2: Backend Builder
@@ -45,7 +59,8 @@ RUN go mod download
 # Copy backend source first
 COPY backend/ ./
 
-# Frontend dist is pre-built locally (included via COPY backend/ above)
+# Copy frontend dist from previous stage (must be after backend copy to avoid being overwritten)
+COPY --from=frontend-builder /app/backend/internal/web/dist ./internal/web/dist
 
 # Build the binary (BuildType=release for CI builds, embed frontend)
 # Version precedence: build arg VERSION > cmd/server/VERSION

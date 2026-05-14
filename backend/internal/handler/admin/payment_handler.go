@@ -16,6 +16,11 @@ type PaymentHandler struct {
 	configService  *service.PaymentConfigService
 }
 
+type updateLuckyWheelConfigRequest struct {
+	Enabled bool                     `json:"enabled"`
+	Config  service.LuckyWheelConfig `json:"config"`
+}
+
 // NewPaymentHandler creates a new admin PaymentHandler.
 func NewPaymentHandler(paymentService *service.PaymentService, configService *service.PaymentConfigService) *PaymentHandler {
 	return &PaymentHandler{
@@ -36,6 +41,62 @@ func (h *PaymentHandler) GetDashboard(c *gin.Context) {
 		}
 	}
 	stats, err := h.paymentService.GetDashboardStats(c.Request.Context(), days)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, stats)
+}
+
+// GetLuckyWheelConfig returns the admin lucky wheel configuration.
+// GET /api/v1/admin/payment/lucky-wheel/config
+func (h *PaymentHandler) GetLuckyWheelConfig(c *gin.Context) {
+	if h.paymentService == nil {
+		response.InternalError(c, "Payment service not configured")
+		return
+	}
+	cfg, enabled, err := h.paymentService.GetLuckyWheelConfig(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{
+		"enabled": enabled,
+		"config":  cfg,
+	})
+}
+
+// UpdateLuckyWheelConfig updates the admin lucky wheel configuration.
+// PUT /api/v1/admin/payment/lucky-wheel/config
+func (h *PaymentHandler) UpdateLuckyWheelConfig(c *gin.Context) {
+	var req updateLuckyWheelConfigRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	if h.paymentService == nil {
+		response.InternalError(c, "Payment service not configured")
+		return
+	}
+	cfg, err := h.paymentService.UpdateLuckyWheelConfig(c.Request.Context(), req.Enabled, &req.Config)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{
+		"enabled": req.Enabled,
+		"config":  cfg,
+	})
+}
+
+// GetLuckyWheelStats returns admin lucky wheel statistics and recent draw records.
+// GET /api/v1/admin/payment/lucky-wheel/stats
+func (h *PaymentHandler) GetLuckyWheelStats(c *gin.Context) {
+	if h.paymentService == nil {
+		response.InternalError(c, "Payment service not configured")
+		return
+	}
+	stats, err := h.paymentService.GetLuckyWheelStats(c.Request.Context())
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return

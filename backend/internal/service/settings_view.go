@@ -14,6 +14,7 @@ func firstNonEmpty(values ...string) string {
 type SystemSettings struct {
 	RegistrationEnabled              bool
 	EmailVerifyEnabled               bool
+	PhoneVerifyEnabled               bool
 	RegistrationEmailSuffixWhitelist []string
 	PromoCodeEnabled                 bool
 	PasswordResetEnabled             bool
@@ -21,14 +22,19 @@ type SystemSettings struct {
 	InvitationCodeEnabled            bool
 	TotpEnabled                      bool // TOTP 双因素认证
 
-	SMTPHost               string
-	SMTPPort               int
-	SMTPUsername           string
-	SMTPPassword           string
-	SMTPPasswordConfigured bool
-	SMTPFrom               string
-	SMTPFromName           string
-	SMTPUseTLS             bool
+	SMTPHost                 string
+	SMTPPort                 int
+	SMTPUsername             string
+	SMTPPassword             string
+	SMTPPasswordConfigured   bool
+	SMTPFrom                 string
+	SMTPFromName             string
+	SMTPUseTLS               bool
+	SMSIHuyiEnabled          bool
+	SMSIHuyiAPIID            string
+	SMSIHuyiAPIKey           string
+	SMSIHuyiAPIKeyConfigured bool
+	SMSIHuyiTemplateID       string
 
 	TurnstileEnabled             bool
 	TurnstileSiteKey             string
@@ -94,7 +100,10 @@ type SystemSettings struct {
 	SiteSubtitle                string
 	APIBaseURL                  string
 	ContactInfo                 string
+	QQGroup                     string
+	WeChatContact               string
 	DocURL                      string
+	HomeLinks                   string
 	HomeContent                 string
 	HideCcsImportButton         bool
 	PurchaseSubscriptionEnabled bool
@@ -113,6 +122,9 @@ type SystemSettings struct {
 	AffiliateRebatePerInviteeCap float64
 	AffiliateSignupRewardEnabled bool
 	AffiliateSignupRewardAmount  float64
+	WeeklyQuotaEnabled           bool
+	WeeklyQuotaAmount            float64
+	LuckyWheelEnabled            bool
 	DefaultUserRPMLimit          int
 	DefaultSubscriptions         []DefaultSubscriptionSetting
 
@@ -191,6 +203,7 @@ type DefaultSubscriptionSetting struct {
 type PublicSettings struct {
 	RegistrationEnabled              bool
 	EmailVerifyEnabled               bool
+	PhoneVerifyEnabled               bool
 	ForceEmailOnThirdPartySignup     bool
 	RegistrationEmailSuffixWhitelist []string
 	PromoCodeEnabled                 bool
@@ -204,7 +217,10 @@ type PublicSettings struct {
 	SiteSubtitle                     string
 	APIBaseURL                       string
 	ContactInfo                      string
+	QQGroup                          string
+	WeChatContact                    string
 	DocURL                           string
+	HomeLinks                        string
 	HomeContent                      string
 	HideCcsImportButton              bool
 
@@ -240,6 +256,12 @@ type PublicSettings struct {
 
 	// Affiliate (邀请返利) feature toggle
 	AffiliateEnabled bool `json:"affiliate_enabled"`
+
+	// Weekly quota feature toggle
+	WeeklyQuotaEnabled bool `json:"weekly_quota_enabled"`
+
+	// Lucky wheel feature toggle
+	LuckyWheelEnabled bool `json:"lucky_wheel_enabled"`
 }
 
 type PromptArchiveSettingsView struct {

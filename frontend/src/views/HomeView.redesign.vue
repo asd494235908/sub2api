@@ -153,7 +153,7 @@
       :social-dots="socialDots"
       :columns="footerColumns"
       :follow-label="t('home.landing.footer.follow')"
-      :qr-items="communityQrItems"
+      :contact-items="communityContactItems"
       :copyright-owner="t('home.landing.footer.copyrightOwner')"
       :doc-url="docUrl"
       :docs-label="t('home.landing.nav.docs')"
@@ -173,6 +173,7 @@ import HomeHeader from '@/components/home/HomeHeader.vue'
 import HomeHero from '@/components/home/HomeHero.vue'
 import HomeProducts from '@/components/home/HomeProducts.vue'
 import HomeShowcase from '@/components/home/HomeShowcase.vue'
+import type { HomeLink } from '@/types'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -181,10 +182,33 @@ const appStore = useAppStore()
 const siteLogo = computed(() => appStore.cachedPublicSettings?.site_logo || appStore.siteLogo || '')
 const homeContent = computed(() => appStore.cachedPublicSettings?.home_content || '')
 const docUrl = TOKEN_DOC_URL
-const communityQrItems = computed(() => [
-  { src: '/qq.jpg', alt: t('home.landing.community.qrAlt.qq'), label: t('home.landing.community.qrLabels.qq') },
-  { src: '/wechat.jpg', alt: t('home.landing.community.qrAlt.wechat'), label: t('home.landing.community.qrLabels.wechat') }
-])
+const defaultHomeLinks: HomeLink[] = [
+  { id: 'gpshop', label: t('home.landing.nav.gpshop'), url: 'https://card.gepinkeji.com', enabled: true, sort_order: 0 },
+  { id: 'gpci', label: t('home.landing.nav.gpci'), url: 'https://chat.gepinkeji.com/', enabled: true, sort_order: 1 }
+]
+
+const configuredHomeLinks = computed(() => {
+  const raw = appStore.cachedPublicSettings?.home_links
+  const source = Array.isArray(raw) && raw.length > 0 ? raw : defaultHomeLinks
+  return source
+    .filter((item) => item?.enabled !== false && item.label?.trim() && item.url?.trim())
+    .slice()
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    .map((item) => ({
+      label: item.label.trim(),
+      href: item.url.trim(),
+      external: true
+    }))
+})
+
+const communityContactItems = computed(() => {
+  const settings = appStore.cachedPublicSettings
+  const items = [
+    { label: t('home.landing.community.qrLabels.qq'), value: settings?.qq_group?.trim() || '' },
+    { label: t('home.landing.community.qrLabels.wechat'), value: settings?.wechat_contact?.trim() || '' }
+  ]
+  return items.filter((item) => item.value)
+})
 
 const headerRef = ref<HTMLElement | null>(null)
 const headerOffset = ref(120)
@@ -192,8 +216,7 @@ const headerOffset = ref(120)
 const navItems = computed(() => [
   { href: '#top', label: t('home.landing.nav.home') },
   { href: '#pricing', label: t('home.landing.nav.pricing') },
-  { href: 'https://card.gepinkeji.com', label: t('home.landing.nav.gpshop'), external: true },
-  { href: 'https://chat.gepinkeji.com/', label: t('home.landing.nav.gpci'), external: true },
+  ...configuredHomeLinks.value,
   { href: docUrl, label: t('home.landing.nav.docs'), external: true },
   { href: '#footer', label: t('home.landing.nav.community') }
 ])
@@ -318,10 +341,7 @@ const footerColumns = computed(() => [
   },
   {
     title: t('home.landing.footer.columns.links.title'),
-    items: [
-      { label: t('home.landing.footer.columns.links.gpshop'), href: 'https://card.gepinkeji.com', external: true },
-      { label: t('home.landing.footer.columns.links.gpci'), href: 'https://chat.gepinkeji.com/', external: true }
-    ]
+    items: configuredHomeLinks.value
   },
   {
     title: t('home.landing.footer.columns.company.title'),

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 
 	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
@@ -40,8 +41,9 @@ func NewUserHandler(
 
 // ChangePasswordRequest represents the change password request payload
 type ChangePasswordRequest struct {
-	OldPassword string `json:"old_password" binding:"required"`
-	NewPassword string `json:"new_password" binding:"required,min=6"`
+	OldPassword     string `json:"old_password" binding:"required"`
+	NewPassword     string `json:"new_password" binding:"required,min=6"`
+	PhoneVerifyCode string `json:"phone_verify_code"`
 }
 
 // UpdateProfileRequest represents the update profile request payload
@@ -50,6 +52,15 @@ type UpdateProfileRequest struct {
 	AvatarURL              *string  `json:"avatar_url"`
 	BalanceNotifyEnabled   *bool    `json:"balance_notify_enabled"`
 	BalanceNotifyThreshold *float64 `json:"balance_notify_threshold"`
+}
+
+type SendPhoneBindingCodeRequest struct {
+	PhoneNumber string `json:"phone_number" binding:"required"`
+}
+
+type BindPhoneRequest struct {
+	PhoneNumber     string `json:"phone_number" binding:"required"`
+	PhoneVerifyCode string `json:"phone_verify_code" binding:"required"`
 }
 
 type userProfileResponse struct {
@@ -116,6 +127,7 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 	svcReq := service.ChangePasswordRequest{
 		CurrentPassword: req.OldPassword,
 		NewPassword:     req.NewPassword,
+		PhoneVerifyCode: req.PhoneVerifyCode,
 	}
 	err := h.userService.ChangePassword(c.Request.Context(), subject.UserID, svcReq)
 	if err != nil {
@@ -124,6 +136,45 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{"message": "Password changed successfully"})
+}
+
+// SendPhoneVerifyCode sends an SMS verification code for password change.
+// POST /api/v1/user/password/send-phone-code
+func (h *UserHandler) SendPhoneVerifyCode(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	if h.userService == nil {
+		response.InternalError(c, "User service not configured")
+		return
+	}
+
+	user, err := h.userService.GetProfile(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	slog.Info("send_phone_verify_code_profile_loaded",
+		"user_id", subject.UserID,
+		"email", strings.TrimSpace(user.Email),
+		"phone_number", strings.TrimSpace(user.PhoneNumber),
+	)
+	if strings.TrimSpace(user.PhoneNumber) == "" {
+		response.BadRequest(c, "Current user has no bound phone number")
+		return
+	}
+	if h.authService == nil || h.authService.SMSService() == nil {
+		response.InternalError(c, "SMS service not configured")
+		return
+	}
+	if err := h.authService.SMSService().SendVerifyCode(c.Request.Context(), user.PhoneNumber); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, gin.H{"message": "Verification code sent successfully", "countdown": 60})
 }
 
 // UpdateProfile handles updating user profile
@@ -148,6 +199,63 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		BalanceNotifyThreshold: req.BalanceNotifyThreshold,
 	}
 	updatedUser, err := h.userService.UpdateProfile(c.Request.Context(), subject.UserID, svcReq)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	profileResp, err := h.buildUserProfileResponse(c.Request.Context(), subject.UserID, updatedUser)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, profileResp)
+}
+
+// SendPhoneBindingCode sends an SMS verification code for binding or replacing a phone number.
+// POST /api/v1/user/phone/send-code
+func (h *UserHandler) SendPhoneBindingCode(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+
+	var req SendPhoneBindingCodeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	countdown, err := h.userService.SendPhoneBindingCode(c.Request.Context(), subject.UserID, req.PhoneNumber)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, gin.H{"message": "Verification code sent successfully", "countdown": countdown})
+}
+
+// BindPhone binds or replaces the current user's phone number after SMS verification.
+// PUT /api/v1/user/phone
+func (h *UserHandler) BindPhone(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+
+	var req BindPhoneRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	updatedUser, err := h.userService.BindPhone(c.Request.Context(), subject.UserID, service.BindPhoneRequest{
+		PhoneNumber:     req.PhoneNumber,
+		PhoneVerifyCode: req.PhoneVerifyCode,
+	})
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return

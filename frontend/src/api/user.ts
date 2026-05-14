@@ -50,14 +50,36 @@ export async function updateProfile(profile: {
  */
 export async function changePassword(
   oldPassword: string,
-  newPassword: string
+  newPassword: string,
+  phoneVerifyCode = ''
 ): Promise<{ message: string }> {
   const payload: ChangePasswordRequest = {
     old_password: oldPassword,
-    new_password: newPassword
+    new_password: newPassword,
+    phone_verify_code: phoneVerifyCode || undefined
   }
 
   const { data } = await apiClient.put<{ message: string }>('/user/password', payload)
+  return data
+}
+
+export async function sendChangePasswordPhoneCode(): Promise<{ message: string; countdown: number }> {
+  const { data } = await apiClient.post<{ message: string; countdown: number }>('/user/password/send-phone-code')
+  return data
+}
+
+export async function sendPhoneBindingCode(phoneNumber: string): Promise<{ message: string; countdown: number }> {
+  const { data } = await apiClient.post<{ message: string; countdown: number }>('/user/phone/send-code', {
+    phone_number: phoneNumber,
+  })
+  return data
+}
+
+export async function bindPhoneNumber(payload: {
+  phone_number: string
+  phone_verify_code: string
+}): Promise<User> {
+  const { data } = await apiClient.put<User>('/user/phone', payload)
   return data
 }
 
@@ -189,6 +211,9 @@ export const userAPI = {
   getProfile,
   updateProfile,
   changePassword,
+  sendChangePasswordPhoneCode,
+  sendPhoneBindingCode,
+  bindPhoneNumber,
   sendNotifyEmailCode,
   verifyNotifyEmail,
   removeNotifyEmail,

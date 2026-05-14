@@ -15,7 +15,10 @@ const appState = {
   fetchPublicSettings: vi.fn(),
   cachedPublicSettings: {
     home_content: '',
-    site_logo: '/brand.svg'
+    site_logo: '/brand.svg',
+    qq_group: '',
+    wechat_contact: '',
+    home_links: []
   }
 }
 
@@ -64,7 +67,10 @@ describe('HomeView', () => {
     appState.siteLogo = ''
     appState.cachedPublicSettings = {
       home_content: '',
-      site_logo: '/brand.svg'
+      site_logo: '/brand.svg',
+      qq_group: '',
+      wechat_contact: '',
+      home_links: []
     }
 
     localStorage.clear()
@@ -138,7 +144,10 @@ describe('HomeView', () => {
   it('shows iframe when home content is a URL', () => {
     appState.cachedPublicSettings = {
       home_content: 'https://example.com/landing',
-      site_logo: '/brand.svg'
+      site_logo: '/brand.svg',
+      qq_group: '',
+      wechat_contact: '',
+      home_links: []
     }
 
     const wrapper = mount(HomeView, {
@@ -157,7 +166,10 @@ describe('HomeView', () => {
   it('shows raw HTML when home content is custom markup', () => {
     appState.cachedPublicSettings = {
       home_content: '<section><h1>Custom Home</h1></section>',
-      site_logo: '/brand.svg'
+      site_logo: '/brand.svg',
+      qq_group: '',
+      wechat_contact: '',
+      home_links: []
     }
 
     const wrapper = mount(HomeView, {
@@ -190,5 +202,97 @@ describe('HomeView', () => {
     const links = wrapper.findAll('a')
     expect(links.some((link) => link.attributes('href') === '/admin/dashboard')).toBe(true)
     expect(wrapper.text()).toContain('home.landing.console.enter')
+  })
+
+  it('renders homepage contact items as plain text when configured', () => {
+    appState.cachedPublicSettings = {
+      home_content: '',
+      site_logo: '/brand.svg',
+      qq_group: '123456789',
+      wechat_contact: 'sub2api_support',
+      home_links: []
+    }
+
+    const wrapper = mount(HomeView, {
+      global: {
+        stubs: {
+          RouterLink: {
+            props: ['to'],
+            template: '<a :href="typeof to === \'string\' ? to : to?.path"><slot /></a>'
+          }
+        }
+      }
+    })
+
+    expect(wrapper.text()).toContain('home.landing.community.qrLabels.qq')
+    expect(wrapper.text()).toContain('123456789')
+    expect(wrapper.text()).toContain('home.landing.community.qrLabels.wechat')
+    expect(wrapper.text()).toContain('sub2api_support')
+    expect(wrapper.find('img[alt="home.landing.community.qrAlt.qq"]').exists()).toBe(false)
+  })
+
+  it('hides homepage contact section when both contacts are empty', () => {
+    const wrapper = mount(HomeView, {
+      global: {
+        stubs: {
+          RouterLink: {
+            props: ['to'],
+            template: '<a :href="typeof to === \'string\' ? to : to?.path"><slot /></a>'
+          }
+        }
+      }
+    })
+
+    expect(wrapper.text()).not.toContain('home.landing.community.qrLabels.qq')
+    expect(wrapper.text()).not.toContain('home.landing.community.qrLabels.wechat')
+  })
+
+  it('renders configured home links in top nav and footer links', () => {
+    appState.cachedPublicSettings = {
+      home_content: '',
+      site_logo: '/brand.svg',
+      qq_group: '',
+      wechat_contact: '',
+      home_links: [
+        { id: 'disabled', label: '隐藏链接', url: 'https://hidden.example.com', enabled: false, sort_order: 1 },
+        { id: 'docs2', label: '配置链接 B', url: 'https://b.example.com', enabled: true, sort_order: 2 },
+        { id: 'docs1', label: '配置链接 A', url: 'https://a.example.com', enabled: true, sort_order: 0 }
+      ]
+    }
+
+    const wrapper = mount(HomeView, {
+      global: {
+        stubs: {
+          RouterLink: {
+            props: ['to'],
+            template: '<a :href="typeof to === \'string\' ? to : to?.path"><slot /></a>'
+          }
+        }
+      }
+    })
+
+    const links = wrapper.findAll('a')
+    expect(links.filter((link) => link.text().includes('配置链接 A'))).toHaveLength(2)
+    expect(links.filter((link) => link.text().includes('配置链接 B'))).toHaveLength(2)
+    expect(links.some((link) => link.text().includes('隐藏链接'))).toBe(false)
+    expect(links.some((link) => link.text().includes('配置链接 A') && link.attributes('href') === 'https://a.example.com')).toBe(true)
+    expect(links.some((link) => link.text().includes('配置链接 B') && link.attributes('href') === 'https://b.example.com')).toBe(true)
+  })
+
+  it('falls back to default home links when configured home links are empty', () => {
+    const wrapper = mount(HomeView, {
+      global: {
+        stubs: {
+          RouterLink: {
+            props: ['to'],
+            template: '<a :href="typeof to === \'string\' ? to : to?.path"><slot /></a>'
+          }
+        }
+      }
+    })
+
+    const links = wrapper.findAll('a')
+    expect(links.some((link) => link.text().includes('格品购物') && link.attributes('href') === 'https://card.gepinkeji.com')).toBe(true)
+    expect(links.some((link) => link.text().includes('格品生图') && link.attributes('href') === 'https://chat.gepinkeji.com/')).toBe(true)
   })
 })

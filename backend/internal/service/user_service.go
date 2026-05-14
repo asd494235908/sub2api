@@ -7,6 +7,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
@@ -80,6 +81,7 @@ type UserRepository interface {
 	Create(ctx context.Context, user *User) error
 	GetByID(ctx context.Context, id int64) (*User, error)
 	GetByEmail(ctx context.Context, email string) (*User, error)
+	GetByPhone(ctx context.Context, phoneNumber string) (*User, error)
 	GetFirstAdmin(ctx context.Context) (*User, error)
 	Update(ctx context.Context, user *User) error
 	Delete(ctx context.Context, id int64) error
@@ -173,6 +175,11 @@ type UpdateProfileRequest struct {
 	BalanceNotifyThreshold *float64 `json:"balance_notify_threshold"`
 }
 
+type BindPhoneRequest struct {
+	PhoneNumber     string `json:"phone_number"`
+	PhoneVerifyCode string `json:"phone_verify_code"`
+}
+
 type UserAvatar struct {
 	StorageProvider string
 	StorageKey      string
@@ -199,6 +206,7 @@ type userProfileIdentityTxRunner interface {
 type ChangePasswordRequest struct {
 	CurrentPassword string `json:"current_password"`
 	NewPassword     string `json:"new_password"`
+	PhoneVerifyCode string `json:"phone_verify_code"`
 }
 
 // UserService 用户服务
@@ -207,6 +215,7 @@ type UserService struct {
 	settingRepo          SettingRepository
 	authCacheInvalidator APIKeyAuthCacheInvalidator
 	billingCache         BillingCache
+	smsService           *SMSService
 	lastActiveTouchL1    sync.Map
 	lastActiveTouchSF    singleflight.Group
 }
@@ -219,6 +228,82 @@ func NewUserService(userRepo UserRepository, settingRepo SettingRepository, auth
 		authCacheInvalidator: authCacheInvalidator,
 		billingCache:         billingCache,
 	}
+}
+
+func (s *UserService) SetSMSService(smsService *SMSService) {
+	if s == nil {
+		return
+	}
+	s.smsService = smsService
+}
+
+func (s *UserService) SendPhoneBindingCode(ctx context.Context, userID int64, phoneNumber string) (int, error) {
+	if s == nil || s.userRepo == nil {
+		return 0, ErrServiceUnavailable
+	}
+	if s.smsService == nil {
+		return 0, ErrServiceUnavailable
+	}
+
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return 0, fmt.Errorf("get user: %w", err)
+	}
+	_ = user
+
+	normalizedPhone := NormalizePhoneNumber(phoneNumber, "86")
+	if normalizedPhone == "" {
+		return 0, infraerrors.BadRequest("PHONE_INVALID", "phone number is invalid")
+	}
+
+	if existingUser, err := s.userRepo.GetByPhone(ctx, normalizedPhone); err == nil && existingUser != nil && existingUser.ID != userID {
+		return 0, ErrPhoneExists
+	} else if err != nil && !errors.Is(err, ErrUserNotFound) {
+		return 0, ErrServiceUnavailable
+	}
+
+	if err := s.smsService.SendVerifyCode(ctx, normalizedPhone); err != nil {
+		return 0, err
+	}
+	return 60, nil
+}
+
+func (s *UserService) BindPhone(ctx context.Context, userID int64, req BindPhoneRequest) (*User, error) {
+	if s == nil || s.userRepo == nil {
+		return nil, ErrServiceUnavailable
+	}
+	if s.smsService == nil {
+		return nil, ErrServiceUnavailable
+	}
+
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user: %w", err)
+	}
+
+	normalizedPhone := NormalizePhoneNumber(req.PhoneNumber, "86")
+	if normalizedPhone == "" {
+		return nil, infraerrors.BadRequest("PHONE_INVALID", "phone number is invalid")
+	}
+	if strings.TrimSpace(req.PhoneVerifyCode) == "" {
+		return nil, infraerrors.BadRequest("PHONE_VERIFY_REQUIRED", "phone verification is required")
+	}
+
+	if existingUser, err := s.userRepo.GetByPhone(ctx, normalizedPhone); err == nil && existingUser != nil && existingUser.ID != userID {
+		return nil, ErrPhoneExists
+	} else if err != nil && !errors.Is(err, ErrUserNotFound) {
+		return nil, ErrServiceUnavailable
+	}
+
+	if err := s.smsService.VerifyCode(ctx, normalizedPhone, strings.TrimSpace(req.PhoneVerifyCode)); err != nil {
+		return nil, fmt.Errorf("phone verify code: %w", err)
+	}
+
+	user.PhoneNumber = normalizedPhone
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return nil, fmt.Errorf("update user: %w", err)
+	}
+	return user, nil
 }
 
 // GetFirstAdmin 获取首个管理员用户（用于 Admin API Key 认证）
@@ -922,6 +1007,19 @@ func (s *UserService) ChangePassword(ctx context.Context, userID int64, req Chan
 	// 验证当前密码
 	if !user.CheckPassword(req.CurrentPassword) {
 		return ErrPasswordIncorrect
+	}
+	if s.settingRepo != nil {
+		if enabled, err := s.settingRepo.GetValue(ctx, SettingKeyPhoneVerifyEnabled); err == nil && enabled == "true" && strings.TrimSpace(user.PhoneNumber) != "" {
+			if strings.TrimSpace(req.PhoneVerifyCode) == "" {
+				return infraerrors.BadRequest("PHONE_VERIFY_REQUIRED", "phone verification is required")
+			}
+			if s.smsService == nil {
+				return ErrServiceUnavailable
+			}
+			if err := s.smsService.VerifyCode(ctx, user.PhoneNumber, strings.TrimSpace(req.PhoneVerifyCode)); err != nil {
+				return fmt.Errorf("phone verify code: %w", err)
+			}
+		}
 	}
 
 	if err := user.SetPassword(req.NewPassword); err != nil {

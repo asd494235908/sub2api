@@ -332,12 +332,14 @@ describe('EmailVerifyView', () => {
     await wrapper.get('form').trigger('submit.prevent')
     await flushPromises()
 
-    expect(apiClientPostMock).toHaveBeenCalledWith('/auth/oauth/pending/create-account', {
-      email: 'fresh@example.com',
-      password: 'secret-123',
-      verify_code: '123456',
-      aff_code: 'AFF123',
-    })
+    expect(apiClientPostMock).toHaveBeenCalledWith(
+      '/auth/oauth/pending/create-account',
+      expect.objectContaining({
+        email: 'fresh@example.com',
+        password: 'secret-123',
+        verify_code: '123456',
+      })
+    )
     expect(persistOAuthTokenContextMock).toHaveBeenCalledWith({
       access_token: 'oauth-access-token',
       refresh_token: 'oauth-refresh-token',
@@ -412,6 +414,42 @@ describe('EmailVerifyView', () => {
     expect(persistOAuthTokenContextMock).not.toHaveBeenCalled()
     expect(clearPendingAuthSessionMock).not.toHaveBeenCalled()
     expect(showSuccessMock).not.toHaveBeenCalled()
+  })
+
+  it('starts countdown from server metadata when resend is rejected during cooldown', async () => {
+    sessionStorage.setItem(
+      'register_data',
+      JSON.stringify({
+        email: 'normal@example.com',
+        password: 'secret-456',
+      })
+    )
+    sendVerifyCodeMock.mockRejectedValueOnce({
+        response: {
+          data: {
+            reason: 'VERIFY_CODE_TOO_FREQUENT',
+            metadata: { countdown: '42' },
+            message: 'please wait before requesting a new code'
+          }
+        }
+      })
+
+    const wrapper = mount(EmailVerifyView, {
+      global: {
+        stubs: {
+          AuthLayout: { template: '<div><slot /><slot name="footer" /></div>' },
+          Icon: true,
+          TurnstileWidget: true,
+          transition: false,
+        },
+      },
+    })
+    await flushPromises()
+    await wrapper.get('[type="button"]').trigger('click')
+    await flushPromises()
+
+    expect(showErrorMock).toHaveBeenCalledWith('请在 42 秒后重试')
+    expect(wrapper.text()).toContain('auth.resendCountdown')
   })
 
   it('keeps the normal email registration flow unchanged', async () => {

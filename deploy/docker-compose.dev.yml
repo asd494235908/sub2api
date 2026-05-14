@@ -39,6 +39,10 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - JWT_SECRET=${JWT_SECRET:-}
       - TOTP_ENCRYPTION_KEY=${TOTP_ENCRYPTION_KEY:-}
+      - SMS_IHUYI_ENABLED=${SMS_IHUYI_ENABLED:-false}
+      - SMS_IHUYI_API_ID=${SMS_IHUYI_API_ID:-}
+      - SMS_IHUYI_API_KEY=${SMS_IHUYI_API_KEY:-}
+      - SMS_IHUYI_TEMPLATE_ID=${SMS_IHUYI_TEMPLATE_ID:-309190}
       - TZ=${TZ:-Asia/Shanghai}
     depends_on:
       postgres:

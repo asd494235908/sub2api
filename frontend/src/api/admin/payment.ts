@@ -9,7 +9,10 @@ import type {
   PaymentOrder,
   PaymentChannel,
   SubscriptionPlan,
-  ProviderInstance
+  ProviderInstance,
+  AdminLuckyWheelConfigResponse,
+  LuckyWheelStats,
+  LuckyWheelConfig,
 } from '@/types/payment'
 import type { BasePaginationResponse } from '@/types'
 
@@ -69,6 +72,21 @@ export const adminPaymentAPI = {
     return apiClient.get<DashboardStats>('/admin/payment/dashboard', {
       params: days ? { days } : undefined
     })
+  },
+
+  /** Get lucky wheel admin configuration */
+  getLuckyWheelConfig() {
+    return apiClient.get<AdminLuckyWheelConfigResponse>('/admin/payment/lucky-wheel/config')
+  },
+
+  /** Update lucky wheel admin configuration */
+  updateLuckyWheelConfig(data: { enabled: boolean; config: LuckyWheelConfig }) {
+    return apiClient.put<AdminLuckyWheelConfigResponse>('/admin/payment/lucky-wheel/config', data)
+  },
+
+  /** Get lucky wheel admin stats */
+  getLuckyWheelStats() {
+    return apiClient.get<LuckyWheelStats>('/admin/payment/lucky-wheel/stats')
   },
 
   // ==================== Orders ====================

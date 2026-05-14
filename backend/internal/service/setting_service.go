@@ -35,6 +35,19 @@ var (
 	)
 )
 
+const defaultHomeLinksJSON = `[
+{"id":"gpshop","label":"格品购物","url":"https://card.gepinkeji.com","enabled":true,"sort_order":0},
+{"id":"gpci","label":"格品生图","url":"https://chat.gepinkeji.com/","enabled":true,"sort_order":1}
+]`
+
+type HomeLink struct {
+	ID        string `json:"id"`
+	Label     string `json:"label"`
+	URL       string `json:"url"`
+	Enabled   bool   `json:"enabled"`
+	SortOrder int    `json:"sort_order"`
+}
+
 type SettingRepository interface {
 	Get(ctx context.Context, key string) (*Setting, error)
 	GetValue(ctx context.Context, key string) (string, error)
@@ -404,6 +417,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 	keys := []string{
 		SettingKeyRegistrationEnabled,
 		SettingKeyEmailVerifyEnabled,
+		SettingKeyPhoneVerifyEnabled,
 		SettingKeyForceEmailOnThirdPartySignup,
 		SettingKeyRegistrationEmailSuffixWhitelist,
 		SettingKeyPromoCodeEnabled,
@@ -417,7 +431,10 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeySiteSubtitle,
 		SettingKeyAPIBaseURL,
 		SettingKeyContactInfo,
+		SettingKeyQQGroup,
+		SettingKeyWeChatContact,
 		SettingKeyDocURL,
+		SettingKeyHomeLinks,
 		SettingKeyHomeContent,
 		SettingKeyHideCcsImportButton,
 		SettingKeyPurchaseSubscriptionEnabled,
@@ -455,6 +472,9 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyChannelMonitorDefaultIntervalSeconds,
 		SettingKeyAvailableChannelsEnabled,
 		SettingKeyAffiliateEnabled,
+		SettingKeyWeeklyQuotaEnabled,
+		SettingKeyWeeklyQuotaAmount,
+		SettingKeyLuckyWheelEnabled,
 	}
 
 	settings, err := s.settingRepo.GetMultiple(ctx, keys)
@@ -502,6 +522,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 	return &PublicSettings{
 		RegistrationEnabled:              settings[SettingKeyRegistrationEnabled] == "true",
 		EmailVerifyEnabled:               emailVerifyEnabled,
+		PhoneVerifyEnabled:               settings[SettingKeyPhoneVerifyEnabled] == "true",
 		ForceEmailOnThirdPartySignup:     settings[SettingKeyForceEmailOnThirdPartySignup] == "true",
 		RegistrationEmailSuffixWhitelist: registrationEmailSuffixWhitelist,
 		PromoCodeEnabled:                 settings[SettingKeyPromoCodeEnabled] != "false", // 默认启用
@@ -515,7 +536,10 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
 		ContactInfo:                      settings[SettingKeyContactInfo],
+		QQGroup:                          settings[SettingKeyQQGroup],
+		WeChatContact:                    settings[SettingKeyWeChatContact],
 		DocURL:                           settings[SettingKeyDocURL],
+		HomeLinks:                        publicHomeLinksJSON(settings[SettingKeyHomeLinks]),
 		HomeContent:                      settings[SettingKeyHomeContent],
 		HideCcsImportButton:              settings[SettingKeyHideCcsImportButton] == "true",
 		PurchaseSubscriptionEnabled:      settings[SettingKeyPurchaseSubscriptionEnabled] == "true",
@@ -544,6 +568,10 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		AvailableChannelsEnabled: settings[SettingKeyAvailableChannelsEnabled] == "true",
 
 		AffiliateEnabled: settings[SettingKeyAffiliateEnabled] == "true",
+
+		WeeklyQuotaEnabled: settings[SettingKeyWeeklyQuotaEnabled] == "true",
+
+		LuckyWheelEnabled: settings[SettingKeyLuckyWheelEnabled] == "true",
 	}, nil
 }
 
@@ -648,6 +676,7 @@ func (s *SettingService) SetVersion(version string) {
 type PublicSettingsInjectionPayload struct {
 	RegistrationEnabled              bool            `json:"registration_enabled"`
 	EmailVerifyEnabled               bool            `json:"email_verify_enabled"`
+	PhoneVerifyEnabled               bool            `json:"phone_verify_enabled"`
 	RegistrationEmailSuffixWhitelist []string        `json:"registration_email_suffix_whitelist"`
 	PromoCodeEnabled                 bool            `json:"promo_code_enabled"`
 	PasswordResetEnabled             bool            `json:"password_reset_enabled"`
@@ -660,7 +689,10 @@ type PublicSettingsInjectionPayload struct {
 	SiteSubtitle                     string          `json:"site_subtitle"`
 	APIBaseURL                       string          `json:"api_base_url"`
 	ContactInfo                      string          `json:"contact_info"`
+	QQGroup                          string          `json:"qq_group"`
+	WeChatContact                    string          `json:"wechat_contact"`
 	DocURL                           string          `json:"doc_url"`
+	HomeLinks                        json.RawMessage `json:"home_links"`
 	HomeContent                      string          `json:"home_content"`
 	HideCcsImportButton              bool            `json:"hide_ccs_import_button"`
 	PurchaseSubscriptionEnabled      bool            `json:"purchase_subscription_enabled"`
@@ -691,6 +723,8 @@ type PublicSettingsInjectionPayload struct {
 	ChannelMonitorDefaultIntervalSeconds int  `json:"channel_monitor_default_interval_seconds"`
 	AvailableChannelsEnabled             bool `json:"available_channels_enabled"`
 	AffiliateEnabled                     bool `json:"affiliate_enabled"`
+	WeeklyQuotaEnabled                   bool `json:"weekly_quota_enabled"`
+	LuckyWheelEnabled                    bool `json:"lucky_wheel_enabled"`
 }
 
 // GetPublicSettingsForInjection returns public settings in a format suitable for HTML injection.
@@ -704,6 +738,7 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 	return &PublicSettingsInjectionPayload{
 		RegistrationEnabled:              settings.RegistrationEnabled,
 		EmailVerifyEnabled:               settings.EmailVerifyEnabled,
+		PhoneVerifyEnabled:               settings.PhoneVerifyEnabled,
 		RegistrationEmailSuffixWhitelist: settings.RegistrationEmailSuffixWhitelist,
 		PromoCodeEnabled:                 settings.PromoCodeEnabled,
 		PasswordResetEnabled:             settings.PasswordResetEnabled,
@@ -716,7 +751,10 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		SiteSubtitle:                     settings.SiteSubtitle,
 		APIBaseURL:                       settings.APIBaseURL,
 		ContactInfo:                      settings.ContactInfo,
+		QQGroup:                          settings.QQGroup,
+		WeChatContact:                    settings.WeChatContact,
 		DocURL:                           settings.DocURL,
+		HomeLinks:                        safeRawJSONArray(settings.HomeLinks),
 		HomeContent:                      settings.HomeContent,
 		HideCcsImportButton:              settings.HideCcsImportButton,
 		PurchaseSubscriptionEnabled:      settings.PurchaseSubscriptionEnabled,
@@ -744,6 +782,8 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		ChannelMonitorDefaultIntervalSeconds: settings.ChannelMonitorDefaultIntervalSeconds,
 		AvailableChannelsEnabled:             settings.AvailableChannelsEnabled,
 		AffiliateEnabled:                     settings.AffiliateEnabled,
+		WeeklyQuotaEnabled:                   settings.WeeklyQuotaEnabled,
+		LuckyWheelEnabled:                    settings.LuckyWheelEnabled,
 	}, nil
 }
 
@@ -851,6 +891,96 @@ func safeRawJSONArray(raw string) json.RawMessage {
 		return json.RawMessage(raw)
 	}
 	return json.RawMessage("[]")
+}
+
+func publicHomeLinksJSON(raw string) string {
+	normalized, err := normalizeHomeLinks(raw)
+	if err != nil || len(normalized) == 0 {
+		return defaultHomeLinksJSON
+	}
+	b, err := json.Marshal(normalized)
+	if err != nil {
+		return defaultHomeLinksJSON
+	}
+	return string(b)
+}
+
+func normalizeHomeLinks(raw string) ([]HomeLink, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		raw = defaultHomeLinksJSON
+	}
+
+	var links []HomeLink
+	if err := json.Unmarshal([]byte(raw), &links); err != nil {
+		return nil, infraerrors.BadRequest("HOME_LINKS_INVALID", "home links must be a JSON array")
+	}
+	if len(links) > 20 {
+		return nil, infraerrors.BadRequest("HOME_LINKS_TOO_MANY", "home links cannot exceed 20 items")
+	}
+	if len(links) == 0 {
+		return []HomeLink{}, nil
+	}
+
+	sort.SliceStable(links, func(i, j int) bool {
+		return links[i].SortOrder < links[j].SortOrder
+	})
+
+	normalized := make([]HomeLink, 0, len(links))
+	seenIDs := make(map[string]struct{}, len(links))
+	for _, link := range links {
+		label := strings.TrimSpace(link.Label)
+		if label == "" {
+			return nil, infraerrors.BadRequest("HOME_LINK_LABEL_REQUIRED", "home link label is required")
+		}
+		if len([]rune(label)) > 50 {
+			return nil, infraerrors.BadRequest("HOME_LINK_LABEL_TOO_LONG", "home link label is too long")
+		}
+
+		linkURL := strings.TrimSpace(link.URL)
+		if linkURL == "" {
+			return nil, infraerrors.BadRequest("HOME_LINK_URL_REQUIRED", "home link url is required")
+		}
+		parsed, err := url.ParseRequestURI(linkURL)
+		if err != nil || parsed == nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
+			return nil, infraerrors.BadRequest("HOME_LINK_URL_INVALID", "home link url must be an absolute http(s) URL")
+		}
+
+		id := strings.TrimSpace(link.ID)
+		if id == "" {
+			id = fmt.Sprintf("home-link-%d", len(normalized)+1)
+		}
+		if len(id) > 32 || !isSimpleSettingID(id) {
+			id = fmt.Sprintf("home-link-%d", len(normalized)+1)
+		}
+		if _, exists := seenIDs[id]; exists {
+			id = fmt.Sprintf("home-link-%d", len(normalized)+1)
+		}
+		seenIDs[id] = struct{}{}
+
+		normalized = append(normalized, HomeLink{
+			ID:        id,
+			Label:     label,
+			URL:       linkURL,
+			Enabled:   link.Enabled,
+			SortOrder: len(normalized),
+		})
+	}
+
+	return normalized, nil
+}
+
+func isSimpleSettingID(id string) bool {
+	if id == "" {
+		return false
+	}
+	for _, r := range id {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 // GetFrameSrcOrigins returns deduplicated http(s) origins from home_content URL,
@@ -1051,12 +1181,21 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	if settings.WeChatConnectFrontendRedirectURL == "" {
 		settings.WeChatConnectFrontendRedirectURL = defaultWeChatConnectFrontend
 	}
+	homeLinks, err := normalizeHomeLinks(settings.HomeLinks)
+	if err != nil {
+		return nil, err
+	}
+	homeLinksJSON, err := json.Marshal(homeLinks)
+	if err != nil {
+		return nil, fmt.Errorf("marshal home links: %w", err)
+	}
 
 	updates := make(map[string]string)
 
 	// 注册设置
 	updates[SettingKeyRegistrationEnabled] = strconv.FormatBool(settings.RegistrationEnabled)
 	updates[SettingKeyEmailVerifyEnabled] = strconv.FormatBool(settings.EmailVerifyEnabled)
+	updates[SettingKeyPhoneVerifyEnabled] = strconv.FormatBool(settings.PhoneVerifyEnabled)
 	registrationEmailSuffixWhitelistJSON, err := json.Marshal(settings.RegistrationEmailSuffixWhitelist)
 	if err != nil {
 		return nil, fmt.Errorf("marshal registration email suffix whitelist: %w", err)
@@ -1078,6 +1217,18 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeySMTPFrom] = settings.SMTPFrom
 	updates[SettingKeySMTPFromName] = settings.SMTPFromName
 	updates[SettingKeySMTPUseTLS] = strconv.FormatBool(settings.SMTPUseTLS)
+	updates[SettingKeySMSIHuyiEnabled] = strconv.FormatBool(settings.SMSIHuyiEnabled)
+	updates[SettingKeySMSIHuyiAPIID] = strings.TrimSpace(settings.SMSIHuyiAPIID)
+	updates[SettingKeySMSIHuyiTemplateID] = firstNonEmpty(strings.TrimSpace(settings.SMSIHuyiTemplateID), defaultIHuyiTemplateID)
+	if strings.TrimSpace(settings.SMSIHuyiAPIKey) != "" {
+		updates[SettingKeySMSIHuyiAPIKey] = strings.TrimSpace(settings.SMSIHuyiAPIKey)
+	}
+	updates[SettingKeySMSIHuyiEnabled] = strconv.FormatBool(settings.SMSIHuyiEnabled)
+	updates[SettingKeySMSIHuyiAPIID] = settings.SMSIHuyiAPIID
+	updates[SettingKeySMSIHuyiTemplateID] = firstNonEmpty(settings.SMSIHuyiTemplateID, defaultIHuyiTemplateID)
+	if settings.SMSIHuyiAPIKey != "" {
+		updates[SettingKeySMSIHuyiAPIKey] = settings.SMSIHuyiAPIKey
+	}
 
 	// Cloudflare Turnstile 设置（只有非空才更新密钥）
 	updates[SettingKeyTurnstileEnabled] = strconv.FormatBool(settings.TurnstileEnabled)
@@ -1152,7 +1303,11 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeySiteSubtitle] = settings.SiteSubtitle
 	updates[SettingKeyAPIBaseURL] = settings.APIBaseURL
 	updates[SettingKeyContactInfo] = settings.ContactInfo
+	updates[SettingKeyQQGroup] = strings.TrimSpace(settings.QQGroup)
+	updates[SettingKeyWeChatContact] = strings.TrimSpace(settings.WeChatContact)
 	updates[SettingKeyDocURL] = settings.DocURL
+	updates[SettingKeyHomeLinks] = string(homeLinksJSON)
+	settings.HomeLinks = string(homeLinksJSON)
 	updates[SettingKeyHomeContent] = settings.HomeContent
 	updates[SettingKeyHideCcsImportButton] = strconv.FormatBool(settings.HideCcsImportButton)
 	updates[SettingKeyPurchaseSubscriptionEnabled] = strconv.FormatBool(settings.PurchaseSubscriptionEnabled)
@@ -1198,6 +1353,11 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 		settings.AffiliateSignupRewardAmount = AffiliateSignupRewardAmountDefault
 	}
 	updates[SettingKeyAffiliateSignupRewardAmount] = strconv.FormatFloat(settings.AffiliateSignupRewardAmount, 'f', 8, 64)
+	updates[SettingKeyWeeklyQuotaEnabled] = strconv.FormatBool(settings.WeeklyQuotaEnabled)
+	if settings.WeeklyQuotaAmount < 0 || math.IsNaN(settings.WeeklyQuotaAmount) || math.IsInf(settings.WeeklyQuotaAmount, 0) {
+		settings.WeeklyQuotaAmount = 0
+	}
+	updates[SettingKeyWeeklyQuotaAmount] = strconv.FormatFloat(settings.WeeklyQuotaAmount, 'f', 8, 64)
 	updates[SettingKeyDefaultUserRPMLimit] = strconv.Itoa(settings.DefaultUserRPMLimit)
 	defaultSubsJSON, err := json.Marshal(settings.DefaultSubscriptions)
 	if err != nil {
@@ -1235,6 +1395,12 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 
 	// Affiliate (邀请返利) feature switch
 	updates[SettingKeyAffiliateEnabled] = strconv.FormatBool(settings.AffiliateEnabled)
+
+	// Weekly quota feature switch
+	updates[SettingKeyWeeklyQuotaEnabled] = strconv.FormatBool(settings.WeeklyQuotaEnabled)
+
+	// Lucky wheel feature switch
+	updates[SettingKeyLuckyWheelEnabled] = strconv.FormatBool(settings.LuckyWheelEnabled)
 
 	// Claude Code version check
 	updates[SettingKeyMinClaudeCodeVersion] = settings.MinClaudeCodeVersion
@@ -1478,6 +1644,14 @@ func (s *SettingService) GetGatewayForwardingSettings(ctx context.Context) (fing
 // IsEmailVerifyEnabled 检查是否开启邮件验证
 func (s *SettingService) IsEmailVerifyEnabled(ctx context.Context) bool {
 	value, err := s.settingRepo.GetValue(ctx, SettingKeyEmailVerifyEnabled)
+	if err != nil {
+		return false
+	}
+	return value == "true"
+}
+
+func (s *SettingService) IsPhoneVerifyEnabled(ctx context.Context) bool {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyPhoneVerifyEnabled)
 	if err != nil {
 		return false
 	}
@@ -1770,13 +1944,10 @@ func (s *SettingService) UpdateAuthSourceDefaultSettings(ctx context.Context, se
 
 // InitializeDefaultSettings 初始化默认设置
 func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
-	// 检查是否已有设置
+	// 检查是否已有设置。旧数据库可能只有早期 key，需要补齐后来新增的默认项。
 	_, err := s.settingRepo.GetValue(ctx, SettingKeyRegistrationEnabled)
-	if err == nil {
-		// 已有设置，不需要初始化
-		return nil
-	}
-	if !errors.Is(err, ErrSettingNotFound) {
+	hasExistingSettings := err == nil
+	if err != nil && !errors.Is(err, ErrSettingNotFound) {
 		return fmt.Errorf("check existing settings: %w", err)
 	}
 
@@ -1795,10 +1966,18 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 	defaults := map[string]string{
 		SettingKeyRegistrationEnabled:                      "true",
 		SettingKeyEmailVerifyEnabled:                       "false",
+		SettingKeyPhoneVerifyEnabled:                       "false",
+		SettingKeySMSIHuyiEnabled:                          "false",
+		SettingKeySMSIHuyiAPIID:                            "",
+		SettingKeySMSIHuyiAPIKey:                           "",
+		SettingKeySMSIHuyiTemplateID:                       defaultIHuyiTemplateID,
 		SettingKeyRegistrationEmailSuffixWhitelist:         "[]",
 		SettingKeyPromoCodeEnabled:                         "true", // 默认启用优惠码功能
 		SettingKeySiteName:                                 "Sub2API",
 		SettingKeySiteLogo:                                 "",
+		SettingKeyQQGroup:                                  "",
+		SettingKeyWeChatContact:                            "",
+		SettingKeyHomeLinks:                                defaultHomeLinksJSON,
 		SettingKeyPurchaseSubscriptionEnabled:              "false",
 		SettingKeyPurchaseSubscriptionURL:                  "",
 		SettingKeyTableDefaultPageSize:                     "20",
@@ -1902,6 +2081,13 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		// Affiliate (邀请返利) feature (default disabled; opt-in)
 		SettingKeyAffiliateEnabled: "false",
 
+		// Weekly quota feature (default disabled; opt-in)
+		SettingKeyWeeklyQuotaEnabled: "false",
+		SettingKeyWeeklyQuotaAmount:  "0",
+
+		// Lucky wheel feature (default disabled; opt-in)
+		SettingKeyLuckyWheelEnabled: "false",
+
 		// Claude Code version check (default: empty = disabled)
 		SettingKeyMinClaudeCodeVersion: "",
 		SettingKeyMaxClaudeCodeVersion: "",
@@ -1915,7 +2101,28 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		openAIAdvancedSchedulerSettingKey:        "false",
 	}
 
-	return s.settingRepo.SetMultiple(ctx, defaults)
+	if !hasExistingSettings {
+		return s.settingRepo.SetMultiple(ctx, defaults)
+	}
+
+	missing := make(map[string]string)
+	for key, value := range defaults {
+		_, getErr := s.settingRepo.GetValue(ctx, key)
+		switch {
+		case getErr == nil:
+			continue
+		case errors.Is(getErr, ErrSettingNotFound):
+			missing[key] = value
+		default:
+			return fmt.Errorf("check existing setting %s: %w", key, getErr)
+		}
+	}
+
+	if len(missing) == 0 {
+		return nil
+	}
+
+	return s.settingRepo.SetMultiple(ctx, missing)
 }
 
 // parseSettings 解析设置到结构体
@@ -1924,6 +2131,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	result := &SystemSettings{
 		RegistrationEnabled:              settings[SettingKeyRegistrationEnabled] == "true",
 		EmailVerifyEnabled:               emailVerifyEnabled,
+		PhoneVerifyEnabled:               settings[SettingKeyPhoneVerifyEnabled] == "true",
 		RegistrationEmailSuffixWhitelist: ParseRegistrationEmailSuffixWhitelist(settings[SettingKeyRegistrationEmailSuffixWhitelist]),
 		PromoCodeEnabled:                 settings[SettingKeyPromoCodeEnabled] != "false", // 默认启用
 		PasswordResetEnabled:             emailVerifyEnabled && settings[SettingKeyPasswordResetEnabled] == "true",
@@ -1936,6 +2144,10 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		SMTPFromName:                     settings[SettingKeySMTPFromName],
 		SMTPUseTLS:                       settings[SettingKeySMTPUseTLS] == "true",
 		SMTPPasswordConfigured:           settings[SettingKeySMTPPassword] != "",
+		SMSIHuyiEnabled:                  settings[SettingKeySMSIHuyiEnabled] == "true",
+		SMSIHuyiAPIID:                    settings[SettingKeySMSIHuyiAPIID],
+		SMSIHuyiAPIKeyConfigured:         settings[SettingKeySMSIHuyiAPIKey] != "",
+		SMSIHuyiTemplateID:               firstNonEmpty(settings[SettingKeySMSIHuyiTemplateID], defaultIHuyiTemplateID),
 		TurnstileEnabled:                 settings[SettingKeyTurnstileEnabled] == "true",
 		TurnstileSiteKey:                 settings[SettingKeyTurnstileSiteKey],
 		TurnstileSecretKeyConfigured:     settings[SettingKeyTurnstileSecretKey] != "",
@@ -1944,7 +2156,10 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
 		ContactInfo:                      settings[SettingKeyContactInfo],
+		QQGroup:                          settings[SettingKeyQQGroup],
+		WeChatContact:                    settings[SettingKeyWeChatContact],
 		DocURL:                           settings[SettingKeyDocURL],
+		HomeLinks:                        publicHomeLinksJSON(settings[SettingKeyHomeLinks]),
 		HomeContent:                      settings[SettingKeyHomeContent],
 		HideCcsImportButton:              settings[SettingKeyHideCcsImportButton] == "true",
 		PurchaseSubscriptionEnabled:      settings[SettingKeyPurchaseSubscriptionEnabled] == "true",
@@ -2243,6 +2458,15 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 
 	// Affiliate (邀请返利) feature (default: disabled; strict true)
 	result.AffiliateEnabled = settings[SettingKeyAffiliateEnabled] == "true"
+
+	// Weekly quota feature (default: disabled; strict true)
+	result.WeeklyQuotaEnabled = settings[SettingKeyWeeklyQuotaEnabled] == "true"
+	if v, err := strconv.ParseFloat(strings.TrimSpace(settings[SettingKeyWeeklyQuotaAmount]), 64); err == nil && v >= 0 {
+		result.WeeklyQuotaAmount = v
+	}
+
+	// Lucky wheel feature (default: disabled; strict true)
+	result.LuckyWheelEnabled = settings[SettingKeyLuckyWheelEnabled] == "true"
 
 	// Claude Code version check
 	result.MinClaudeCodeVersion = settings[SettingKeyMinClaudeCodeVersion]

@@ -22,10 +22,19 @@ type CustomEndpoint struct {
 	Description string `json:"description"`
 }
 
+type HomeLink struct {
+	ID        string `json:"id"`
+	Label     string `json:"label"`
+	URL       string `json:"url"`
+	Enabled   bool   `json:"enabled"`
+	SortOrder int    `json:"sort_order"`
+}
+
 // SystemSettings represents the admin settings API response payload.
 type SystemSettings struct {
 	RegistrationEnabled              bool     `json:"registration_enabled"`
 	EmailVerifyEnabled               bool     `json:"email_verify_enabled"`
+	PhoneVerifyEnabled               bool     `json:"phone_verify_enabled"`
 	RegistrationEmailSuffixWhitelist []string `json:"registration_email_suffix_whitelist"`
 	PromoCodeEnabled                 bool     `json:"promo_code_enabled"`
 	PasswordResetEnabled             bool     `json:"password_reset_enabled"`
@@ -34,13 +43,17 @@ type SystemSettings struct {
 	TotpEnabled                      bool     `json:"totp_enabled"`                   // TOTP 双因素认证
 	TotpEncryptionKeyConfigured      bool     `json:"totp_encryption_key_configured"` // TOTP 加密密钥是否已配置
 
-	SMTPHost               string `json:"smtp_host"`
-	SMTPPort               int    `json:"smtp_port"`
-	SMTPUsername           string `json:"smtp_username"`
-	SMTPPasswordConfigured bool   `json:"smtp_password_configured"`
-	SMTPFrom               string `json:"smtp_from_email"`
-	SMTPFromName           string `json:"smtp_from_name"`
-	SMTPUseTLS             bool   `json:"smtp_use_tls"`
+	SMTPHost                 string `json:"smtp_host"`
+	SMTPPort                 int    `json:"smtp_port"`
+	SMTPUsername             string `json:"smtp_username"`
+	SMTPPasswordConfigured   bool   `json:"smtp_password_configured"`
+	SMTPFrom                 string `json:"smtp_from_email"`
+	SMTPFromName             string `json:"smtp_from_name"`
+	SMTPUseTLS               bool   `json:"smtp_use_tls"`
+	SMSIHuyiEnabled          bool   `json:"sms_ihuyi_enabled"`
+	SMSIHuyiAPIID            string `json:"sms_ihuyi_api_id"`
+	SMSIHuyiAPIKeyConfigured bool   `json:"sms_ihuyi_api_key_configured"`
+	SMSIHuyiTemplateID       string `json:"sms_ihuyi_template_id"`
 
 	TurnstileEnabled             bool   `json:"turnstile_enabled"`
 	TurnstileSiteKey             string `json:"turnstile_site_key"`
@@ -96,7 +109,10 @@ type SystemSettings struct {
 	SiteSubtitle                string           `json:"site_subtitle"`
 	APIBaseURL                  string           `json:"api_base_url"`
 	ContactInfo                 string           `json:"contact_info"`
+	QQGroup                     string           `json:"qq_group"`
+	WeChatContact               string           `json:"wechat_contact"`
 	DocURL                      string           `json:"doc_url"`
+	HomeLinks                   []HomeLink       `json:"home_links"`
 	HomeContent                 string           `json:"home_content"`
 	HideCcsImportButton         bool             `json:"hide_ccs_import_button"`
 	PurchaseSubscriptionEnabled bool             `json:"purchase_subscription_enabled"`
@@ -114,6 +130,8 @@ type SystemSettings struct {
 	AffiliateRebatePerInviteeCap float64                      `json:"affiliate_rebate_per_invitee_cap"`
 	AffiliateSignupRewardEnabled bool                         `json:"affiliate_signup_reward_enabled"`
 	AffiliateSignupRewardAmount  float64                      `json:"affiliate_signup_reward_amount"`
+	WeeklyQuotaEnabled           bool                         `json:"weekly_quota_enabled"`
+	WeeklyQuotaAmount            float64                      `json:"weekly_quota_amount"`
 	DefaultUserRPMLimit          int                          `json:"default_user_rpm_limit"`
 	DefaultSubscriptions         []DefaultSubscriptionSetting `json:"default_subscriptions"`
 
@@ -201,6 +219,9 @@ type SystemSettings struct {
 	// Affiliate (邀请返利) feature switch
 	AffiliateEnabled bool `json:"affiliate_enabled"`
 
+	// Lucky wheel feature switch
+	LuckyWheelEnabled bool `json:"lucky_wheel_enabled"`
+
 	// OpenAI fast/flex policy
 	OpenAIFastPolicySettings *OpenAIFastPolicySettings `json:"openai_fast_policy_settings,omitempty"`
 }
@@ -213,6 +234,7 @@ type DefaultSubscriptionSetting struct {
 type PublicSettings struct {
 	RegistrationEnabled              bool             `json:"registration_enabled"`
 	EmailVerifyEnabled               bool             `json:"email_verify_enabled"`
+	PhoneVerifyEnabled               bool             `json:"phone_verify_enabled"`
 	ForceEmailOnThirdPartySignup     bool             `json:"force_email_on_third_party_signup"`
 	RegistrationEmailSuffixWhitelist []string         `json:"registration_email_suffix_whitelist"`
 	PromoCodeEnabled                 bool             `json:"promo_code_enabled"`
@@ -226,7 +248,10 @@ type PublicSettings struct {
 	SiteSubtitle                     string           `json:"site_subtitle"`
 	APIBaseURL                       string           `json:"api_base_url"`
 	ContactInfo                      string           `json:"contact_info"`
+	QQGroup                          string           `json:"qq_group"`
+	WeChatContact                    string           `json:"wechat_contact"`
 	DocURL                           string           `json:"doc_url"`
+	HomeLinks                        []HomeLink       `json:"home_links"`
 	HomeContent                      string           `json:"home_content"`
 	HideCcsImportButton              bool             `json:"hide_ccs_import_button"`
 	PurchaseSubscriptionEnabled      bool             `json:"purchase_subscription_enabled"`
@@ -257,6 +282,10 @@ type PublicSettings struct {
 	AvailableChannelsEnabled bool `json:"available_channels_enabled"`
 
 	AffiliateEnabled bool `json:"affiliate_enabled"`
+
+	WeeklyQuotaEnabled bool `json:"weekly_quota_enabled"`
+
+	LuckyWheelEnabled bool `json:"lucky_wheel_enabled"`
 }
 
 // OverloadCooldownSettings 529过载冷却配置 DTO
@@ -358,6 +387,21 @@ func ParseCustomEndpoints(raw string) []CustomEndpoint {
 	var items []CustomEndpoint
 	if err := json.Unmarshal([]byte(raw), &items); err != nil {
 		return []CustomEndpoint{}
+	}
+	return items
+}
+
+func ParseHomeLinks(raw string) []HomeLink {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return []HomeLink{}
+	}
+	var items []HomeLink
+	if err := json.Unmarshal([]byte(raw), &items); err != nil {
+		return []HomeLink{}
+	}
+	if items == nil {
+		return []HomeLink{}
 	}
 	return items
 }

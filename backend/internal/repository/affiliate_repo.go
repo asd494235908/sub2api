@@ -425,7 +425,7 @@ WHERE ua.aff_count > 0
 
 	client := clientFromContext(ctx, r.client)
 
-	total, err := scanInt64(ctx, client, "SELECT COUNT(*)"+baseFrom, likePattern)
+	total, err := scanInt64(ctx, client, "SELECT COUNT(DISTINCT ua.user_id)"+baseFrom, likePattern)
 	if err != nil {
 		return nil, 0, fmt.Errorf("count affiliate inviters: %w", err)
 	}

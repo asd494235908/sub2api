@@ -37,3 +37,11 @@ describe('AppSidebar admin affiliate navigation', () => {
     expect(componentSource).toContain("label: t('nav.adminAffiliateRelations')")
   })
 })
+
+describe('AppSidebar lucky wheel navigation', () => {
+  it('includes lucky wheel entries behind the lucky wheel feature flag', () => {
+    expect(componentSource).toContain("const flagLuckyWheel = makeSidebarFlag(FeatureFlags.luckyWheel)")
+    expect(componentSource).toContain("{ path: '/lucky-wheel', label: t('nav.luckyWheel')")
+    expect(componentSource).toContain("{ path: '/admin/orders/lucky-wheel', label: t('nav.luckyWheelAdmin')")
+  })
+})

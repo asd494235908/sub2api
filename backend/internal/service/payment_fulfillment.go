@@ -302,6 +302,9 @@ func (s *PaymentService) markCompleted(ctx context.Context, o *dbent.PaymentOrde
 		"creditedAmount": o.Amount,
 		"payAmount":      o.PayAmount,
 	})
+	if err := s.GrantLuckyWheelChanceForOrder(ctx, o); err != nil {
+		return fmt.Errorf("grant lucky wheel chance: %w", err)
+	}
 	return nil
 }
 

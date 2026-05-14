@@ -565,7 +565,7 @@ func TestAffiliateRepository_ListInvitersWithInvitees(t *testing.T) {
 		Search:   "capt",
 	})
 	require.NoError(t, err)
-	require.GreaterOrEqual(t, total, int64(1))
+	require.Equal(t, int64(1), total, "total should count inviters, not joined ledger rows")
 	require.NotEmpty(t, entries)
 
 	var matched *service.AffiliateInviterEntry

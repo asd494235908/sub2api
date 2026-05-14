@@ -35,6 +35,7 @@ func NewUserHandler(adminService service.AdminService, concurrencyService *servi
 // CreateUserRequest represents admin create user request
 type CreateUserRequest struct {
 	Email         string  `json:"email" binding:"required,email"`
+	PhoneNumber   string  `json:"phone_number"`
 	Password      string  `json:"password" binding:"required,min=6"`
 	Username      string  `json:"username"`
 	Notes         string  `json:"notes"`
@@ -48,6 +49,7 @@ type CreateUserRequest struct {
 // 使用指针类型来区分"未提供"和"设置为0"
 type UpdateUserRequest struct {
 	Email         string   `json:"email" binding:"omitempty,email"`
+	PhoneNumber   *string  `json:"phone_number"`
 	Password      string   `json:"password" binding:"omitempty,min=6"`
 	Username      *string  `json:"username"`
 	Notes         *string  `json:"notes"`
@@ -240,6 +242,7 @@ func (h *UserHandler) Create(c *gin.Context) {
 
 	user, err := h.adminService.CreateUser(c.Request.Context(), &service.CreateUserInput{
 		Email:         req.Email,
+		PhoneNumber:   req.PhoneNumber,
 		Password:      req.Password,
 		Username:      req.Username,
 		Notes:         req.Notes,
@@ -274,6 +277,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 	// 使用指针类型直接传递，nil 表示未提供该字段
 	user, err := h.adminService.UpdateUser(c.Request.Context(), userID, &service.UpdateUserInput{
 		Email:         req.Email,
+		PhoneNumber:   req.PhoneNumber,
 		Password:      req.Password,
 		Username:      req.Username,
 		Notes:         req.Notes,

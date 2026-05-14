@@ -81,6 +81,55 @@
           </div>
         </div>
 
+        <div>
+          <label for="phone_number" class="input-label">
+            {{ t('auth.phoneLabel') }}
+          </label>
+          <div class="relative">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+              <Icon name="chat" size="md" class="text-gray-400 dark:text-dark-500" />
+            </div>
+            <input
+              id="phone_number"
+              v-model="formData.phone_number"
+              type="tel"
+              required
+              autocomplete="tel"
+              :disabled="isLoading"
+              class="input pl-11"
+              :class="{ 'input-error': errors.phone_number }"
+              :placeholder="t('auth.phonePlaceholder')"
+            />
+          </div>
+        </div>
+
+        <div v-if="phoneVerifyEnabled">
+          <label for="phone_verify_code" class="input-label">
+            {{ t('auth.smsCodeLabel') }}
+          </label>
+          <div class="flex gap-3">
+            <input
+              id="phone_verify_code"
+              v-model="formData.phone_verify_code"
+              type="text"
+              inputmode="numeric"
+              maxlength="6"
+              :disabled="isLoading"
+              class="input flex-1"
+              :class="{ 'input-error': errors.phone_verify_code }"
+              :placeholder="t('auth.smsCodePlaceholder')"
+            />
+            <button
+              type="button"
+              class="btn btn-secondary whitespace-nowrap"
+              :disabled="sendingPhoneVerifyCode || phoneVerifyCountdown > 0 || !formData.phone_number.trim()"
+              @click="sendPhoneVerifyCode"
+            >
+              {{ phoneVerifyCountdown > 0 ? `${phoneVerifyCountdown}s` : (sendingPhoneVerifyCode ? t('auth.sendingCode') : t('auth.sendCode')) }}
+            </button>
+          </div>
+        </div>
+
         <!-- Password Input -->
         <div>
           <label for="password" class="input-label">
@@ -285,6 +334,7 @@ import WechatOAuthSection from '@/components/auth/WechatOAuthSection.vue'
 import Icon from '@/components/icons/Icon.vue'
 import TurnstileWidget from '@/components/TurnstileWidget.vue'
 import { useAuthStore, useAppStore } from '@/stores'
+import { apiClient } from '@/api/client'
 import {
   getPublicSettings,
   isWeChatWebOAuthEnabled,
@@ -321,6 +371,7 @@ const showPassword = ref<boolean>(false)
 // Public settings
 const registrationEnabled = ref<boolean>(true)
 const emailVerifyEnabled = ref<boolean>(false)
+const phoneVerifyEnabled = ref<boolean>(false)
 const promoCodeEnabled = ref<boolean>(true)
 const invitationCodeEnabled = ref<boolean>(false)
 const turnstileEnabled = ref<boolean>(false)
@@ -357,6 +408,8 @@ let invitationValidateTimeout: ReturnType<typeof setTimeout> | null = null
 
 const formData = reactive({
   email: '',
+  phone_number: '',
+  phone_verify_code: '',
   password: '',
   promo_code: '',
   invitation_code: '',
@@ -365,6 +418,8 @@ const formData = reactive({
 
 const errors = reactive({
   email: '',
+  phone_number: '',
+  phone_verify_code: '',
   password: '',
   turnstile: '',
   invitation_code: ''
@@ -372,6 +427,8 @@ const errors = reactive({
 
 const validationToastMessage = computed(() =>
   errors.email ||
+  errors.phone_number ||
+  errors.phone_verify_code ||
   errors.password ||
   (invitationValidation.invalid ? invitationValidation.message : '') ||
   errors.invitation_code ||
@@ -403,6 +460,7 @@ onMounted(async () => {
     const settings = await getPublicSettings()
     registrationEnabled.value = settings.registration_enabled
     emailVerifyEnabled.value = settings.email_verify_enabled
+    phoneVerifyEnabled.value = settings.phone_verify_enabled === true
     promoCodeEnabled.value = settings.promo_code_enabled
     invitationCodeEnabled.value = settings.invitation_code_enabled
     turnstileEnabled.value = settings.turnstile_enabled
@@ -571,6 +629,71 @@ async function validateInvitationCodeDebounced(code: string): Promise<void> {
   }
 }
 
+async function sendPhoneVerifyCode(): Promise<void> {
+  if (!formData.phone_number.trim() || sendingPhoneVerifyCode.value || phoneVerifyCountdown.value > 0) return
+  sendingPhoneVerifyCode.value = true
+  try {
+    const { data } = await apiClient.post<{ countdown: number }>('/auth/send-verify-code', {
+      phone_number: formData.phone_number,
+      purpose: 'register',
+      turnstile_token: turnstileEnabled.value ? turnstileToken.value : undefined
+    })
+    startPhoneVerifyCountdown(data.countdown || 60)
+    appStore.showSuccess(t('auth.smsCodeSentSuccess'))
+  } catch (error: unknown) {
+    const message = buildAuthErrorMessage(error, {
+      fallback: t('auth.sendCodeFailed'),
+      phoneExistsMessage: t('auth.phoneAlreadyRegistered')
+    })
+    const cooldown = extractVerifyCodeCooldown(error)
+    if (cooldown !== null) {
+      startPhoneVerifyCountdown(cooldown)
+    }
+    appStore.showError(message)
+  } finally {
+    sendingPhoneVerifyCode.value = false
+  }
+}
+
+const sendingPhoneVerifyCode = ref(false)
+const phoneVerifyCountdown = ref(0)
+let phoneVerifyCountdownTimer: ReturnType<typeof setInterval> | null = null
+
+function startPhoneVerifyCountdown(seconds: number): void {
+  phoneVerifyCountdown.value = Math.max(0, seconds)
+  if (phoneVerifyCountdownTimer) {
+    clearInterval(phoneVerifyCountdownTimer)
+    phoneVerifyCountdownTimer = null
+  }
+  if (phoneVerifyCountdown.value <= 0) {
+    return
+  }
+  phoneVerifyCountdownTimer = setInterval(() => {
+    if (phoneVerifyCountdown.value <= 1) {
+      phoneVerifyCountdown.value = 0
+      if (phoneVerifyCountdownTimer) {
+        clearInterval(phoneVerifyCountdownTimer)
+        phoneVerifyCountdownTimer = null
+      }
+      return
+    }
+    phoneVerifyCountdown.value -= 1
+  }, 1000)
+}
+
+function extractVerifyCodeCooldown(error: unknown): number | null {
+  const responseData = (error as { response?: { data?: { reason?: string; metadata?: Record<string, string> } } })?.response?.data
+  if (responseData?.reason !== 'VERIFY_CODE_TOO_FREQUENT') {
+    return null
+  }
+  const countdownRaw = responseData.metadata?.countdown
+  if (!countdownRaw) {
+    return null
+  }
+  const countdown = Number.parseInt(countdownRaw, 10)
+  return Number.isFinite(countdown) && countdown > 0 ? countdown : null
+}
+
 function getInvitationErrorMessage(errorCode?: string): string {
   switch (errorCode) {
     case 'INVITATION_CODE_NOT_FOUND':
@@ -626,6 +749,8 @@ function buildEmailSuffixNotAllowedMessage(): string {
 function validateForm(): boolean {
   // Reset errors
   errors.email = ''
+  errors.phone_number = ''
+  errors.phone_verify_code = ''
   errors.password = ''
   errors.turnstile = ''
   errors.invitation_code = ''
@@ -643,6 +768,15 @@ function validateForm(): boolean {
     !isRegistrationEmailSuffixAllowed(formData.email, registrationEmailSuffixWhitelist.value)
   ) {
     errors.email = buildEmailSuffixNotAllowedMessage()
+    isValid = false
+  }
+
+  if (!formData.phone_number.trim()) {
+    errors.phone_number = t('auth.phoneRequired')
+    isValid = false
+  }
+  if (phoneVerifyEnabled.value && !formData.phone_verify_code.trim()) {
+    errors.phone_verify_code = t('auth.smsCodeRequired')
     isValid = false
   }
 
@@ -736,6 +870,8 @@ async function handleRegister(): Promise<void> {
         'register_data',
         JSON.stringify({
           email: formData.email,
+          phone_number: formData.phone_number,
+          phone_verify_code: formData.phone_verify_code || undefined,
           password: formData.password,
           turnstile_token: turnstileToken.value,
           promo_code: formData.promo_code || undefined,
@@ -752,6 +888,8 @@ async function handleRegister(): Promise<void> {
     // Otherwise, directly register
     await authStore.register({
       email: formData.email,
+      phone_number: formData.phone_number,
+      phone_verify_code: formData.phone_verify_code || undefined,
       password: formData.password,
       turnstile_token: turnstileEnabled.value ? turnstileToken.value : undefined,
       promo_code: formData.promo_code || undefined,

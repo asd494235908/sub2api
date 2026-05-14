@@ -105,6 +105,7 @@ func (m *mockUserRepo) GetByID(ctx context.Context, _ int64) (*User, error) {
 	return &User{}, nil
 }
 func (m *mockUserRepo) GetByEmail(context.Context, string) (*User, error) { return &User{}, nil }
+func (m *mockUserRepo) GetByPhone(context.Context, string) (*User, error) { return &User{}, nil }
 func (m *mockUserRepo) GetFirstAdmin(context.Context) (*User, error)      { return &User{}, nil }
 func (m *mockUserRepo) Update(ctx context.Context, user *User) error {
 	m.updateCalls++
@@ -775,6 +776,12 @@ func TestUpdateProfile_StoresRemoteAvatarURL(t *testing.T) {
 	require.Equal(t, remoteURL, updated.AvatarURL)
 	require.Equal(t, "remote_url", updated.AvatarSource)
 	require.Zero(t, updated.AvatarByteSize)
+}
+
+func TestNormalizePhoneNumber(t *testing.T) {
+	require.Equal(t, "+8613800138000", NormalizePhoneNumber("  138-0013-8000  ", "86"))
+	require.Equal(t, "+15551234567", NormalizePhoneNumber("+1 (555) 123-4567", "1"))
+	require.Equal(t, "", NormalizePhoneNumber("abc", "86"))
 }
 
 func TestUpdateProfile_DeletesAvatarOnEmptyString(t *testing.T) {

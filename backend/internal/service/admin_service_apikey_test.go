@@ -39,6 +39,9 @@ func (s *userRepoStubForGroupUpdate) GetByID(context.Context, int64) (*User, err
 func (s *userRepoStubForGroupUpdate) GetByEmail(context.Context, string) (*User, error) {
 	panic("unexpected")
 }
+func (s *userRepoStubForGroupUpdate) GetByPhone(context.Context, string) (*User, error) {
+	panic("unexpected")
+}
 func (s *userRepoStubForGroupUpdate) GetFirstAdmin(context.Context) (*User, error) {
 	panic("unexpected")
 }

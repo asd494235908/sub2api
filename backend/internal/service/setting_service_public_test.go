@@ -19,7 +19,10 @@ func (s *settingPublicRepoStub) Get(ctx context.Context, key string) (*Setting, 
 }
 
 func (s *settingPublicRepoStub) GetValue(ctx context.Context, key string) (string, error) {
-	panic("unexpected GetValue call")
+	if value, ok := s.values[key]; ok {
+		return value, nil
+	}
+	return "", ErrSettingNotFound
 }
 
 func (s *settingPublicRepoStub) Set(ctx context.Context, key, value string) error {
@@ -37,7 +40,13 @@ func (s *settingPublicRepoStub) GetMultiple(ctx context.Context, keys []string) 
 }
 
 func (s *settingPublicRepoStub) SetMultiple(ctx context.Context, settings map[string]string) error {
-	panic("unexpected SetMultiple call")
+	if s.values == nil {
+		s.values = map[string]string{}
+	}
+	for key, value := range settings {
+		s.values[key] = value
+	}
+	return nil
 }
 
 func (s *settingPublicRepoStub) GetAll(ctx context.Context) (map[string]string, error) {
@@ -46,6 +55,35 @@ func (s *settingPublicRepoStub) GetAll(ctx context.Context) (map[string]string, 
 
 func (s *settingPublicRepoStub) Delete(ctx context.Context, key string) error {
 	panic("unexpected Delete call")
+}
+
+func TestSettingService_InitializeDefaultSettings_BackfillsMissingPhoneAndSMSDefaults(t *testing.T) {
+	repo := &settingPublicRepoStub{
+		values: map[string]string{
+			SettingKeyRegistrationEnabled: "false",
+			SettingKeyEmailVerifyEnabled:  "true",
+		},
+	}
+	svc := NewSettingService(repo, &config.Config{
+		Default: config.DefaultConfig{
+			UserConcurrency: 5,
+			UserBalance:     0,
+		},
+	})
+
+	err := svc.InitializeDefaultSettings(context.Background())
+	require.NoError(t, err)
+
+	require.Equal(t, "false", repo.values[SettingKeyPhoneVerifyEnabled])
+	require.Equal(t, "false", repo.values[SettingKeySMSIHuyiEnabled])
+	require.Equal(t, "", repo.values[SettingKeySMSIHuyiAPIID])
+	require.Equal(t, "", repo.values[SettingKeySMSIHuyiAPIKey])
+	require.Equal(t, "309190", repo.values[SettingKeySMSIHuyiTemplateID])
+	require.Equal(t, "false", repo.values[SettingKeyWeeklyQuotaEnabled])
+	require.Equal(t, "0", repo.values[SettingKeyWeeklyQuotaAmount])
+
+	require.Equal(t, "false", repo.values[SettingKeyRegistrationEnabled])
+	require.Equal(t, "true", repo.values[SettingKeyEmailVerifyEnabled])
 }
 
 func TestSettingService_GetPublicSettings_ExposesRegistrationEmailSuffixWhitelist(t *testing.T) {
@@ -89,6 +127,81 @@ func TestSettingService_GetPublicSettings_ExposesForceEmailOnThirdPartySignup(t 
 	settings, err := svc.GetPublicSettings(context.Background())
 	require.NoError(t, err)
 	require.True(t, settings.ForceEmailOnThirdPartySignup)
+}
+
+func TestSettingService_GetPublicSettings_ExposesHomepageContactFields(t *testing.T) {
+	repo := &settingPublicRepoStub{
+		values: map[string]string{
+			SettingKeyQQGroup:       "123456789",
+			SettingKeyWeChatContact: "sub2api_support",
+		},
+	}
+	svc := NewSettingService(repo, &config.Config{})
+
+	settings, err := svc.GetPublicSettings(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, "123456789", settings.QQGroup)
+	require.Equal(t, "sub2api_support", settings.WeChatContact)
+}
+
+func TestSettingService_GetPublicSettings_ExposesDefaultHomeLinks(t *testing.T) {
+	repo := &settingPublicRepoStub{values: map[string]string{}}
+	svc := NewSettingService(repo, &config.Config{})
+
+	settings, err := svc.GetPublicSettings(context.Background())
+	require.NoError(t, err)
+	require.JSONEq(t, defaultHomeLinksJSON, settings.HomeLinks)
+}
+
+func TestSettingService_GetPublicSettings_ExposesConfiguredHomeLinks(t *testing.T) {
+	repo := &settingPublicRepoStub{
+		values: map[string]string{
+			SettingKeyHomeLinks: `[
+				{"id":"custom-b","label":"B","url":"https://b.example.com","enabled":false,"sort_order":9},
+				{"id":"custom-a","label":"A","url":"https://a.example.com","enabled":true,"sort_order":2}
+			]`,
+		},
+	}
+	svc := NewSettingService(repo, &config.Config{})
+
+	settings, err := svc.GetPublicSettings(context.Background())
+	require.NoError(t, err)
+	require.JSONEq(t, `[
+		{"id":"custom-a","label":"A","url":"https://a.example.com","enabled":true,"sort_order":0},
+		{"id":"custom-b","label":"B","url":"https://b.example.com","enabled":false,"sort_order":1}
+	]`, settings.HomeLinks)
+}
+
+func TestSettingService_GetPublicSettings_ExposesPhoneVerifyEnabled(t *testing.T) {
+	repo := &settingPublicRepoStub{
+		values: map[string]string{
+			SettingKeyPhoneVerifyEnabled: "true",
+		},
+	}
+	svc := NewSettingService(repo, &config.Config{})
+
+	settings, err := svc.GetPublicSettings(context.Background())
+	require.NoError(t, err)
+	require.True(t, settings.PhoneVerifyEnabled)
+}
+
+func TestSettingService_GetPublicSettings_ExposesWeeklyQuotaEnabled(t *testing.T) {
+	repo := &settingPublicRepoStub{
+		values: map[string]string{
+			SettingKeyWeeklyQuotaEnabled: "true",
+			SettingKeyWeeklyQuotaAmount:  "18.88",
+		},
+	}
+	svc := NewSettingService(repo, &config.Config{})
+
+	settings, err := svc.GetPublicSettings(context.Background())
+	require.NoError(t, err)
+	require.True(t, settings.WeeklyQuotaEnabled)
+
+	all, err := svc.GetAllSettings(context.Background())
+	require.NoError(t, err)
+	require.True(t, all.WeeklyQuotaEnabled)
+	require.Equal(t, 18.88, all.WeeklyQuotaAmount)
 }
 
 func TestSettingService_GetPublicSettings_ExposesWeChatOAuthModeCapabilities(t *testing.T) {

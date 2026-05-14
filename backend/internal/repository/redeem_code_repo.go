@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -271,6 +273,57 @@ func (r *redeemCodeRepository) ListByUserPaginated(ctx context.Context, userID i
 	return redeemCodeEntitiesToService(codes), paginationResultFromTotal(int64(total), params), nil
 }
 
+func (r *redeemCodeRepository) ListUserActivity(ctx context.Context, userID int64, limit int) ([]service.RedeemHistoryItem, error) {
+	redeemCodes, err := r.ListByUser(ctx, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]service.RedeemHistoryItem, 0, len(redeemCodes)+4)
+	for i := range redeemCodes {
+		code := redeemCodes[i]
+		items = append(items, service.RedeemHistoryItem{
+			ID:           code.ID,
+			Code:         code.Code,
+			Type:         code.Type,
+			Value:        code.Value,
+			Status:       code.Status,
+			UsedBy:       code.UsedBy,
+			UsedAt:       code.UsedAt,
+			Notes:        code.Notes,
+			CreatedAt:    code.CreatedAt,
+			GroupID:      code.GroupID,
+			ValidityDays: code.ValidityDays,
+			User:         code.User,
+			Group:        code.Group,
+			Source:       "redeem_code",
+		})
+	}
+
+	sessions, err := r.listLuckyWheelRewardHistory(ctx, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	items = append(items, sessions...)
+
+	sort.Slice(items, func(i, j int) bool {
+		left := items[i].CreatedAt
+		right := items[j].CreatedAt
+		if items[i].UsedAt != nil {
+			left = *items[i].UsedAt
+		}
+		if items[j].UsedAt != nil {
+			right = *items[j].UsedAt
+		}
+		return left.After(right)
+	})
+
+	if limit > 0 && len(items) > limit {
+		items = items[:limit]
+	}
+	return items, nil
+}
+
 // SumPositiveBalanceByUser returns total recharged amount (sum of value > 0 where type is balance/admin_balance).
 func (r *redeemCodeRepository) SumPositiveBalanceByUser(ctx context.Context, userID int64) (float64, error) {
 	var result []struct {
@@ -319,6 +372,57 @@ func redeemCodeEntityToService(m *dbent.RedeemCode) *service.RedeemCode {
 	return out
 }
 
+func (r *redeemCodeRepository) listLuckyWheelRewardHistory(ctx context.Context, userID int64, limit int) ([]service.RedeemHistoryItem, error) {
+	execCtx := r.client
+	query := `
+SELECT id, source_order_id, settled_bonus_amount, settled_at, created_at, matched_tier_name
+FROM lucky_wheel_sessions
+WHERE user_id = ? AND settled = ? AND settled_bonus_amount IS NOT NULL AND settled_bonus_amount > 0
+ORDER BY settled_at DESC, id DESC
+LIMIT ?`
+	query = redeemCodeBindVars(r.client.Driver().Dialect(), query)
+	rows, err := execCtx.QueryContext(ctx, query, userID, true, limit)
+	if err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "lucky_wheel_sessions") && strings.Contains(strings.ToLower(err.Error()), "does not exist") {
+			return nil, nil
+		}
+		if strings.Contains(strings.ToLower(err.Error()), "no such table") {
+			return nil, nil
+		}
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]service.RedeemHistoryItem, 0)
+	for rows.Next() {
+		var (
+			id            int64
+			sourceOrderID int64
+			value         float64
+			usedAt        time.Time
+			createdAt     time.Time
+			tierName      string
+		)
+		if err := rows.Scan(&id, &sourceOrderID, &value, &usedAt, &createdAt, &tierName); err != nil {
+			return nil, err
+		}
+		usedAtCopy := usedAt
+		items = append(items, service.RedeemHistoryItem{
+			ID:        id,
+			Code:      "LUCKY-" + strconv.FormatInt(sourceOrderID, 10),
+			Type:      "lucky_wheel_bonus",
+			Value:     value,
+			Status:    service.StatusUsed,
+			UsedBy:    &userID,
+			UsedAt:    &usedAtCopy,
+			CreatedAt: createdAt,
+			Source:    "lucky_wheel",
+			Title:     tierName,
+		})
+	}
+	return items, rows.Err()
+}
+
 func redeemCodeEntitiesToService(models []*dbent.RedeemCode) []service.RedeemCode {
 	out := make([]service.RedeemCode, 0, len(models))
 	for i := range models {
@@ -327,4 +431,21 @@ func redeemCodeEntitiesToService(models []*dbent.RedeemCode) []service.RedeemCod
 		}
 	}
 	return out
+}
+
+func redeemCodeBindVars(dialectName, query string) string {
+	if dialectName != "postgres" {
+		return query
+	}
+	var out strings.Builder
+	index := 1
+	for _, r := range query {
+		if r == '?' {
+			out.WriteString("$" + strconv.Itoa(index))
+			index++
+			continue
+		}
+		out.WriteRune(r)
+	}
+	return out.String()
 }
