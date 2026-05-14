@@ -34,6 +34,7 @@ func (h *SettingHandler) GetPublicSettings(c *gin.Context) {
 	response.Success(c, dto.PublicSettings{
 		RegistrationEnabled:              settings.RegistrationEnabled,
 		EmailVerifyEnabled:               settings.EmailVerifyEnabled,
+		PhoneVerifyEnabled:               settings.PhoneVerifyEnabled,
 		ForceEmailOnThirdPartySignup:     settings.ForceEmailOnThirdPartySignup,
 		RegistrationEmailSuffixWhitelist: settings.RegistrationEmailSuffixWhitelist,
 		PromoCodeEnabled:                 settings.PromoCodeEnabled,
@@ -52,7 +53,10 @@ func (h *SettingHandler) GetPublicSettings(c *gin.Context) {
 		SiteSubtitle:                     settings.SiteSubtitle,
 		APIBaseURL:                       settings.APIBaseURL,
 		ContactInfo:                      settings.ContactInfo,
+		QQGroup:                          settings.QQGroup,
+		WeChatContact:                    settings.WeChatContact,
 		DocURL:                           settings.DocURL,
+		HomeLinks:                        dto.ParseHomeLinks(settings.HomeLinks),
 		HomeContent:                      settings.HomeContent,
 		HideCcsImportButton:              settings.HideCcsImportButton,
 		PurchaseSubscriptionEnabled:      settings.PurchaseSubscriptionEnabled,

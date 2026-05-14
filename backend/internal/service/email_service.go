@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"math"
 	"math/big"
 	"net"
 	"net/smtp"
@@ -34,6 +35,9 @@ type EmailCache interface {
 	GetVerificationCode(ctx context.Context, email string) (*VerificationCodeData, error)
 	SetVerificationCode(ctx context.Context, email string, data *VerificationCodeData, ttl time.Duration) error
 	DeleteVerificationCode(ctx context.Context, email string) error
+	GetPhoneVerificationCode(ctx context.Context, phoneNumber string) (*VerificationCodeData, error)
+	SetPhoneVerificationCode(ctx context.Context, phoneNumber string, data *VerificationCodeData, ttl time.Duration) error
+	DeletePhoneVerificationCode(ctx context.Context, phoneNumber string) error
 
 	// Notify email verification code methods
 	GetNotifyVerifyCode(ctx context.Context, email string) (*VerificationCodeData, error)
@@ -300,43 +304,86 @@ func (s *EmailService) GenerateVerifyCode() (string, error) {
 	return string(code), nil
 }
 
-// SendVerifyCode 发送验证码邮件
-func (s *EmailService) SendVerifyCode(ctx context.Context, email, siteName string) error {
-	// 检查是否在冷却期内
+func verifyCodeCooldownRemaining(data *VerificationCodeData, now time.Time) int {
+	if data == nil {
+		return 0
+	}
+	elapsed := now.Sub(data.CreatedAt)
+	remaining := verifyCodeCooldown - elapsed
+	if remaining <= 0 {
+		return 0
+	}
+	return int(math.Ceil(remaining.Seconds()))
+}
+
+func verifyCodeTooFrequentError(remainingSeconds int) error {
+	if remainingSeconds <= 0 {
+		return ErrVerifyCodeTooFrequent
+	}
+	return ErrVerifyCodeTooFrequent.WithMetadata(map[string]string{
+		"countdown": strconv.Itoa(remainingSeconds),
+	})
+}
+
+func (s *EmailService) GetVerifyCodeCooldownRemaining(ctx context.Context, email string) (int, error) {
+	if s == nil || s.cache == nil {
+		return 0, nil
+	}
+	existing, err := s.cache.GetVerificationCode(ctx, email)
+	if err != nil || existing == nil {
+		return 0, nil
+	}
+	return verifyCodeCooldownRemaining(existing, time.Now()), nil
+}
+
+func (s *EmailService) PrepareVerifyCode(ctx context.Context, email string) (string, int, error) {
+	if s == nil || s.cache == nil {
+		return "", 0, ErrEmailNotConfigured
+	}
+
 	existing, err := s.cache.GetVerificationCode(ctx, email)
 	if err == nil && existing != nil {
-		if time.Since(existing.CreatedAt) < verifyCodeCooldown {
-			return ErrVerifyCodeTooFrequent
+		remaining := verifyCodeCooldownRemaining(existing, time.Now())
+		if remaining > 0 {
+			return "", remaining, verifyCodeTooFrequentError(remaining)
 		}
 	}
 
-	// 生成验证码
 	code, err := s.GenerateVerifyCode()
 	if err != nil {
-		return fmt.Errorf("generate code: %w", err)
+		return "", 0, fmt.Errorf("generate code: %w", err)
 	}
 
-	// 保存验证码到 Redis
+	now := time.Now()
 	data := &VerificationCodeData{
 		Code:      code,
 		Attempts:  0,
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().Add(verifyCodeTTL),
+		CreatedAt: now,
+		ExpiresAt: now.Add(verifyCodeTTL),
 	}
 	if err := s.cache.SetVerificationCode(ctx, email, data, verifyCodeTTL); err != nil {
-		return fmt.Errorf("save verify code: %w", err)
+		return "", 0, fmt.Errorf("save verify code: %w", err)
 	}
 
-	// 构建邮件内容
+	return code, int(verifyCodeCooldown / time.Second), nil
+}
+
+func (s *EmailService) SendVerifyCodeEmail(ctx context.Context, email, siteName, code string) error {
 	subject := fmt.Sprintf("[%s] Email Verification Code", siteName)
 	body := s.buildVerifyCodeEmailBody(code, siteName)
-
-	// 发送邮件
 	if err := s.SendEmail(ctx, email, subject, body); err != nil {
 		return fmt.Errorf("send email: %w", err)
 	}
-
 	return nil
+}
+
+// SendVerifyCode 发送验证码邮件
+func (s *EmailService) SendVerifyCode(ctx context.Context, email, siteName string) error {
+	code, _, err := s.PrepareVerifyCode(ctx, email)
+	if err != nil {
+		return err
+	}
+	return s.SendVerifyCodeEmail(ctx, email, siteName, code)
 }
 
 // VerifyCode 验证验证码

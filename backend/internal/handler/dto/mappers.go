@@ -15,6 +15,7 @@ func UserFromServiceShallow(u *service.User) *User {
 	return &User{
 		ID:                         u.ID,
 		Email:                      u.Email,
+		PhoneNumber:                u.PhoneNumber,
 		Username:                   u.Username,
 		Role:                       u.Role,
 		Balance:                    u.Balance,
@@ -507,6 +508,65 @@ func RedeemCodeFromService(rc *service.RedeemCode) *RedeemCode {
 	}
 	out := redeemCodeFromServiceBase(rc)
 	return &out
+}
+
+func RedeemHistoryItemFromService(item *service.RedeemHistoryItem) *RedeemHistoryItem {
+	if item == nil {
+		return nil
+	}
+	base := redeemCodeFromServiceBase(&service.RedeemCode{
+		ID:           item.ID,
+		Code:         item.Code,
+		Type:         item.Type,
+		Value:        item.Value,
+		Status:       item.Status,
+		UsedBy:       item.UsedBy,
+		UsedAt:       item.UsedAt,
+		Notes:        item.Notes,
+		CreatedAt:    item.CreatedAt,
+		GroupID:      item.GroupID,
+		ValidityDays: item.ValidityDays,
+		User:         item.User,
+		Group:        item.Group,
+	})
+	return &RedeemHistoryItem{
+		RedeemCode: base,
+		Source:     item.Source,
+		Title:      item.Title,
+	}
+}
+
+func WeeklyQuotaInfoFromService(info *service.WeeklyQuotaInfo) *WeeklyQuotaInfo {
+	if info == nil {
+		return nil
+	}
+	return &WeeklyQuotaInfo{
+		Enabled:          info.Enabled,
+		Amount:           info.Amount,
+		Status:           info.Status,
+		WindowStartedAt:  info.WindowStartedAt,
+		WindowEndsAt:     info.WindowEndsAt,
+		ClaimedAt:        info.ClaimedAt,
+		NextClaimAt:      info.NextClaimAt,
+		TotalClaimCount:  info.TotalClaimCount,
+		TotalClaimAmount: info.TotalClaimAmount,
+	}
+}
+
+func WeeklyQuotaClaimResultFromService(result *service.WeeklyQuotaClaimResult) *WeeklyQuotaClaimResult {
+	if result == nil {
+		return nil
+	}
+	return &WeeklyQuotaClaimResult{
+		Message:         result.Message,
+		Type:            result.Type,
+		Value:           result.Value,
+		NewBalance:      result.NewBalance,
+		ClaimedAt:       result.ClaimedAt,
+		WindowStartedAt: result.WindowStartedAt,
+		WindowEndsAt:    result.WindowEndsAt,
+		NextClaimAt:     result.NextClaimAt,
+	}
 }
 
 // RedeemCodeFromServiceAdmin converts a service RedeemCode to DTO for admin users.

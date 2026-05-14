@@ -13,6 +13,7 @@ import (
 
 const (
 	verifyCodeKeyPrefix          = "verify_code:"
+	phoneVerifyCodeKeyPrefix     = "phone_verify_code:"
 	notifyVerifyKeyPrefix        = "notify_verify:"
 	passwordResetKeyPrefix       = "password_reset:"
 	passwordResetSentAtKeyPrefix = "password_reset_sent:"
@@ -23,6 +24,10 @@ const (
 // Email is lowercased for case-insensitive consistency.
 func verifyCodeKey(email string) string {
 	return verifyCodeKeyPrefix + strings.ToLower(email)
+}
+
+func phoneVerifyCodeKey(phoneNumber string) string {
+	return phoneVerifyCodeKeyPrefix + strings.TrimSpace(phoneNumber)
 }
 
 // notifyVerifyKey generates the Redis key for notify email verification code.
@@ -74,6 +79,33 @@ func (c *emailCache) SetVerificationCode(ctx context.Context, email string, data
 
 func (c *emailCache) DeleteVerificationCode(ctx context.Context, email string) error {
 	key := verifyCodeKey(email)
+	return c.rdb.Del(ctx, key).Err()
+}
+
+func (c *emailCache) GetPhoneVerificationCode(ctx context.Context, phoneNumber string) (*service.VerificationCodeData, error) {
+	key := phoneVerifyCodeKey(phoneNumber)
+	val, err := c.rdb.Get(ctx, key).Result()
+	if err != nil {
+		return nil, err
+	}
+	var data service.VerificationCodeData
+	if err := json.Unmarshal([]byte(val), &data); err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
+func (c *emailCache) SetPhoneVerificationCode(ctx context.Context, phoneNumber string, data *service.VerificationCodeData, ttl time.Duration) error {
+	key := phoneVerifyCodeKey(phoneNumber)
+	val, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	return c.rdb.Set(ctx, key, val, ttl).Err()
+}
+
+func (c *emailCache) DeletePhoneVerificationCode(ctx context.Context, phoneNumber string) error {
+	key := phoneVerifyCodeKey(phoneNumber)
 	return c.rdb.Del(ctx, key).Err()
 }
 

@@ -24,6 +24,9 @@ func RegisterUserRoutes(
 		{
 			user.GET("/profile", h.User.GetProfile)
 			user.PUT("/password", h.User.ChangePassword)
+			user.POST("/password/send-phone-code", h.User.SendPhoneVerifyCode)
+			user.POST("/phone/send-code", h.User.SendPhoneBindingCode)
+			user.PUT("/phone", h.User.BindPhone)
 			user.PUT("", h.User.UpdateProfile)
 			user.GET("/aff", h.User.GetAffiliate)
 			user.POST("/aff/transfer", h.User.TransferAffiliateQuota)
@@ -101,6 +104,8 @@ func RegisterUserRoutes(
 		{
 			redeem.POST("", h.Redeem.Redeem)
 			redeem.GET("/history", h.Redeem.GetHistory)
+			redeem.GET("/weekly-quota", h.Redeem.GetWeeklyQuota)
+			redeem.POST("/weekly-quota/claim", h.Redeem.ClaimWeeklyQuota)
 		}
 
 		// 用户订阅

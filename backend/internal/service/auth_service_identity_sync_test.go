@@ -147,7 +147,7 @@ func TestAuthServiceRegisterDualWritesEmailIdentity(t *testing.T) {
 	}, nil)
 	ctx := context.Background()
 
-	token, user, err := svc.Register(ctx, "user@example.com", "password")
+	token, user, err := svc.Register(ctx, "user@example.com", "+8613800138000", "password")
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
 	require.NotNil(t, user)

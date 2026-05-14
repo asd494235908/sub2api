@@ -3,6 +3,10 @@ import { describe, expect, it, vi } from 'vitest'
 import ProfileInfoCard from '@/components/user/profile/ProfileInfoCard.vue'
 import type { User } from '@/types'
 
+const { localeState } = vi.hoisted(() => ({
+  localeState: { value: 'en' },
+}))
+
 vi.mock('vue-router', () => ({
   useRoute: () => ({
     fullPath: '/profile'
@@ -24,10 +28,24 @@ vi.mock('@/stores/app', () => ({
 
 vi.mock('vue-i18n', async (importOriginal) => {
   const actual = await importOriginal<typeof import('vue-i18n')>()
+  const messages = {
+    en: {
+      'profile.phoneBinding.currentPhoneValue': ({ phone }: Record<string, string>) => `Phone: ${phone}`,
+      'profile.phoneBinding.unbound': 'Phone: Not bound',
+    },
+    zh: {
+      'profile.phoneBinding.currentPhoneValue': ({ phone }: Record<string, string>) => `手机号：${phone}`,
+      'profile.phoneBinding.unbound': '手机号：未绑定',
+    },
+  }
   return {
     ...actual,
     useI18n: () => ({
+      locale: localeState,
       t: (key: string, params?: Record<string, string>) => {
+        const message = messages[localeState.value as keyof typeof messages]?.[key as keyof typeof messages.en]
+        if (typeof message === 'function') return message(params || {})
+        if (message) return message
         if (key === 'profile.accountBalance') return 'Account Balance'
         if (key === 'profile.concurrencyLimit') return 'Concurrency Limit'
         if (key === 'profile.memberSince') return 'Member Since'

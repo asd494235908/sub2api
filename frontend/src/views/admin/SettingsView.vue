@@ -1396,6 +1396,18 @@
                 <Toggle v-model="form.email_verify_enabled" />
               </div>
 
+              <div
+                class="flex items-center justify-between border-t border-gray-100 pt-4 dark:border-dark-700"
+              >
+                <div>
+                  <label class="font-medium text-gray-900 dark:text-white">手机验证</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">
+                    开启后支持手机号短信验证登录与安全校验。
+                  </p>
+                </div>
+                <Toggle v-model="form.phone_verify_enabled" />
+              </div>
+
               <!-- Email Suffix Whitelist -->
               <div class="border-t border-gray-100 pt-4 dark:border-dark-700">
                 <label class="font-medium text-gray-900 dark:text-white">{{
@@ -1643,6 +1655,52 @@
                     </p>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                互亿无线短信
+              </h2>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                用于手机号验证码发送。后台设置优先，环境变量作为兜底。
+              </p>
+            </div>
+            <div class="space-y-5 p-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="font-medium text-gray-900 dark:text-white">启用互亿短信</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">
+                    开启后手机号验证码将通过互亿无线发送。
+                  </p>
+                </div>
+                <Toggle v-model="form.sms_ihuyi_enabled" />
+              </div>
+
+              <div class="border-t border-gray-100 pt-4 dark:border-dark-700">
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  APIID
+                </label>
+                <input v-model="form.sms_ihuyi_api_id" type="text" class="input" />
+              </div>
+
+              <div class="border-t border-gray-100 pt-4 dark:border-dark-700">
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  APIKEY
+                </label>
+                <input v-model="form.sms_ihuyi_api_key" type="password" class="input" />
+                <p v-if="form.sms_ihuyi_api_key_configured" class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  已配置 APIKEY，留空则保留现有值。
+                </p>
+              </div>
+
+              <div class="border-t border-gray-100 pt-4 dark:border-dark-700">
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  模板 ID
+                </label>
+                <input v-model="form.sms_ihuyi_template_id" type="text" class="input" />
               </div>
             </div>
           </div>
@@ -4297,6 +4355,133 @@
                 </p>
               </div>
 
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label
+                    class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{ t("admin.settings.site.qqGroup") }}
+                  </label>
+                  <input
+                    v-model="form.qq_group"
+                    type="text"
+                    class="input"
+                    :placeholder="t('admin.settings.site.qqGroupPlaceholder')"
+                  />
+                </div>
+                <div>
+                  <label
+                    class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{ t("admin.settings.site.wechatContact") }}
+                  </label>
+                  <input
+                    v-model="form.wechat_contact"
+                    type="text"
+                    class="input"
+                    :placeholder="t('admin.settings.site.wechatContactPlaceholder')"
+                  />
+                </div>
+              </div>
+              <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                {{ t("admin.settings.site.homepageContactHint") }}
+              </p>
+
+              <div>
+                <div class="mb-3 flex items-center justify-between gap-4">
+                  <div>
+                    <label
+                      class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
+                      {{ t("admin.settings.site.homeLinks.title") }}
+                    </label>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t("admin.settings.site.homeLinks.hint") }}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-secondary text-sm"
+                    @click="addHomeLink"
+                  >
+                    {{ t("admin.settings.site.homeLinks.add") }}
+                  </button>
+                </div>
+
+                <div class="space-y-3">
+                  <div
+                    v-for="(item, index) in form.home_links"
+                    :key="item.id || index"
+                    class="rounded-lg border border-gray-200 p-4 dark:border-dark-600"
+                  >
+                    <div class="mb-3 flex items-center justify-between gap-3">
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {{ t("admin.settings.site.homeLinks.itemLabel", { n: index + 1 }) }}
+                      </span>
+                      <div class="flex items-center gap-2">
+                        <Toggle v-model="item.enabled" />
+                        <button
+                          v-if="index > 0"
+                          type="button"
+                          class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-dark-700"
+                          :title="t('admin.settings.customMenu.moveUp')"
+                          @click="moveHomeLink(index, -1)"
+                        >
+                          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+                          </svg>
+                        </button>
+                        <button
+                          v-if="index < form.home_links.length - 1"
+                          type="button"
+                          class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-dark-700"
+                          :title="t('admin.settings.customMenu.moveDown')"
+                          @click="moveHomeLink(index, 1)"
+                        >
+                          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          class="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                          :title="t('admin.settings.site.homeLinks.remove')"
+                          @click="removeHomeLink(index)"
+                        >
+                          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="grid gap-3 sm:grid-cols-[0.8fr_1.4fr]">
+                      <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                          {{ t("admin.settings.site.homeLinks.label") }}
+                        </label>
+                        <input
+                          v-model="item.label"
+                          type="text"
+                          class="input text-sm"
+                          :placeholder="t('admin.settings.site.homeLinks.labelPlaceholder')"
+                        />
+                      </div>
+                      <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                          {{ t("admin.settings.site.homeLinks.url") }}
+                        </label>
+                        <input
+                          v-model="item.url"
+                          type="url"
+                          class="input font-mono text-sm"
+                          :placeholder="t('admin.settings.site.homeLinks.urlPlaceholder')"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Doc URL -->
               <div>
                 <label
@@ -6549,6 +6734,7 @@ type SettingsForm = Omit<
   | "wechat_connect_mobile_enabled"
 > & {
   smtp_password: string;
+  sms_ihuyi_api_key: string;
   turnstile_secret_key: string;
   linuxdo_connect_client_secret: string;
   wechat_connect_app_secret: string;
@@ -6568,6 +6754,7 @@ type SettingsForm = Omit<
 const form = reactive<SettingsForm>({
   registration_enabled: true,
   email_verify_enabled: false,
+  phone_verify_enabled: false,
   registration_email_suffix_whitelist: [],
   promo_code_enabled: true,
   invitation_code_enabled: false,
@@ -6594,7 +6781,25 @@ const form = reactive<SettingsForm>({
   site_subtitle: "Subscription to API Conversion Platform",
   api_base_url: "",
   contact_info: "",
+  qq_group: "",
+  wechat_contact: "",
   doc_url: "",
+  home_links: [
+    {
+      id: "gpshop",
+      label: "格品购物",
+      url: "https://card.gepinkeji.com",
+      enabled: true,
+      sort_order: 0,
+    },
+    {
+      id: "gpci",
+      label: "格品生图",
+      url: "https://chat.gepinkeji.com/",
+      enabled: true,
+      sort_order: 1,
+    },
+  ],
   home_content: "",
   backend_mode_enabled: false,
   hide_ccs_import_button: false,
@@ -6639,6 +6844,11 @@ const form = reactive<SettingsForm>({
   smtp_port: 587,
   smtp_username: "",
   smtp_password: "",
+  sms_ihuyi_enabled: false,
+  sms_ihuyi_api_id: "",
+  sms_ihuyi_api_key: "",
+  sms_ihuyi_api_key_configured: false,
+  sms_ihuyi_template_id: "309190",
   smtp_password_configured: false,
   smtp_from_email: "",
   smtp_from_name: "",
@@ -6751,6 +6961,9 @@ const form = reactive<SettingsForm>({
   available_channels_enabled: false,
   // Affiliate (邀请返利) feature switch
   affiliate_enabled: false,
+  // Weekly quota feature switch
+  weekly_quota_enabled: false,
+  weekly_quota_amount: 0,
 });
 
 const authSourceDefaults = reactive<AuthSourceDefaultsState>(
@@ -7290,6 +7503,35 @@ function moveMenuItem(index: number, direction: -1 | 1) {
   });
 }
 
+function addHomeLink() {
+  form.home_links.push({
+    id: "",
+    label: "",
+    url: "",
+    enabled: true,
+    sort_order: form.home_links.length,
+  });
+}
+
+function removeHomeLink(index: number) {
+  form.home_links.splice(index, 1);
+  form.home_links.forEach((item, i) => {
+    item.sort_order = i;
+  });
+}
+
+function moveHomeLink(index: number, direction: -1 | 1) {
+  const targetIndex = index + direction;
+  if (targetIndex < 0 || targetIndex >= form.home_links.length) return;
+  const items = form.home_links;
+  const temp = items[index];
+  items[index] = items[targetIndex];
+  items[targetIndex] = temp;
+  items.forEach((item, i) => {
+    item.sort_order = i;
+  });
+}
+
 // Custom endpoint management
 function addEndpoint() {
   form.custom_endpoints.push({ name: "", endpoint: "", description: "" });
@@ -7409,6 +7651,7 @@ async function loadSettings() {
     );
     registrationEmailSuffixWhitelistDraft.value = "";
     form.smtp_password = "";
+    form.sms_ihuyi_api_key = "";
     smtpPasswordManuallyEdited.value = false;
     form.turnstile_secret_key = "";
     form.linuxdo_connect_client_secret = "";
@@ -7588,6 +7831,14 @@ async function saveSettings() {
       return;
     }
 
+    if (
+      form.weekly_quota_enabled &&
+      (!(Number(form.weekly_quota_amount) > 0) || Number.isNaN(Number(form.weekly_quota_amount)))
+    ) {
+      appStore.showError(t("admin.settings.features.weeklyQuota.amountRequired"));
+      return;
+    }
+
     const normalizedTablePageSizeOptions = parseTablePageSizeOptionsInput(
       tablePageSizeOptionsInput.value,
     );
@@ -7700,6 +7951,21 @@ async function saveSettings() {
     // Optional URL fields: auto-clear invalid values so they don't cause backend 400 errors
     if (!isValidHttpUrl(form.frontend_url)) form.frontend_url = "";
     if (!isValidHttpUrl(form.doc_url)) form.doc_url = "";
+    for (const item of form.home_links) {
+      item.label = item.label.trim();
+      item.url = item.url.trim();
+      if (!item.label) {
+        appStore.showError(t("admin.settings.site.homeLinks.labelRequired"));
+        return;
+      }
+      if (!isValidHttpUrl(item.url)) {
+        appStore.showError(t("admin.settings.site.homeLinks.urlInvalid"));
+        return;
+      }
+    }
+    form.home_links.forEach((item, index) => {
+      item.sort_order = index;
+    });
     syncWeChatConnectMode();
     const wechatStoredMode = deriveWeChatConnectStoredMode(
       form.wechat_connect_open_enabled,
@@ -7711,6 +7977,7 @@ async function saveSettings() {
     const payload: UpdateSettingsRequest = {
       registration_enabled: form.registration_enabled,
       email_verify_enabled: form.email_verify_enabled,
+      phone_verify_enabled: form.phone_verify_enabled,
       registration_email_suffix_whitelist:
         registrationEmailSuffixWhitelistTags.value.map(
           (suffix) => `@${suffix}`,
@@ -7742,7 +8009,10 @@ async function saveSettings() {
       site_subtitle: form.site_subtitle,
       api_base_url: form.api_base_url,
       contact_info: form.contact_info,
+      qq_group: form.qq_group,
+      wechat_contact: form.wechat_contact,
       doc_url: form.doc_url,
+      home_links: form.home_links,
       home_content: form.home_content,
       backend_mode_enabled: form.backend_mode_enabled,
       hide_ccs_import_button: form.hide_ccs_import_button,
@@ -7758,6 +8028,10 @@ async function saveSettings() {
       smtp_from_email: form.smtp_from_email,
       smtp_from_name: form.smtp_from_name,
       smtp_use_tls: form.smtp_use_tls,
+      sms_ihuyi_enabled: form.sms_ihuyi_enabled,
+      sms_ihuyi_api_id: form.sms_ihuyi_api_id,
+      sms_ihuyi_api_key: form.sms_ihuyi_api_key || undefined,
+      sms_ihuyi_template_id: form.sms_ihuyi_template_id,
       turnstile_enabled: form.turnstile_enabled,
       turnstile_site_key: form.turnstile_site_key,
       turnstile_secret_key: form.turnstile_secret_key || undefined,
@@ -7892,6 +8166,9 @@ async function saveSettings() {
         Number(form.channel_monitor_default_interval_seconds) || 60,
       // Available Channels feature switch
       available_channels_enabled: form.available_channels_enabled,
+      // Weekly quota feature switch
+      weekly_quota_enabled: form.weekly_quota_enabled,
+      weekly_quota_amount: Math.max(0, Number(form.weekly_quota_amount) || 0),
       // Affiliate (邀请返利) feature switch
       affiliate_enabled: form.affiliate_enabled,
     };
@@ -7932,6 +8209,9 @@ async function saveSettings() {
       if (value !== null && value !== undefined) {
         (form as Record<string, unknown>)[key] = value;
       }
+    }
+    if (!Array.isArray(updated.home_links)) {
+      form.home_links = [];
     }
     Object.assign(authSourceDefaults, buildAuthSourceDefaultsState(updated));
     registrationEmailSuffixWhitelistTags.value =

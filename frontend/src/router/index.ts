@@ -281,6 +281,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/lucky-wheel',
+    name: 'LuckyWheel',
+    component: () => import('@/views/user/LuckyWheelView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Lucky Wheel',
+      titleKey: 'nav.luckyWheel',
+      requiresPayment: true
+    }
+  },
+  {
     path: '/payment/qrcode',
     name: 'PaymentQRCode',
     component: () => import('@/views/user/PaymentQRCodeView.vue'),
@@ -628,6 +640,18 @@ const routes: RouteRecordRaw[] = [
       requiresAdmin: true,
       title: 'Subscription Plans',
       titleKey: 'nav.paymentPlans',
+      requiresPayment: true
+    }
+  },
+  {
+    path: '/admin/orders/lucky-wheel',
+    name: 'AdminLuckyWheel',
+    component: () => import('@/views/admin/orders/AdminLuckyWheelView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Lucky Wheel',
+      titleKey: 'nav.luckyWheelAdmin',
       requiresPayment: true
     }
   },

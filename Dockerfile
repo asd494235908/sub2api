@@ -3,7 +3,8 @@
 # =============================================================================
 # Stage 1: Build frontend
 # Stage 2: Build Go backend with embedded frontend
-# Stage 3: Final minimal image
+# Stage 3: PostgreSQL client
+# Stage 4: Final minimal image
 # =============================================================================
 
 ARG NODE_IMAGE=node:24-alpine

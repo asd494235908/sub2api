@@ -27,6 +27,12 @@ This directory contains files for deploying Sub2API on Linux servers.
 
 ---
 
+## 专项文档
+
+- [提示词归档部署与高并发验证指南](../docs/PROMPT_ARCHIVE_CN.md)
+
+---
+
 ## Docker Deployment (Recommended)
 
 ### Method 1: One-Click Deployment (Recommended)

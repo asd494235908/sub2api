@@ -117,6 +117,7 @@ type AdminService interface {
 // CreateUserInput represents input for creating a new user via admin operations.
 type CreateUserInput struct {
 	Email         string
+	PhoneNumber   string
 	Password      string
 	Username      string
 	Notes         string
@@ -128,6 +129,7 @@ type CreateUserInput struct {
 
 type UpdateUserInput struct {
 	Email         string
+	PhoneNumber   *string
 	Password      string
 	Username      *string
 	Notes         *string
@@ -663,6 +665,7 @@ func (s *adminServiceImpl) GetUser(ctx context.Context, id int64) (*User, error)
 func (s *adminServiceImpl) CreateUser(ctx context.Context, input *CreateUserInput) (*User, error) {
 	user := &User{
 		Email:         input.Email,
+		PhoneNumber:   NormalizePhoneNumber(input.PhoneNumber, "86"),
 		Username:      input.Username,
 		Notes:         input.Notes,
 		Role:          RoleUser, // Always create as regular user, never admin
@@ -726,6 +729,9 @@ func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *Upda
 
 	if input.Email != "" {
 		user.Email = input.Email
+	}
+	if input.PhoneNumber != nil {
+		user.PhoneNumber = NormalizePhoneNumber(*input.PhoneNumber, "86")
 	}
 	if input.Password != "" {
 		if err := user.SetPassword(input.Password); err != nil {

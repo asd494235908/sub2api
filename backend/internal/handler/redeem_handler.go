@@ -71,15 +71,51 @@ func (h *RedeemHandler) GetHistory(c *gin.Context) {
 	// Default limit is 25
 	limit := 25
 
-	codes, err := h.redeemService.GetUserHistory(c.Request.Context(), subject.UserID, limit)
+	items, err := h.redeemService.GetUserActivityHistory(c.Request.Context(), subject.UserID, limit)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
 	}
 
-	out := make([]dto.RedeemCode, 0, len(codes))
-	for i := range codes {
-		out = append(out, *dto.RedeemCodeFromService(&codes[i]))
+	out := make([]dto.RedeemHistoryItem, 0, len(items))
+	for i := range items {
+		out = append(out, *dto.RedeemHistoryItemFromService(&items[i]))
 	}
 	response.Success(c, out)
+}
+
+// GetWeeklyQuota returns the current user's weekly quota status and summary.
+// GET /api/v1/redeem/weekly-quota
+func (h *RedeemHandler) GetWeeklyQuota(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+
+	info, err := h.redeemService.GetWeeklyQuotaInfo(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, dto.WeeklyQuotaInfoFromService(info))
+}
+
+// ClaimWeeklyQuota claims the current user's weekly quota for the active window.
+// POST /api/v1/redeem/weekly-quota/claim
+func (h *RedeemHandler) ClaimWeeklyQuota(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+
+	result, err := h.redeemService.ClaimWeeklyQuota(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, dto.WeeklyQuotaClaimResultFromService(result))
 }

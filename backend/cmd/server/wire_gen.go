@@ -51,7 +51,10 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	settingRepository := repository.NewSettingRepository(client)
 	groupRepository := repository.NewGroupRepository(client, db)
 	proxyRepository := repository.NewProxyRepository(client, db)
-	settingService := service.ProvideSettingService(settingRepository, groupRepository, proxyRepository, configConfig)
+	settingService, err := provideInitializedSettingService(settingRepository, groupRepository, proxyRepository, configConfig)
+	if err != nil {
+		return nil, err
+	}
 	emailCache := repository.NewEmailCache(redisClient)
 	emailService := service.NewEmailService(settingRepository, emailCache)
 	turnstileVerifier := repository.NewTurnstileVerifier()
@@ -81,7 +84,11 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	}
 	totpCache := repository.NewTotpCache(redisClient)
 	totpService := service.NewTotpService(userRepository, secretEncryptor, totpCache, settingService, emailService, emailQueueService)
-	authHandler := handler.NewAuthHandler(configConfig, authService, userService, settingService, promoService, redeemService, totpService)
+	smsCache := service.ProvideSMSCache(emailCache)
+	smsService := service.ProvideSMSService(settingRepository, smsCache)
+	authService.SetSMSService(smsService)
+	userService.SetSMSService(smsService)
+	authHandler := handler.NewAuthHandler(configConfig, authService, userService, settingService, promoService, redeemService, totpService, smsService)
 	userHandler := handler.NewUserHandler(userService, authService, emailService, emailCache, affiliateService)
 	apiKeyHandler := handler.NewAPIKeyHandler(apiKeyService)
 	usageLogRepository := repository.NewUsageLogRepository(client, db)
@@ -282,6 +289,14 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 type Application struct {
 	Server  *http.Server
 	Cleanup func()
+}
+
+func provideInitializedSettingService(settingRepo service.SettingRepository, groupRepo service.GroupRepository, proxyRepo service.ProxyRepository, cfg *config.Config) (*service.SettingService, error) {
+	svc := service.ProvideSettingService(settingRepo, groupRepo, proxyRepo, cfg)
+	if err := svc.InitializeDefaultSettings(context.Background()); err != nil {
+		return nil, err
+	}
+	return svc, nil
 }
 
 func providePrivacyClientFactory() service.PrivacyClientFactory {

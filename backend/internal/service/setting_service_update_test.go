@@ -260,6 +260,60 @@ func TestSettingService_UpdateSettings_TablePreferences(t *testing.T) {
 	require.Equal(t, "[20,100]", repo.updates[SettingKeyTablePageSizeOptions])
 }
 
+func TestSettingService_UpdateSettings_WeeklyQuotaSettings(t *testing.T) {
+	repo := &settingUpdateRepoStub{}
+	svc := NewSettingService(repo, &config.Config{})
+
+	err := svc.UpdateSettings(context.Background(), &SystemSettings{
+		WeeklyQuotaEnabled: true,
+		WeeklyQuotaAmount:  12.5,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "true", repo.updates[SettingKeyWeeklyQuotaEnabled])
+	require.Equal(t, "12.50000000", repo.updates[SettingKeyWeeklyQuotaAmount])
+}
+
+func TestSettingService_UpdateSettings_HomeLinks_NormalizesAndStores(t *testing.T) {
+	repo := &settingUpdateRepoStub{}
+	svc := NewSettingService(repo, &config.Config{})
+
+	err := svc.UpdateSettings(context.Background(), &SystemSettings{
+		HomeLinks: `[
+			{"id":"","label":"  自定义 A  ","url":" https://a.example.com/path ","enabled":true,"sort_order":5},
+			{"id":"custom-b","label":"自定义 B","url":"https://b.example.com","enabled":false,"sort_order":2}
+		]`,
+	})
+	require.NoError(t, err)
+	require.JSONEq(t, `[
+		{"id":"custom-b","label":"自定义 B","url":"https://b.example.com","enabled":false,"sort_order":0},
+		{"id":"home-link-2","label":"自定义 A","url":"https://a.example.com/path","enabled":true,"sort_order":1}
+	]`, repo.updates[SettingKeyHomeLinks])
+}
+
+func TestSettingService_UpdateSettings_HomeLinks_RejectsInvalidURL(t *testing.T) {
+	repo := &settingUpdateRepoStub{}
+	svc := NewSettingService(repo, &config.Config{})
+
+	err := svc.UpdateSettings(context.Background(), &SystemSettings{
+		HomeLinks: `[{"id":"bad","label":"Bad","url":"/relative","enabled":true,"sort_order":0}]`,
+	})
+	require.Error(t, err)
+	require.Equal(t, "HOME_LINK_URL_INVALID", infraerrors.Reason(err))
+	require.Nil(t, repo.updates)
+}
+
+func TestSettingService_UpdateSettings_HomeLinks_RejectsEmptyLabel(t *testing.T) {
+	repo := &settingUpdateRepoStub{}
+	svc := NewSettingService(repo, &config.Config{})
+
+	err := svc.UpdateSettings(context.Background(), &SystemSettings{
+		HomeLinks: `[{"id":"bad","label":" ","url":"https://example.com","enabled":true,"sort_order":0}]`,
+	})
+	require.Error(t, err)
+	require.Equal(t, "HOME_LINK_LABEL_REQUIRED", infraerrors.Reason(err))
+	require.Nil(t, repo.updates)
+}
+
 func TestSettingService_UpdateSettings_PaymentVisibleMethodsAndAdvancedScheduler(t *testing.T) {
 	repo := &settingUpdateRepoStub{}
 	svc := NewSettingService(repo, &config.Config{})

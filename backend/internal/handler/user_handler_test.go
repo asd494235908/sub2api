@@ -34,6 +34,10 @@ func (s *userHandlerRepoStub) GetByEmail(context.Context, string) (*service.User
 	cloned := *s.user
 	return &cloned, nil
 }
+func (s *userHandlerRepoStub) GetByPhone(context.Context, string) (*service.User, error) {
+	cloned := *s.user
+	return &cloned, nil
+}
 func (s *userHandlerRepoStub) GetFirstAdmin(context.Context) (*service.User, error) {
 	cloned := *s.user
 	return &cloned, nil
@@ -444,6 +448,18 @@ func (s *userHandlerEmailCacheStub) SetVerificationCode(context.Context, string,
 }
 
 func (s *userHandlerEmailCacheStub) DeleteVerificationCode(context.Context, string) error {
+	return nil
+}
+
+func (s *userHandlerEmailCacheStub) GetPhoneVerificationCode(context.Context, string) (*service.VerificationCodeData, error) {
+	return nil, nil
+}
+
+func (s *userHandlerEmailCacheStub) SetPhoneVerificationCode(context.Context, string, *service.VerificationCodeData, time.Duration) error {
+	return nil
+}
+
+func (s *userHandlerEmailCacheStub) DeletePhoneVerificationCode(context.Context, string) error {
 	return nil
 }
 

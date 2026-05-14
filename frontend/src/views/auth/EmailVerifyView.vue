@@ -188,6 +188,7 @@ const isSendingCode = ref<boolean>(false)
 const errorMessage = ref<string>('')
 const codeSent = ref<boolean>(false)
 const verifyCode = ref<string>('')
+const phoneVerifyCode = ref<string>('')
 const countdown = ref<number>(0)
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 
@@ -210,6 +211,7 @@ type PendingOAuthCreateAccountResponse = {
 }
 
 const email = ref<string>('')
+const phoneNumber = ref<string>('')
 const password = ref<string>('')
 const initialTurnstileToken = ref<string>('')
 const promoCode = ref<string>('')
@@ -262,6 +264,7 @@ onMounted(async () => {
     try {
       const registerData = JSON.parse(registerDataStr)
       email.value = registerData.email || ''
+      phoneNumber.value = registerData.phone_number || ''
       password.value = registerData.password || ''
       initialTurnstileToken.value = registerData.turnstile_token || ''
       promoCode.value = registerData.promo_code || ''
@@ -277,7 +280,7 @@ onMounted(async () => {
             adoptAvatar: registerData.pending_adoption_decision.adopt_avatar === true
           }
         : null
-      hasRegisterData.value = !!(email.value && password.value)
+      hasRegisterData.value = !!(email.value && phoneNumber.value && password.value)
     } catch {
       hasRegisterData.value = false
     }
@@ -438,6 +441,11 @@ async function sendCode(): Promise<void> {
     showResendTurnstile.value = false
     resendTurnstileToken.value = ''
   } catch (error: unknown) {
+    const cooldown = extractCooldownCountdown(error)
+    if (cooldown) {
+      codeSent.value = true
+      startCountdown(cooldown)
+    }
     errorMessage.value = buildAuthErrorMessage(error, {
       fallback: t('auth.sendCodeFailed')
     })
@@ -528,8 +536,10 @@ async function handleVerify(): Promise<void> {
       // Register with verification code
       await authStore.register({
         email: email.value,
+        phone_number: phoneNumber.value,
         password: password.value,
         verify_code: verifyCode.value.trim(),
+        phone_verify_code: phoneVerifyCode.value.trim() || undefined,
         turnstile_token: initialTurnstileToken.value || undefined,
         promo_code: promoCode.value || undefined,
         invitation_code: invitationCode.value || undefined,
@@ -576,6 +586,27 @@ function buildEmailSuffixNotAllowedMessage(): string {
   return t('auth.emailSuffixNotAllowedWithAllowed', {
     suffixes: normalizedWhitelist.join(separator)
   })
+}
+
+function extractCooldownCountdown(error: unknown): number | null {
+  const err = error as {
+    response?: {
+      data?: {
+        reason?: string
+        metadata?: Record<string, string>
+      }
+    }
+  }
+  const responseData = err.response?.data
+  if (responseData?.reason !== 'VERIFY_CODE_TOO_FREQUENT') {
+    return null
+  }
+  const countdownRaw = responseData.metadata?.countdown
+  if (!countdownRaw) {
+    return null
+  }
+  const countdown = Number.parseInt(countdownRaw, 10)
+  return Number.isFinite(countdown) && countdown > 0 ? countdown : null
 }
 </script>
 

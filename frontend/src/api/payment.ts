@@ -12,7 +12,9 @@ import type {
   CheckoutInfoResponse,
   CreateOrderRequest,
   CreateOrderResult,
-  PaymentOrder
+  PaymentOrder,
+  LuckyWheelSummary,
+  LuckyWheelDrawResult
 } from '@/types/payment'
 import type { BasePaginationResponse } from '@/types'
 
@@ -85,5 +87,15 @@ export const paymentAPI = {
   /** Get provider instance IDs that allow user refund */
   getRefundEligibleProviders() {
     return apiClient.get<{ provider_instance_ids: string[] }>('/payment/orders/refund-eligible-providers')
+  },
+
+  /** Get current lucky wheel summary */
+  getLuckyWheelSummary() {
+    return apiClient.get<LuckyWheelSummary>('/payment/lucky-wheel')
+  },
+
+  /** Draw the lucky wheel once */
+  drawLuckyWheel(session_id: number) {
+    return apiClient.post<LuckyWheelDrawResult>('/payment/lucky-wheel/draw', { session_id })
   }
 }

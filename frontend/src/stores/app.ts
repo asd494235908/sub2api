@@ -320,6 +320,7 @@ export const useAppStore = defineStore('app', () => {
       return {
         registration_enabled: false,
         email_verify_enabled: false,
+        phone_verify_enabled: false,
         force_email_on_third_party_signup: false,
         registration_email_suffix_whitelist: [],
         promo_code_enabled: true,
@@ -332,7 +333,10 @@ export const useAppStore = defineStore('app', () => {
         site_subtitle: '',
         api_base_url: apiBaseUrl.value,
         contact_info: contactInfo.value,
+        qq_group: '',
+        wechat_contact: '',
         doc_url: docUrl.value,
+        home_links: [],
         home_content: '',
         hide_ccs_import_button: false,
         payment_enabled: false,
@@ -359,6 +363,8 @@ export const useAppStore = defineStore('app', () => {
         available_channels_enabled: false,
         risk_control_enabled: false,
         affiliate_enabled: false,
+        weekly_quota_enabled: false,
+        lucky_wheel_enabled: false,
       }
     }
 

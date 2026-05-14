@@ -119,6 +119,16 @@ export const FeatureFlags = {
     mode: 'opt-in',
     label: 'Affiliate',
   }),
+  weeklyQuota: defineFlag({
+    key: 'weekly_quota_enabled',
+    mode: 'opt-in',
+    label: 'Weekly Quota',
+  }),
+  luckyWheel: defineFlag({
+    key: 'lucky_wheel_enabled',
+    mode: 'opt-in',
+    label: 'Lucky Wheel',
+  }),
 } as const
 
 export type RegisteredFeatureFlag = keyof typeof FeatureFlags

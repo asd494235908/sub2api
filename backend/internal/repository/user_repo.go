@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 	"time"
@@ -71,6 +72,7 @@ func (r *userRepository) Create(ctx context.Context, userIn *service.User) error
 		txClient,
 		txAwareSQLExecutor(txCtx, r.sql, r.client),
 		normalizedEmailUniquenessLockKey(userIn.Email),
+		normalizedPhoneUniquenessLockKey(userIn.PhoneNumber),
 	)
 	if err != nil {
 		return err
@@ -80,9 +82,13 @@ func (r *userRepository) Create(ctx context.Context, userIn *service.User) error
 	if err := ensureNormalizedEmailAvailableWithClient(txCtx, txClient, 0, userIn.Email); err != nil {
 		return err
 	}
+	if err := ensureNormalizedPhoneAvailableWithClient(txCtx, txClient, 0, userIn.PhoneNumber); err != nil {
+		return err
+	}
 
 	created, err := txClient.User.Create().
 		SetEmail(userIn.Email).
+		SetPhoneNumber(userIn.PhoneNumber).
 		SetUsername(userIn.Username).
 		SetNotes(userIn.Notes).
 		SetPasswordHash(userIn.PasswordHash).
@@ -123,6 +129,15 @@ func (r *userRepository) GetByID(ctx context.Context, id int64) (*service.User, 
 	}
 
 	out := userEntityToService(m)
+	if out != nil && strings.TrimSpace(out.PhoneNumber) == "" && strings.TrimSpace(m.PhoneNumber) != "" {
+		out.PhoneNumber = strings.TrimSpace(m.PhoneNumber)
+	}
+	slog.Info("user_repository_get_by_id_loaded",
+		"user_id", id,
+		"ent_phone_number", strings.TrimSpace(m.PhoneNumber),
+		"mapped_phone_number", strings.TrimSpace(out.PhoneNumber),
+		"email", strings.TrimSpace(out.Email),
+	)
 	groups, err := r.loadAllowedGroups(ctx, []int64{id})
 	if err != nil {
 		return nil, err
@@ -148,6 +163,30 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*service
 		return nil, fmt.Errorf("normalized email lookup matched multiple users for %q", strings.TrimSpace(email))
 	}
 	m := matches[0]
+
+	out := userEntityToService(m)
+	groups, err := r.loadAllowedGroups(ctx, []int64{m.ID})
+	if err != nil {
+		return nil, err
+	}
+	if v, ok := groups[m.ID]; ok {
+		out.AllowedGroups = v
+	}
+	return out, nil
+}
+
+func (r *userRepository) GetByPhone(ctx context.Context, phoneNumber string) (*service.User, error) {
+	normalized := normalizePhoneLookupValue(phoneNumber)
+	if normalized == "" {
+		return nil, service.ErrUserNotFound
+	}
+
+	m, err := r.client.User.Query().
+		Where(dbuser.PhoneNumberEQ(normalized)).
+		Only(ctx)
+	if err != nil {
+		return nil, translatePersistenceError(err, service.ErrUserNotFound, nil)
+	}
 
 	out := userEntityToService(m)
 	groups, err := r.loadAllowedGroups(ctx, []int64{m.ID})
@@ -191,6 +230,7 @@ func (r *userRepository) Update(ctx context.Context, userIn *service.User) error
 		txClient,
 		txAwareSQLExecutor(txCtx, r.sql, r.client),
 		normalizedEmailUniquenessLockKey(userIn.Email),
+		normalizedPhoneUniquenessLockKey(userIn.PhoneNumber),
 	)
 	if err != nil {
 		return err
@@ -198,6 +238,9 @@ func (r *userRepository) Update(ctx context.Context, userIn *service.User) error
 	defer releaseEmailLock()
 
 	if err := ensureNormalizedEmailAvailableWithClient(txCtx, txClient, userIn.ID, userIn.Email); err != nil {
+		return err
+	}
+	if err := ensureNormalizedPhoneAvailableWithClient(txCtx, txClient, userIn.ID, userIn.PhoneNumber); err != nil {
 		return err
 	}
 
@@ -209,6 +252,7 @@ func (r *userRepository) Update(ctx context.Context, userIn *service.User) error
 
 	updateOp := txClient.User.UpdateOneID(userIn.ID).
 		SetEmail(userIn.Email).
+		SetPhoneNumber(userIn.PhoneNumber).
 		SetUsername(userIn.Username).
 		SetNotes(userIn.Notes).
 		SetPasswordHash(userIn.PasswordHash).
@@ -471,6 +515,9 @@ func (r *userRepository) ListWithFilters(ctx context.Context, params pagination.
 	for i := range users {
 		userIDs = append(userIDs, users[i].ID)
 		u := userEntityToService(users[i])
+		if u != nil && strings.TrimSpace(u.PhoneNumber) == "" && strings.TrimSpace(users[i].PhoneNumber) != "" {
+			u.PhoneNumber = strings.TrimSpace(users[i].PhoneNumber)
+		}
 		outUsers = append(outUsers, *u)
 		userMap[u.ID] = &outUsers[len(outUsers)-1]
 	}
@@ -772,6 +819,31 @@ func (r *userRepository) ExistsByEmail(ctx context.Context, email string) (bool,
 	return r.client.User.Query().Where(userEmailLookupPredicate(email)).Exist(ctx)
 }
 
+func ensureNormalizedPhoneAvailableWithClient(ctx context.Context, client *dbent.Client, userID int64, phoneNumber string) error {
+	client = clientFromContext(ctx, client)
+	if client == nil {
+		return nil
+	}
+
+	normalized := normalizePhoneLookupValue(phoneNumber)
+	if normalized == "" {
+		return nil
+	}
+
+	matches, err := client.User.Query().
+		Where(dbuser.PhoneNumberEQ(normalized)).
+		All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, match := range matches {
+		if match.ID != userID {
+			return service.ErrPhoneExists
+		}
+	}
+	return nil
+}
+
 func ensureNormalizedEmailAvailableWithClient(ctx context.Context, client *dbent.Client, userID int64, email string) error {
 	client = clientFromContext(ctx, client)
 	if client == nil {
@@ -817,6 +889,18 @@ func normalizedEmailUniquenessLockKey(email string) string {
 		return ""
 	}
 	return "users:normalized-email:" + normalized
+}
+
+func normalizePhoneLookupValue(phoneNumber string) string {
+	return strings.TrimSpace(phoneNumber)
+}
+
+func normalizedPhoneUniquenessLockKey(phoneNumber string) string {
+	normalized := normalizePhoneLookupValue(phoneNumber)
+	if normalized == "" {
+		return ""
+	}
+	return "users:normalized-phone:" + normalized
 }
 
 func (r *userRepository) AddGroupToAllowedGroups(ctx context.Context, userID int64, groupID int64) error {
@@ -945,9 +1029,27 @@ func applyUserEntityToService(dst *service.User, src *dbent.User) {
 		return
 	}
 	dst.ID = src.ID
+	dst.Email = src.Email
+	dst.PhoneNumber = src.PhoneNumber
+	dst.Username = src.Username
+	dst.Notes = src.Notes
+	dst.PasswordHash = src.PasswordHash
+	dst.Role = src.Role
+	dst.Balance = src.Balance
+	dst.Concurrency = src.Concurrency
+	dst.Status = src.Status
 	dst.SignupSource = src.SignupSource
 	dst.LastLoginAt = src.LastLoginAt
 	dst.LastActiveAt = src.LastActiveAt
+	dst.TotpSecretEncrypted = src.TotpSecretEncrypted
+	dst.TotpEnabled = src.TotpEnabled
+	dst.TotpEnabledAt = src.TotpEnabledAt
+	dst.BalanceNotifyEnabled = src.BalanceNotifyEnabled
+	dst.BalanceNotifyThresholdType = src.BalanceNotifyThresholdType
+	dst.BalanceNotifyThreshold = src.BalanceNotifyThreshold
+	dst.BalanceNotifyExtraEmails = service.ParseNotifyEmails(src.BalanceNotifyExtraEmails)
+	dst.TotalRecharged = src.TotalRecharged
+	dst.RPMLimit = src.RpmLimit
 	dst.CreatedAt = src.CreatedAt
 	dst.UpdatedAt = src.UpdatedAt
 }

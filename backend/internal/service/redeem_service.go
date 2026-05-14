@@ -10,6 +10,7 @@ import (
 	"time"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
+	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
@@ -21,12 +22,15 @@ var (
 	ErrInsufficientBalance = infraerrors.BadRequest("INSUFFICIENT_BALANCE", "insufficient balance")
 	ErrRedeemRateLimited   = infraerrors.TooManyRequests("REDEEM_RATE_LIMITED", "too many failed attempts, please try again later")
 	ErrRedeemCodeLocked    = infraerrors.Conflict("REDEEM_CODE_LOCKED", "redeem code is being processed, please try again")
+	ErrWeeklyQuotaDisabled = infraerrors.Forbidden("WEEKLY_QUOTA_DISABLED", "weekly quota is disabled")
+	ErrWeeklyQuotaClaimed  = infraerrors.Conflict("WEEKLY_QUOTA_ALREADY_CLAIMED", "weekly quota already claimed for current window")
 )
 
 const (
 	redeemMaxErrorsPerHour  = 20
 	redeemRateLimitDuration = time.Hour
 	redeemLockDuration      = 10 * time.Second // 锁超时时间，防止死锁
+	weeklyQuotaWindow       = 7 * 24 * time.Hour
 )
 
 type ctxKeySkipRedeemAffiliate struct{}
@@ -47,6 +51,10 @@ type RedeemCache interface {
 	ReleaseRedeemLock(ctx context.Context, code string) error
 }
 
+type WeeklyQuotaSettingsProvider interface {
+	GetAllSettings(ctx context.Context) (*SystemSettings, error)
+}
+
 type RedeemCodeRepository interface {
 	Create(ctx context.Context, code *RedeemCode) error
 	CreateBatch(ctx context.Context, codes []RedeemCode) error
@@ -64,6 +72,10 @@ type RedeemCodeRepository interface {
 	ListByUserPaginated(ctx context.Context, userID int64, params pagination.PaginationParams, codeType string) ([]RedeemCode, *pagination.PaginationResult, error)
 	// SumPositiveBalanceByUser returns the total recharged amount (sum of positive balance values) for a user.
 	SumPositiveBalanceByUser(ctx context.Context, userID int64) (float64, error)
+}
+
+type RedeemActivityRepository interface {
+	ListUserActivity(ctx context.Context, userID int64, limit int) ([]RedeemHistoryItem, error)
 }
 
 // GenerateCodesRequest 生成兑换码请求
@@ -526,6 +538,275 @@ func (s *RedeemService) GetUserHistory(ctx context.Context, userID int64, limit 
 		return nil, fmt.Errorf("get user redeem history: %w", err)
 	}
 	return codes, nil
+}
+
+func (s *RedeemService) GetUserActivityHistory(ctx context.Context, userID int64, limit int) ([]RedeemHistoryItem, error) {
+	if activityRepo, ok := s.redeemRepo.(RedeemActivityRepository); ok {
+		items, err := activityRepo.ListUserActivity(ctx, userID, limit)
+		if err != nil {
+			return nil, fmt.Errorf("get user activity history: %w", err)
+		}
+		return items, nil
+	}
+	codes, err := s.GetUserHistory(ctx, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]RedeemHistoryItem, 0, len(codes))
+	for i := range codes {
+		code := codes[i]
+		items = append(items, RedeemHistoryItem{
+			ID:           code.ID,
+			Code:         code.Code,
+			Type:         code.Type,
+			Value:        code.Value,
+			Status:       code.Status,
+			UsedBy:       code.UsedBy,
+			UsedAt:       code.UsedAt,
+			Notes:        code.Notes,
+			CreatedAt:    code.CreatedAt,
+			GroupID:      code.GroupID,
+			ValidityDays: code.ValidityDays,
+			User:         code.User,
+			Group:        code.Group,
+			Source:       "redeem_code",
+		})
+	}
+	return items, nil
+}
+
+func (s *RedeemService) getWeeklyQuotaSettings(ctx context.Context) (*SystemSettings, error) {
+	if s.settingsProvider == nil {
+		return &SystemSettings{}, nil
+	}
+	settings, err := s.settingsProvider.GetAllSettings(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get weekly quota settings: %w", err)
+	}
+	if settings == nil {
+		return &SystemSettings{}, nil
+	}
+	return settings, nil
+}
+
+func weeklyQuotaWindowForUser(createdAt, now time.Time) (time.Time, time.Time) {
+	createdAt = createdAt.UTC()
+	now = now.UTC()
+	if now.Before(createdAt) {
+		return createdAt, createdAt.Add(weeklyQuotaWindow)
+	}
+	elapsed := now.Sub(createdAt)
+	windowIndex := int64(elapsed / weeklyQuotaWindow)
+	windowStart := createdAt.Add(time.Duration(windowIndex) * weeklyQuotaWindow)
+	return windowStart, windowStart.Add(weeklyQuotaWindow)
+}
+
+func weeklyQuotaRedeemCode(userID int64, windowStart time.Time) string {
+	return fmt.Sprintf("WQ-%d-%d", userID, windowStart.UTC().Unix())
+}
+
+func (s *RedeemService) getWeeklyQuotaClaimedAt(ctx context.Context, userID int64, windowStart, windowEnd time.Time) (*time.Time, error) {
+	tx := dbent.TxFromContext(ctx)
+	if tx == nil {
+		return s.getWeeklyQuotaClaimedAtWithClient(ctx, s.entClient, userID, windowStart, windowEnd)
+	}
+	return s.getWeeklyQuotaClaimedAtWithTx(ctx, tx, userID, windowStart, windowEnd)
+}
+
+func (s *RedeemService) getWeeklyQuotaClaimedAtWithClient(ctx context.Context, client *dbent.Client, userID int64, windowStart, windowEnd time.Time) (*time.Time, error) {
+	if client == nil {
+		return nil, nil
+	}
+	record, err := client.RedeemCode.Query().
+		Where(
+			redeemcode.TypeEQ(RedeemTypeWeeklyBalance),
+			redeemcode.UsedByEQ(userID),
+			redeemcode.UsedAtGTE(windowStart),
+			redeemcode.UsedAtLT(windowEnd),
+		).
+		Order(dbent.Desc(redeemcode.FieldUsedAt)).
+		First(ctx)
+	if err != nil {
+		if dbent.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("query weekly quota claim record: %w", err)
+	}
+	return record.UsedAt, nil
+}
+
+func (s *RedeemService) getWeeklyQuotaClaimedAtWithTx(ctx context.Context, tx *dbent.Tx, userID int64, windowStart, windowEnd time.Time) (*time.Time, error) {
+	if tx == nil {
+		return nil, nil
+	}
+	record, err := tx.RedeemCode.Query().
+		Where(
+			redeemcode.TypeEQ(RedeemTypeWeeklyBalance),
+			redeemcode.UsedByEQ(userID),
+			redeemcode.UsedAtGTE(windowStart),
+			redeemcode.UsedAtLT(windowEnd),
+		).
+		Order(dbent.Desc(redeemcode.FieldUsedAt)).
+		First(ctx)
+	if err != nil {
+		if dbent.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("query weekly quota claim record: %w", err)
+	}
+	return record.UsedAt, nil
+}
+
+func (s *RedeemService) getWeeklyQuotaTotals(ctx context.Context, userID int64) (int64, float64, error) {
+	if s.entClient == nil {
+		return 0, 0, nil
+	}
+	records, err := s.entClient.RedeemCode.Query().
+		Where(
+			redeemcode.TypeEQ(RedeemTypeWeeklyBalance),
+			redeemcode.UsedByEQ(userID),
+		).
+		All(ctx)
+	if err != nil {
+		return 0, 0, fmt.Errorf("query weekly quota totals: %w", err)
+	}
+	var total float64
+	for _, record := range records {
+		total += record.Value
+	}
+	return int64(len(records)), total, nil
+}
+
+func (s *RedeemService) GetWeeklyQuotaInfo(ctx context.Context, userID int64) (*WeeklyQuotaInfo, error) {
+	settings, err := s.getWeeklyQuotaSettings(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user: %w", err)
+	}
+
+	windowStart, windowEnd := weeklyQuotaWindowForUser(user.CreatedAt, time.Now().UTC())
+	info := &WeeklyQuotaInfo{
+		Enabled:          settings.WeeklyQuotaEnabled,
+		Amount:           settings.WeeklyQuotaAmount,
+		Status:           WeeklyQuotaStatusDisabled,
+		WindowStartedAt:  windowStart,
+		WindowEndsAt:     windowEnd,
+		TotalClaimCount:  0,
+		TotalClaimAmount: 0,
+	}
+	if !settings.WeeklyQuotaEnabled {
+		return info, nil
+	}
+
+	totalCount, totalAmount, err := s.getWeeklyQuotaTotals(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	info.TotalClaimCount = totalCount
+	info.TotalClaimAmount = totalAmount
+	info.Status = WeeklyQuotaStatusClaimable
+
+	claimedAt, err := s.getWeeklyQuotaClaimedAt(ctx, userID, windowStart, windowEnd)
+	if err != nil {
+		return nil, err
+	}
+	if claimedAt != nil {
+		info.ClaimedAt = claimedAt
+		nextClaimAt := windowEnd
+		info.NextClaimAt = &nextClaimAt
+		info.Status = WeeklyQuotaStatusClaimed
+	}
+
+	return info, nil
+}
+
+func (s *RedeemService) ClaimWeeklyQuota(ctx context.Context, userID int64) (*WeeklyQuotaClaimResult, error) {
+	settings, err := s.getWeeklyQuotaSettings(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !settings.WeeklyQuotaEnabled {
+		return nil, ErrWeeklyQuotaDisabled
+	}
+	if settings.WeeklyQuotaAmount <= 0 {
+		return nil, ErrWeeklyQuotaDisabled
+	}
+
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user: %w", err)
+	}
+
+	now := time.Now().UTC()
+	windowStart, windowEnd := weeklyQuotaWindowForUser(user.CreatedAt, now)
+	claimedAt, err := s.getWeeklyQuotaClaimedAt(ctx, userID, windowStart, windowEnd)
+	if err != nil {
+		return nil, err
+	}
+	if claimedAt != nil {
+		return nil, ErrWeeklyQuotaClaimed
+	}
+
+	tx, err := s.entClient.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	txCtx := dbent.NewTxContext(ctx, tx)
+
+	claimedAt, err = s.getWeeklyQuotaClaimedAt(txCtx, userID, windowStart, windowEnd)
+	if err != nil {
+		return nil, err
+	}
+	if claimedAt != nil {
+		return nil, ErrWeeklyQuotaClaimed
+	}
+
+	if err := s.userRepo.UpdateBalance(txCtx, userID, settings.WeeklyQuotaAmount); err != nil {
+		return nil, fmt.Errorf("update user balance: %w", err)
+	}
+
+	redeemRecord := &RedeemCode{
+		Code:         weeklyQuotaRedeemCode(userID, windowStart),
+		Type:         RedeemTypeWeeklyBalance,
+		Value:        settings.WeeklyQuotaAmount,
+		Status:       StatusUsed,
+		UsedBy:       &userID,
+		UsedAt:       &now,
+		CreatedAt:    now,
+		ValidityDays: 7,
+		Notes:        fmt.Sprintf("weekly quota claim for window starting %s", windowStart.Format(time.RFC3339)),
+	}
+	if err := s.redeemRepo.Create(txCtx, redeemRecord); err != nil {
+		return nil, fmt.Errorf("create weekly quota redeem record: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit transaction: %w", err)
+	}
+
+	s.invalidateRedeemCaches(ctx, userID, &RedeemCode{Type: RedeemTypeBalance})
+
+	refreshedUser, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get updated user: %w", err)
+	}
+
+	return &WeeklyQuotaClaimResult{
+		Message:         "Weekly quota claimed successfully",
+		Type:            RedeemTypeWeeklyBalance,
+		Value:           settings.WeeklyQuotaAmount,
+		NewBalance:      refreshedUser.Balance,
+		ClaimedAt:       now,
+		WindowStartedAt: windowStart,
+		WindowEndsAt:    windowEnd,
+		NextClaimAt:     windowEnd,
+	}, nil
 }
 
 // reduceOrCancelSubscription 缩短订阅天数，剩余天数 <= 0 时取消订阅

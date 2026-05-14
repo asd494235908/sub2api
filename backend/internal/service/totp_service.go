@@ -99,7 +99,7 @@ type TotpService struct {
 	cache             TotpCache
 	settingService    *SettingService
 	emailService      *EmailService
-	emailQueueService *EmailQueueService
+	emailQueueService VerifyCodeEnqueuer
 }
 
 // NewTotpService creates a new TOTP service
@@ -109,7 +109,7 @@ func NewTotpService(
 	cache TotpCache,
 	settingService *SettingService,
 	emailService *EmailService,
-	emailQueueService *EmailQueueService,
+	emailQueueService VerifyCodeEnqueuer,
 ) *TotpService {
 	return &TotpService{
 		userRepo:          userRepo,
@@ -533,5 +533,9 @@ func (s *TotpService) SendVerifyCode(ctx context.Context, userID int64) error {
 	siteName := s.settingService.GetSiteName(ctx)
 
 	// Send verification code via queue
-	return s.emailQueueService.EnqueueVerifyCode(user.Email, siteName)
+	code, _, err := s.emailService.PrepareVerifyCode(ctx, user.Email)
+	if err != nil {
+		return err
+	}
+	return s.emailQueueService.EnqueueVerifyCode(user.Email, siteName, code)
 }

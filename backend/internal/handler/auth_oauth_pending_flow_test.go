@@ -2363,6 +2363,18 @@ func (s *oauthPendingFlowEmailCacheStub) DeletePasswordResetToken(context.Contex
 	return nil
 }
 
+func (s *oauthPendingFlowEmailCacheStub) GetPhoneVerificationCode(context.Context, string) (*service.VerificationCodeData, error) {
+	return nil, nil
+}
+
+func (s *oauthPendingFlowEmailCacheStub) SetPhoneVerificationCode(context.Context, string, *service.VerificationCodeData, time.Duration) error {
+	return nil
+}
+
+func (s *oauthPendingFlowEmailCacheStub) DeletePhoneVerificationCode(context.Context, string) error {
+	return nil
+}
+
 func (s *oauthPendingFlowEmailCacheStub) IsPasswordResetEmailInCooldown(context.Context, string) bool {
 	return false
 }
@@ -2617,6 +2629,7 @@ type oauthPendingFlowUserRepoOptions struct {
 func (r *oauthPendingFlowUserRepo) Create(ctx context.Context, user *service.User) error {
 	entity, err := r.client.User.Create().
 		SetEmail(user.Email).
+		SetPhoneNumber(user.PhoneNumber).
 		SetUsername(user.Username).
 		SetNotes(user.Notes).
 		SetPasswordHash(user.PasswordHash).
@@ -2663,6 +2676,17 @@ func (r *oauthPendingFlowUserRepo) GetByEmail(ctx context.Context, email string)
 	return oauthPendingFlowServiceUser(entity), nil
 }
 
+func (r *oauthPendingFlowUserRepo) GetByPhone(ctx context.Context, phoneNumber string) (*service.User, error) {
+	entity, err := r.client.User.Query().Where(dbuser.PhoneNumberEQ(phoneNumber)).Only(ctx)
+	if err != nil {
+		if dbent.IsNotFound(err) {
+			return nil, service.ErrUserNotFound
+		}
+		return nil, err
+	}
+	return oauthPendingFlowServiceUser(entity), nil
+}
+
 func (r *oauthPendingFlowUserRepo) GetFirstAdmin(context.Context) (*service.User, error) {
 	panic("unexpected GetFirstAdmin call")
 }
@@ -2670,6 +2694,7 @@ func (r *oauthPendingFlowUserRepo) GetFirstAdmin(context.Context) (*service.User
 func (r *oauthPendingFlowUserRepo) Update(ctx context.Context, user *service.User) error {
 	entity, err := r.client.User.UpdateOneID(user.ID).
 		SetEmail(user.Email).
+		SetPhoneNumber(user.PhoneNumber).
 		SetUsername(user.Username).
 		SetNotes(user.Notes).
 		SetPasswordHash(user.PasswordHash).

@@ -62,8 +62,27 @@ func (s *settingRepoStub) Delete(ctx context.Context, key string) error {
 }
 
 type emailCacheStub struct {
-	data *VerificationCodeData
-	err  error
+	data        *VerificationCodeData
+	err         error
+	setCalls    []setVerificationCodeCall
+	deleteCalls []string
+}
+
+type setVerificationCodeCall struct {
+	email string
+	data  *VerificationCodeData
+	ttl   time.Duration
+}
+
+type emailQueueServiceStub struct {
+	verifyCodeTasks []verifyCodeTask
+	verifyCodeErr   error
+}
+
+type verifyCodeTask struct {
+	email    string
+	siteName string
+	code     string
 }
 
 type defaultSubscriptionAssignerStub struct {
@@ -131,10 +150,33 @@ func (s *emailCacheStub) GetVerificationCode(ctx context.Context, email string) 
 }
 
 func (s *emailCacheStub) SetVerificationCode(ctx context.Context, email string, data *VerificationCodeData, ttl time.Duration) error {
+	if data != nil {
+		copied := *data
+		s.data = &copied
+		s.setCalls = append(s.setCalls, setVerificationCodeCall{
+			email: email,
+			data:  &copied,
+			ttl:   ttl,
+		})
+	}
 	return nil
 }
 
 func (s *emailCacheStub) DeleteVerificationCode(ctx context.Context, email string) error {
+	s.deleteCalls = append(s.deleteCalls, email)
+	s.data = nil
+	return nil
+}
+
+func (s *emailCacheStub) GetPhoneVerificationCode(ctx context.Context, phoneNumber string) (*VerificationCodeData, error) {
+	return nil, nil
+}
+
+func (s *emailCacheStub) SetPhoneVerificationCode(ctx context.Context, phoneNumber string, data *VerificationCodeData, ttl time.Duration) error {
+	return nil
+}
+
+func (s *emailCacheStub) DeletePhoneVerificationCode(ctx context.Context, phoneNumber string) error {
 	return nil
 }
 
@@ -176,6 +218,22 @@ func (s *emailCacheStub) GetNotifyCodeUserRate(ctx context.Context, userID int64
 
 func (s *emailCacheStub) IncrNotifyCodeUserRate(ctx context.Context, userID int64, window time.Duration) (int64, error) {
 	return 0, nil
+}
+
+func (s *emailQueueServiceStub) EnqueueVerifyCode(email, siteName, code string) error {
+	if s.verifyCodeErr != nil {
+		return s.verifyCodeErr
+	}
+	s.verifyCodeTasks = append(s.verifyCodeTasks, verifyCodeTask{
+		email:    email,
+		siteName: siteName,
+		code:     code,
+	})
+	return nil
+}
+
+func (s *emailQueueServiceStub) EnqueuePasswordReset(email, siteName, resetURL string) error {
+	panic("unexpected EnqueuePasswordReset call")
 }
 
 func newAuthService(repo *userRepoStub, settings map[string]string, emailCache EmailCache) *AuthService {
@@ -260,7 +318,7 @@ func TestAuthService_Register_Disabled(t *testing.T) {
 		SettingKeyRegistrationEnabled: "false",
 	}, nil)
 
-	_, _, err := service.Register(context.Background(), "user@test.com", "password")
+	_, _, err := service.Register(context.Background(), "user@test.com", "+8613800138000", "password")
 	require.ErrorIs(t, err, ErrRegDisabled)
 }
 
@@ -269,7 +327,7 @@ func TestAuthService_Register_DisabledByDefault(t *testing.T) {
 	repo := &userRepoStub{}
 	service := newAuthService(repo, nil, nil)
 
-	_, _, err := service.Register(context.Background(), "user@test.com", "password")
+	_, _, err := service.Register(context.Background(), "user@test.com", "+8613800138000", "password")
 	require.ErrorIs(t, err, ErrRegDisabled)
 }
 
@@ -282,7 +340,7 @@ func TestAuthService_Register_EmailVerifyEnabledButServiceNotConfigured(t *testi
 	}, nil)
 
 	// 应返回服务不可用错误，而不是允许绕过验证
-	_, _, err := service.RegisterWithVerification(context.Background(), "user@test.com", "password", "any-code", "", "", "")
+	_, _, err := service.RegisterWithVerification(context.Background(), "user@test.com", "+8613800138000", "password", "any-code", "", "", "", "")
 	require.ErrorIs(t, err, ErrServiceUnavailable)
 }
 
@@ -294,7 +352,7 @@ func TestAuthService_Register_EmailVerifyRequired(t *testing.T) {
 		SettingKeyEmailVerifyEnabled:  "true",
 	}, cache)
 
-	_, _, err := service.RegisterWithVerification(context.Background(), "user@test.com", "password", "", "", "", "")
+	_, _, err := service.RegisterWithVerification(context.Background(), "user@test.com", "+8613800138000", "password", "", "", "", "", "")
 	require.ErrorIs(t, err, ErrEmailVerifyRequired)
 }
 
@@ -308,7 +366,7 @@ func TestAuthService_Register_EmailVerifyInvalid(t *testing.T) {
 		SettingKeyEmailVerifyEnabled:  "true",
 	}, cache)
 
-	_, _, err := service.RegisterWithVerification(context.Background(), "user@test.com", "password", "wrong", "", "", "")
+	_, _, err := service.RegisterWithVerification(context.Background(), "user@test.com", "+8613800138000", "password", "wrong", "", "", "", "")
 	require.ErrorIs(t, err, ErrInvalidVerifyCode)
 	require.ErrorContains(t, err, "verify code")
 }
@@ -319,7 +377,7 @@ func TestAuthService_Register_EmailExists(t *testing.T) {
 		SettingKeyRegistrationEnabled: "true",
 	}, nil)
 
-	_, _, err := service.Register(context.Background(), "user@test.com", "password")
+	_, _, err := service.Register(context.Background(), "user@test.com", "+8613800138000", "password")
 	require.ErrorIs(t, err, ErrEmailExists)
 }
 
@@ -329,7 +387,7 @@ func TestAuthService_Register_CheckEmailError(t *testing.T) {
 		SettingKeyRegistrationEnabled: "true",
 	}, nil)
 
-	_, _, err := service.Register(context.Background(), "user@test.com", "password")
+	_, _, err := service.Register(context.Background(), "user@test.com", "+8613800138000", "password")
 	require.ErrorIs(t, err, ErrServiceUnavailable)
 }
 
@@ -339,7 +397,7 @@ func TestAuthService_Register_ReservedEmail(t *testing.T) {
 		SettingKeyRegistrationEnabled: "true",
 	}, nil)
 
-	_, _, err := service.Register(context.Background(), "linuxdo-123@linuxdo-connect.invalid", "password")
+	_, _, err := service.Register(context.Background(), "linuxdo-123@linuxdo-connect.invalid", "+8613800138000", "password")
 	require.ErrorIs(t, err, ErrEmailReserved)
 }
 
@@ -350,7 +408,7 @@ func TestAuthService_Register_EmailSuffixNotAllowed(t *testing.T) {
 		SettingKeyRegistrationEmailSuffixWhitelist: `["@example.com","@company.com"]`,
 	}, nil)
 
-	_, _, err := service.Register(context.Background(), "user@other.com", "password")
+	_, _, err := service.Register(context.Background(), "user@other.com", "+8613800138000", "password")
 	require.ErrorIs(t, err, ErrEmailSuffixNotAllowed)
 	appErr := infraerrors.FromError(err)
 	require.Contains(t, appErr.Message, "@example.com")
@@ -367,10 +425,33 @@ func TestAuthService_Register_EmailSuffixAllowed(t *testing.T) {
 		SettingKeyRegistrationEmailSuffixWhitelist: `["example.com"]`,
 	}, nil)
 
-	_, user, err := service.Register(context.Background(), "user@example.com", "password")
+	_, user, err := service.Register(context.Background(), "user@example.com", "+8613800138000", "password")
 	require.NoError(t, err)
 	require.NotNil(t, user)
 	require.Equal(t, int64(8), user.ID)
+}
+
+func TestAuthService_Register_RejectsExistingPhoneNumber(t *testing.T) {
+	repo := &userRepoStub{
+		user: &User{
+			ID:          9,
+			Email:       "existing@test.com",
+			PhoneNumber: "+8613800138000",
+			Status:      StatusActive,
+		},
+	}
+	service := newAuthService(repo, map[string]string{
+		SettingKeyRegistrationEnabled: "true",
+	}, nil)
+
+	_, _, err := service.Register(context.Background(), "new@test.com", "13800138000", "password")
+	require.ErrorIs(t, err, ErrPhoneExists)
+}
+
+func TestLooksLikeEmailIdentifier_TreatsNumericQQAddressAsEmail(t *testing.T) {
+	require.True(t, LooksLikeEmailIdentifier("494235908@qq.com"))
+	require.True(t, LooksLikeEmailIdentifier("abc123"))
+	require.False(t, LooksLikeEmailIdentifier("13800138000"))
 }
 
 func TestAuthService_Register_AppliesAffiliateSignupBonus(t *testing.T) {
@@ -395,7 +476,7 @@ func TestAuthService_Register_AppliesAffiliateSignupBonus(t *testing.T) {
 		SettingKeyRegistrationEnabled: "true",
 	}, nil, affiliateService)
 
-	_, user, err := service.RegisterWithVerification(context.Background(), "signup-bonus@test.com", "password", "", "", "", "INVITER001")
+	_, user, err := service.RegisterWithVerification(context.Background(), "signup-bonus@test.com", "+8613800138000", "password", "", "", "", "", "INVITER001")
 	require.NoError(t, err)
 	require.NotNil(t, user)
 	require.Len(t, affiliateRepo.signupBonusCalls, 1)
@@ -419,13 +500,41 @@ func TestAuthService_SendVerifyCode_EmailSuffixNotAllowed(t *testing.T) {
 	require.Equal(t, "2", appErr.Metadata["allowed_suffix_count"])
 }
 
+func TestAuthService_SendVerifyCodeAsync_UsesRemainingCooldownAndRejectsRepeatedRequests(t *testing.T) {
+	repo := &userRepoStub{}
+	cache := &emailCacheStub{}
+	queue := &emailQueueServiceStub{}
+	service := newAuthService(repo, map[string]string{
+		SettingKeyRegistrationEnabled: "true",
+	}, cache)
+	service.emailQueueService = queue
+
+	firstResult, err := service.SendVerifyCodeAsync(context.Background(), "user@test.com")
+	require.NoError(t, err)
+	require.NotNil(t, firstResult)
+	require.Equal(t, 60, firstResult.Countdown)
+	require.Len(t, queue.verifyCodeTasks, 1)
+	require.Equal(t, "user@test.com", queue.verifyCodeTasks[0].email)
+	require.NotEmpty(t, queue.verifyCodeTasks[0].code)
+	require.Len(t, cache.setCalls, 1)
+	require.NotNil(t, cache.data)
+
+	secondResult, err := service.SendVerifyCodeAsync(context.Background(), "user@test.com")
+	require.Nil(t, secondResult)
+	require.ErrorIs(t, err, ErrVerifyCodeTooFrequent)
+	appErr := infraerrors.FromError(err)
+	require.Equal(t, "VERIFY_CODE_TOO_FREQUENT", appErr.Reason)
+	require.Equal(t, "60", appErr.Metadata["countdown"])
+	require.Len(t, queue.verifyCodeTasks, 1, "second request should not enqueue another email task")
+}
+
 func TestAuthService_Register_CreateError(t *testing.T) {
 	repo := &userRepoStub{createErr: errors.New("create failed")}
 	service := newAuthService(repo, map[string]string{
 		SettingKeyRegistrationEnabled: "true",
 	}, nil)
 
-	_, _, err := service.Register(context.Background(), "user@test.com", "password")
+	_, _, err := service.Register(context.Background(), "user@test.com", "+8613800138000", "password")
 	require.ErrorIs(t, err, ErrServiceUnavailable)
 }
 
@@ -436,7 +545,7 @@ func TestAuthService_Register_CreateEmailExistsRace(t *testing.T) {
 		SettingKeyRegistrationEnabled: "true",
 	}, nil)
 
-	_, _, err := service.Register(context.Background(), "user@test.com", "password")
+	_, _, err := service.Register(context.Background(), "user@test.com", "+8613800138000", "password")
 	require.ErrorIs(t, err, ErrEmailExists)
 }
 
@@ -447,7 +556,7 @@ func TestAuthService_Register_Success(t *testing.T) {
 		SettingKeyAuthSourceDefaultEmailGrantOnSignup: "false",
 	}, nil)
 
-	token, user, err := service.Register(context.Background(), "user@test.com", "password")
+	token, user, err := service.Register(context.Background(), "user@test.com", "+8613800138000", "password")
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
 	require.NotNil(t, user)
@@ -459,6 +568,7 @@ func TestAuthService_Register_Success(t *testing.T) {
 	require.Equal(t, 2, user.Concurrency)
 	require.Len(t, repo.created, 1)
 	require.True(t, user.CheckPassword("password"))
+	require.Equal(t, "+8613800138000", user.PhoneNumber)
 }
 
 func TestAuthService_ValidateToken_ExpiredReturnsClaimsWithError(t *testing.T) {
@@ -597,7 +707,7 @@ func TestAuthService_Register_AssignsDefaultSubscriptions(t *testing.T) {
 	}, nil)
 	service.defaultSubAssigner = assigner
 
-	_, user, err := service.Register(context.Background(), "default-sub@test.com", "password")
+	_, user, err := service.Register(context.Background(), "default-sub@test.com", "+8613800138000", "password")
 	require.NoError(t, err)
 	require.NotNil(t, user)
 	require.Len(t, assigner.calls, 2)
@@ -621,7 +731,7 @@ func TestAuthService_Register_UsesEmailAuthSourceDefaultsWhenGrantEnabled(t *tes
 	}, nil)
 	service.defaultSubAssigner = assigner
 
-	_, user, err := service.Register(context.Background(), "email-defaults@test.com", "password")
+	_, user, err := service.Register(context.Background(), "email-defaults@test.com", "+8613800138000", "password")
 	require.NoError(t, err)
 	require.NotNil(t, user)
 	require.Equal(t, 12.5, user.Balance)
@@ -644,7 +754,7 @@ func TestAuthService_Register_GrantOnSignupFalseFallsBackToGlobalDefaults(t *tes
 	}, nil)
 	service.defaultSubAssigner = assigner
 
-	_, user, err := service.Register(context.Background(), "email-global@test.com", "password")
+	_, user, err := service.Register(context.Background(), "email-global@test.com", "+8613800138000", "password")
 	require.NoError(t, err)
 	require.NotNil(t, user)
 	require.Equal(t, 3.5, user.Balance)
@@ -667,7 +777,7 @@ func TestAuthService_Register_GrantOnSignupMergesSourceOverridesWithGlobalDefaul
 	}, nil)
 	service.defaultSubAssigner = assigner
 
-	_, user, err := service.Register(context.Background(), "email-merged@test.com", "password")
+	_, user, err := service.Register(context.Background(), "email-merged@test.com", "+8613800138000", "password")
 	require.NoError(t, err)
 	require.NotNil(t, user)
 	require.Equal(t, 9.5, user.Balance)
@@ -675,6 +785,49 @@ func TestAuthService_Register_GrantOnSignupMergesSourceOverridesWithGlobalDefaul
 	require.Len(t, assigner.calls, 1)
 	require.Equal(t, int64(31), assigner.calls[0].GroupID)
 	require.Equal(t, 5, assigner.calls[0].ValidityDays)
+}
+
+func TestAuthService_LoginByPhoneCode_SucceedsWithoutPassword(t *testing.T) {
+	repo := &userRepoStub{
+		user: &User{
+			ID:          19,
+			Email:       "phone@test.com",
+			PhoneNumber: "+8613800138000",
+			Role:        RoleUser,
+			Status:      StatusActive,
+		},
+	}
+	service := newAuthService(repo, nil, nil)
+
+	user, err := service.LoginByPhoneCode(context.Background(), "13800138000")
+	require.NoError(t, err)
+	require.NotNil(t, user)
+	require.Equal(t, int64(19), user.ID)
+}
+
+func TestAuthService_LoginByPhoneCode_ReturnsInvalidCredentialsForMissingPhone(t *testing.T) {
+	service := newAuthService(&userRepoStub{}, nil, nil)
+
+	user, err := service.LoginByPhoneCode(context.Background(), "13800138000")
+	require.Nil(t, user)
+	require.ErrorIs(t, err, ErrInvalidCredentials)
+}
+
+func TestAuthService_LoginByPhoneCode_RejectsDisabledUser(t *testing.T) {
+	repo := &userRepoStub{
+		user: &User{
+			ID:          20,
+			Email:       "disabled@test.com",
+			PhoneNumber: "+8613800138001",
+			Role:        RoleUser,
+			Status:      StatusDisabled,
+		},
+	}
+	service := newAuthService(repo, nil, nil)
+
+	user, err := service.LoginByPhoneCode(context.Background(), "13800138001")
+	require.Nil(t, user)
+	require.ErrorIs(t, err, ErrUserNotActive)
 }
 
 func TestAuthService_LoginOrRegisterOAuthWithTokenPair_UsesLinuxDoAuthSourceDefaultsOnSignup(t *testing.T) {

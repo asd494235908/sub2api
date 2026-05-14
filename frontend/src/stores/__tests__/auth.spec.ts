@@ -103,6 +103,35 @@ describe('useAuthStore', () => {
       expect(store.token).toBeNull()
       expect(store.isAuthenticated).toBe(false)
     })
+
+    it('numeric local-part email login does not require sms_code in store payload', async () => {
+      mockLogin.mockResolvedValue(fakeAuthResponse)
+      const store = useAuthStore()
+
+      await store.login({ identifier: '494235908@qq.com', password: '123456' })
+
+      expect(mockLogin).toHaveBeenCalledWith({
+        identifier: '494235908@qq.com',
+        password: '123456',
+      })
+    })
+
+    it('phone sms login allows missing password in store payload', async () => {
+      mockLogin.mockResolvedValue(fakeAuthResponse)
+      const store = useAuthStore()
+
+      await store.login({
+        identifier: '13800138000',
+        phone_number: '13800138000',
+        sms_code: '123456',
+      })
+
+      expect(mockLogin).toHaveBeenCalledWith({
+        identifier: '13800138000',
+        phone_number: '13800138000',
+        sms_code: '123456',
+      })
+    })
   })
 
   // --- login2FA ---

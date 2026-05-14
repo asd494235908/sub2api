@@ -56,6 +56,14 @@ func (s *emailSyncRepoStub) GetByEmail(_ context.Context, _ string) (*User, erro
 	return nil, ErrUserNotFound
 }
 
+func (s *emailSyncRepoStub) GetByPhone(_ context.Context, phoneNumber string) (*User, error) {
+	if s.user != nil && s.user.PhoneNumber == phoneNumber {
+		cloned := *s.user
+		return &cloned, nil
+	}
+	return nil, ErrUserNotFound
+}
+
 func (s *emailSyncRepoStub) GetFirstAdmin(context.Context) (*User, error) {
 	return nil, fmt.Errorf("unexpected GetFirstAdmin call")
 }

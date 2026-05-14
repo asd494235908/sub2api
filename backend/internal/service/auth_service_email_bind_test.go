@@ -555,6 +555,21 @@ func (s *emailBindCacheStub) DeleteVerificationCode(context.Context, string) err
 	return nil
 }
 
+func (s *emailBindCacheStub) GetPhoneVerificationCode(context.Context, string) (*service.VerificationCodeData, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	return s.data, nil
+}
+
+func (s *emailBindCacheStub) SetPhoneVerificationCode(context.Context, string, *service.VerificationCodeData, time.Duration) error {
+	return nil
+}
+
+func (s *emailBindCacheStub) DeletePhoneVerificationCode(context.Context, string) error {
+	return nil
+}
+
 func (s *emailBindCacheStub) GetNotifyVerifyCode(context.Context, string) (*service.VerificationCodeData, error) {
 	return nil, nil
 }
@@ -755,6 +770,17 @@ func (s *emailBindUserRepoStub) GetByEmail(_ context.Context, email string) (*se
 		return nil, service.ErrUserNotFound
 	}
 	return cloneEmailBindUser(user), nil
+}
+
+func (s *emailBindUserRepoStub) GetByPhone(_ context.Context, phoneNumber string) (*service.User, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, user := range s.usersByID {
+		if user != nil && user.PhoneNumber == phoneNumber {
+			return cloneEmailBindUser(user), nil
+		}
+	}
+	return nil, service.ErrUserNotFound
 }
 
 func (s *emailBindUserRepoStub) GetFirstAdmin(context.Context) (*service.User, error) {

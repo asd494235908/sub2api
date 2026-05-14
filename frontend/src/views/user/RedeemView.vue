@@ -78,6 +78,60 @@
         </div>
       </div>
 
+      <div v-if="weeklyQuota?.enabled" class="card border-amber-200 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-900/20">
+        <div class="p-6 space-y-4">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                {{ t('redeem.weeklyQuotaTitle') }}
+              </h2>
+              <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                {{ t('redeem.weeklyQuotaDescription') }}
+              </p>
+            </div>
+            <button
+              type="button"
+              :disabled="weeklyQuotaClaiming || weeklyQuota.status !== 'claimable'"
+              class="btn btn-primary"
+              @click="handleClaimWeeklyQuota"
+            >
+              {{ weeklyQuotaClaiming ? t('redeem.weeklyQuotaClaiming') : t('redeem.weeklyQuotaClaimButton') }}
+            </button>
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <div class="rounded-xl bg-white/70 p-4 dark:bg-dark-800/60">
+              <p class="text-xs text-gray-500 dark:text-dark-400">{{ t('redeem.weeklyQuotaAmount') }}</p>
+              <p class="mt-1 text-2xl font-semibold text-amber-600 dark:text-amber-400">¥{{ weeklyQuota.amount.toFixed(2) }}</p>
+            </div>
+            <div class="rounded-xl bg-white/70 p-4 dark:bg-dark-800/60">
+              <p class="text-xs text-gray-500 dark:text-dark-400">{{ t('redeem.weeklyQuotaStatus') }}</p>
+              <p class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ weeklyQuotaStatusText }}</p>
+            </div>
+            <div class="rounded-xl bg-white/70 p-4 dark:bg-dark-800/60">
+              <p class="text-xs text-gray-500 dark:text-dark-400">{{ t('redeem.weeklyQuotaLastClaimedAt') }}</p>
+              <p class="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+                {{ weeklyQuota.claimed_at ? formatDateTime(weeklyQuota.claimed_at) : t('redeem.weeklyQuotaNeverClaimed') }}
+              </p>
+            </div>
+            <div class="rounded-xl bg-white/70 p-4 dark:bg-dark-800/60">
+              <p class="text-xs text-gray-500 dark:text-dark-400">{{ t('redeem.weeklyQuotaNextClaimAt') }}</p>
+              <p class="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+                {{ weeklyQuota.next_claim_at ? formatDateTime(weeklyQuota.next_claim_at) : formatDateTime(weeklyQuota.window_ends_at) }}
+              </p>
+            </div>
+            <div class="rounded-xl bg-white/70 p-4 dark:bg-dark-800/60">
+              <p class="text-xs text-gray-500 dark:text-dark-400">{{ t('redeem.weeklyQuotaTotalClaims') }}</p>
+              <p class="mt-1 text-sm font-medium text-gray-900 dark:text-white">{{ weeklyQuota.total_claim_count }}</p>
+            </div>
+            <div class="rounded-xl bg-white/70 p-4 dark:bg-dark-800/60">
+              <p class="text-xs text-gray-500 dark:text-dark-400">{{ t('redeem.weeklyQuotaTotalAmount') }}</p>
+              <p class="mt-1 text-sm font-medium text-gray-900 dark:text-white">¥{{ weeklyQuota.total_claim_amount.toFixed(2) }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Success Message -->
       <transition name="fade">
         <div
@@ -304,13 +358,13 @@
                   {{ formatHistoryValue(item) }}
                 </p>
                 <p
-                  v-if="!isAdminAdjustment(item.type)"
+                  v-if="!isAdminAdjustment(item.type) && item.type !== 'weekly_balance'"
                   class="font-mono text-xs text-gray-400 dark:text-dark-500"
                 >
                   {{ item.code.slice(0, 8) }}...
                 </p>
                 <p v-else class="text-xs text-gray-400 dark:text-dark-500">
-                  {{ t('redeem.adminAdjustment') }}
+                  {{ item.type === 'weekly_balance' ? t('redeem.systemGrant') : t('redeem.adminAdjustment') }}
                 </p>
                 <!-- Display notes for admin adjustments -->
                 <p
@@ -347,7 +401,7 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import { useSubscriptionStore } from '@/stores/subscriptions'
-import { redeemAPI, authAPI, type RedeemHistoryItem } from '@/api'
+import { redeemAPI, authAPI, type RedeemHistoryItem, type WeeklyQuotaInfo } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { formatDateTime } from '@/utils/format'
@@ -371,6 +425,8 @@ const redeemResult = ref<{
   validity_days?: number
 } | null>(null)
 const errorMessage = ref('')
+const weeklyQuota = ref<WeeklyQuotaInfo | null>(null)
+const weeklyQuotaClaiming = ref(false)
 
 // History data
 const history = ref<RedeemHistoryItem[]>([])
@@ -379,7 +435,7 @@ const contactInfo = ref('')
 
 // Helper functions for history display
 const isBalanceType = (type: string) => {
-  return type === 'balance' || type === 'admin_balance'
+  return type === 'balance' || type === 'admin_balance' || type === 'weekly_balance'
 }
 
 const isSubscriptionType = (type: string) => {
@@ -390,7 +446,17 @@ const isAdminAdjustment = (type: string) => {
   return type === 'admin_balance' || type === 'admin_concurrency'
 }
 
+const weeklyQuotaStatusText = computed(() => {
+  if (!weeklyQuota.value) return ''
+  if (weeklyQuota.value.status === 'claimable') return t('redeem.weeklyQuotaClaimable')
+  if (weeklyQuota.value.status === 'claimed') return t('redeem.weeklyQuotaClaimed')
+  return t('redeem.weeklyQuotaDisabled')
+})
+
 const getHistoryItemTitle = (item: RedeemHistoryItem) => {
+  if (item.type === 'lucky_wheel_bonus') {
+    return item.title || t('redeem.luckyWheelBonusTitle')
+  }
   if (item.type === 'balance') {
     return t('redeem.balanceAddedRedeem')
   } else if (item.type === 'admin_balance') {
@@ -401,11 +467,16 @@ const getHistoryItemTitle = (item: RedeemHistoryItem) => {
     return item.value >= 0 ? t('redeem.concurrencyAddedAdmin') : t('redeem.concurrencyReducedAdmin')
   } else if (item.type === 'subscription') {
     return t('redeem.subscriptionAssigned')
+  } else if (item.type === 'weekly_balance') {
+    return t('redeem.weeklyQuotaHistoryTitle')
   }
   return t('common.unknown')
 }
 
 const formatHistoryValue = (item: RedeemHistoryItem) => {
+  if (item.type === 'lucky_wheel_bonus') {
+    return `+¥${item.value.toFixed(2)}`
+  }
   if (isBalanceType(item.type)) {
     const sign = item.value >= 0 ? '+' : ''
     return `${sign}$${item.value.toFixed(2)}`
@@ -428,6 +499,14 @@ const fetchHistory = async () => {
     console.error('Failed to fetch history:', error)
   } finally {
     loadingHistory.value = false
+  }
+}
+
+const fetchWeeklyQuota = async () => {
+  try {
+    weeklyQuota.value = await redeemAPI.getWeeklyQuota()
+  } catch (error) {
+    console.error('Failed to fetch weekly quota:', error)
   }
 }
 
@@ -464,6 +543,7 @@ const handleRedeem = async () => {
 
     // Refresh history
     await fetchHistory()
+    await fetchWeeklyQuota()
 
     // Show success toast
     appStore.showSuccess(t('redeem.codeRedeemSuccess'))
@@ -476,8 +556,32 @@ const handleRedeem = async () => {
   }
 }
 
+const handleClaimWeeklyQuota = async () => {
+  weeklyQuotaClaiming.value = true
+  errorMessage.value = ''
+  redeemResult.value = null
+  try {
+    const result = await redeemAPI.claimWeeklyQuota()
+    redeemResult.value = {
+      message: result.message,
+      type: result.type,
+      value: result.value,
+      new_balance: result.new_balance,
+    }
+    await authStore.refreshUser()
+    await Promise.all([fetchWeeklyQuota(), fetchHistory()])
+    appStore.showSuccess(t('redeem.weeklyQuotaClaimSuccess'))
+  } catch (error: any) {
+    errorMessage.value = error.response?.data?.detail || t('redeem.weeklyQuotaClaimFailed')
+    appStore.showError(t('redeem.weeklyQuotaClaimFailed'))
+  } finally {
+    weeklyQuotaClaiming.value = false
+  }
+}
+
 onMounted(async () => {
   fetchHistory()
+  fetchWeeklyQuota()
   try {
     const settings = await authAPI.getPublicSettings()
     contactInfo.value = settings.contact_info || ''

@@ -186,6 +186,27 @@ function getRequestErrorMessage(error: unknown, fallback: string): string {
   return err.response?.data?.detail || err.response?.data?.message || err.message || fallback
 }
 
+function extractCooldownCountdown(error: unknown): number | null {
+  const err = error as {
+    response?: {
+      data?: {
+        reason?: string
+        metadata?: Record<string, string>
+      }
+    }
+  }
+  const responseData = err.response?.data
+  if (responseData?.reason !== 'VERIFY_CODE_TOO_FREQUENT') {
+    return null
+  }
+  const countdownRaw = responseData.metadata?.countdown
+  if (!countdownRaw) {
+    return null
+  }
+  const countdown = Number.parseInt(countdownRaw, 10)
+  return Number.isFinite(countdown) && countdown > 0 ? countdown : null
+}
+
 function resetTurnstile() {
   turnstileToken.value = ''
   turnstileRef.value?.reset()
@@ -232,6 +253,11 @@ async function handleSendCode() {
       resetTurnstile()
     }
   } catch (error: unknown) {
+    const cooldown = extractCooldownCountdown(error)
+    if (cooldown) {
+      sendCodeSuccess.value = true
+      startCountdown(cooldown)
+    }
     sendCodeError.value = getRequestErrorMessage(error, t('auth.sendCodeFailed'))
   } finally {
     isSendingCode.value = false

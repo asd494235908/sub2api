@@ -42,6 +42,9 @@
                 <p class="truncate text-sm text-gray-600 dark:text-gray-300">
                   {{ primaryEmailDisplay }}
                 </p>
+                <p class="truncate text-sm text-gray-600 dark:text-gray-300">
+                  {{ phoneDisplay }}
+                </p>
                 <div
                   v-if="sourceHints.length"
                   class="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400"
@@ -240,6 +243,12 @@ const primaryEmailDisplay = computed(() => {
     return ''
   }
   return email
+})
+const phoneDisplay = computed(() => {
+  const phone = props.user?.phone_number?.trim() || ''
+  return phone
+    ? t('profile.phoneBinding.currentPhoneValue', { phone })
+    : t('profile.phoneBinding.unbound')
 })
 const avatarInitial = computed(() => displayName.value.charAt(0).toUpperCase() || 'U')
 const memberSinceLabel = computed(() => {

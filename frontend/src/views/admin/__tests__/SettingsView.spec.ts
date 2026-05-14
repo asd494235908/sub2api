@@ -302,6 +302,8 @@ const baseSettingsResponse = {
   site_subtitle: "",
   api_base_url: "",
   contact_info: "",
+  qq_group: "",
+  wechat_contact: "",
   doc_url: "",
   home_content: "",
   hide_ccs_import_button: false,
@@ -561,6 +563,31 @@ describe("admin SettingsView payment visible method controls", () => {
 
     expect(wrapper.text()).not.toContain("可见方式");
     expect(wrapper.text()).not.toContain("支付来源");
+  });
+
+  it("loads and submits weekly quota settings from the features tab", async () => {
+    const wrapper = mountView();
+
+    await flushPromises();
+    await openFeaturesTab(wrapper);
+
+    expect(wrapper.text()).toContain("admin.settings.features.weeklyQuota.title");
+
+    const weeklyAmountInput = wrapper
+      .findAll("input")
+      .find((node) => node.element instanceof HTMLInputElement && (node.element as HTMLInputElement).value === "18.8");
+
+    expect(weeklyAmountInput).toBeDefined();
+
+    await weeklyAmountInput?.setValue("25.5");
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    expect(updateSettings).toHaveBeenCalledTimes(1);
+    expect(updateSettings.mock.calls[0]?.[0]).toMatchObject({
+      weekly_quota_enabled: true,
+      weekly_quota_amount: 25.5,
+    });
   });
 
   it("links payment guidance to README sections instead of removed payment docs", async () => {

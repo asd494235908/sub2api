@@ -42,20 +42,16 @@
           </div>
         </div>
 
-        <div class="flex flex-col items-start lg:items-end">
+        <div v-if="contactItems.length" class="flex flex-col items-start lg:items-end">
           <p class="text-sm font-black text-white">{{ followLabel }}</p>
-          <div class="mt-4 grid grid-cols-2 gap-3">
+          <div class="mt-4 grid gap-3">
             <div
-              v-for="item in qrItems"
-              :key="item.alt"
-              class="flex flex-col items-center"
+              v-for="item in contactItems"
+              :key="item.label"
+              class="min-w-[11rem] rounded-[20px] border border-white/10 bg-white/5 px-4 py-3 text-left dark:border-cyan-400/10 dark:bg-slate-900/70"
             >
-              <img
-                :src="item.src"
-                :alt="item.alt"
-                class="h-28 w-28 rounded-[20px] border border-white/10 bg-white object-cover p-1.5 dark:border-cyan-400/10"
-              />
-              <p class="mt-2 text-xs text-slate-300">{{ item.label }}</p>
+              <p class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{{ item.label }}</p>
+              <p class="mt-2 text-sm font-semibold text-white">{{ item.value }}</p>
             </div>
           </div>
         </div>
@@ -94,7 +90,7 @@ defineProps<{
   socialDots: string[]
   columns: Array<{ title: string; items: Array<{ label: string; href: string; external?: boolean }> }>
   followLabel: string
-  qrItems: Array<{ src: string; alt: string; label: string }>
+  contactItems: Array<{ label: string; value: string }>
   copyrightOwner: string
   filingLabel: string
   docUrl: string

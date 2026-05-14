@@ -30,6 +30,8 @@ func RegisterPaymentRoutes(
 		authenticated.GET("/plans", paymentHandler.GetPlans)
 		authenticated.GET("/channels", paymentHandler.GetChannels)
 		authenticated.GET("/limits", paymentHandler.GetLimits)
+		authenticated.GET("/lucky-wheel", paymentHandler.GetLuckyWheelSummary)
+		authenticated.POST("/lucky-wheel/draw", paymentHandler.DrawLuckyWheel)
 
 		orders := authenticated.Group("/orders")
 		{
@@ -71,6 +73,9 @@ func RegisterPaymentRoutes(
 	{
 		// Dashboard
 		adminGroup.GET("/dashboard", adminPaymentHandler.GetDashboard)
+		adminGroup.GET("/lucky-wheel/config", adminPaymentHandler.GetLuckyWheelConfig)
+		adminGroup.PUT("/lucky-wheel/config", adminPaymentHandler.UpdateLuckyWheelConfig)
+		adminGroup.GET("/lucky-wheel/stats", adminPaymentHandler.GetLuckyWheelStats)
 
 		// Config
 		adminGroup.GET("/config", adminPaymentHandler.GetConfig)

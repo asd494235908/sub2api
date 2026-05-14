@@ -216,3 +216,133 @@ export interface DashboardStats {
   payment_methods: { type: string; amount: number; count: number }[]
   top_users: { user_id: number; email: string; amount: number }[]
 }
+
+export interface LuckyWheelAmountTier {
+  id: string
+  name: string
+  min_amount: number
+  max_amount?: number | null
+  min_multiplier: number
+  max_multiplier: number
+  draw_count: number
+}
+
+export interface LuckyWheelInviteBonusConfig {
+  enabled: boolean
+  qualifying_amount: number
+  bonus_per_invitee: number
+  max_bonus: number
+  consume_policy: string
+}
+
+export interface LuckyWheelGoldenWindowConfig {
+  enabled: boolean
+  timezone: string
+  start_time: string
+  end_time: string
+  min_amount: number
+  extra_draws: number
+  daily_quota: number
+}
+
+export interface LuckyWheelConfig {
+  eligible_order_types: OrderType[]
+  multiplier_step: number
+  global_max_multiplier: number
+  prizes: LuckyWheelPrize[]
+  tiers: LuckyWheelTier[]
+  amount_tiers: LuckyWheelAmountTier[]
+  invite_bonus: LuckyWheelInviteBonusConfig
+  golden_window: LuckyWheelGoldenWindowConfig
+}
+
+export interface LuckyWheelPrize {
+  id: string
+  name: string
+  reward_amount: number
+  enabled: boolean
+}
+
+export interface LuckyWheelTier {
+  id: string
+  name: string
+  min_amount: number
+  max_amount?: number | null
+  prize_weights: Record<string, number>
+}
+
+export interface LuckyWheelDrawRecord {
+  id: number
+  session_id: number
+  user_id: number
+  draw_index: number
+  base_multiplier: number
+  invite_bonus_multiplier: number
+  final_multiplier: number
+  is_best: boolean
+  created_at: string
+}
+
+export interface LuckyWheelSession {
+  id: number
+  user_id: number
+  source_order_id: number
+  source_order_type: OrderType
+  source_pay_amount: number
+  matched_tier_id: string
+  matched_tier_name: string
+  min_multiplier: number
+  max_multiplier: number
+  total_draws: number
+  completed_draws: number
+  remaining_draws: number
+  best_multiplier: number
+  invite_bonus_multiplier: number
+  golden_window_extra_draws: number
+  settled: boolean
+  settled_bonus_amount?: number | null
+  settled_at?: string | null
+  draw_records?: LuckyWheelDrawRecord[]
+  created_at: string
+  updated_at: string
+}
+
+export interface LuckyWheelSummary {
+  enabled: boolean
+  config: LuckyWheelConfig
+  active_session?: LuckyWheelSession | null
+  pending_sessions: LuckyWheelSession[]
+  history_sessions: LuckyWheelSession[]
+}
+
+export interface LuckyWheelDrawResult {
+  session_id: number
+  draw_record: LuckyWheelDrawRecord
+  best_multiplier: number
+  remaining_draws: number
+  settled: boolean
+  settled_bonus_amount?: number | null
+  session?: LuckyWheelSession | null
+}
+
+export interface AdminLuckyWheelConfigResponse {
+  enabled: boolean
+  config: LuckyWheelConfig
+}
+
+export interface LuckyWheelMultiplierStat {
+  multiplier: number
+  draw_count: number
+}
+
+export interface LuckyWheelStats {
+  enabled: boolean
+  total_sessions: number
+  pending_sessions: number
+  settled_sessions: number
+  total_bonus_amount: number
+  recent_sessions: LuckyWheelSession[]
+  multiplier_stats: LuckyWheelMultiplierStat[]
+  golden_window_used_today: number
+  golden_window_daily_quota: number
+}

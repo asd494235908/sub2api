@@ -9,6 +9,7 @@ import (
 type User struct {
 	ID             int64
 	Email          string
+	PhoneNumber    string
 	Username       string
 	Notes          string
 	AvatarURL      string

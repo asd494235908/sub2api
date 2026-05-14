@@ -412,6 +412,31 @@ func TestAPIContracts(t *testing.T) {
 						CreatedAt: deps.now,
 					},
 				})
+				deps.redeemRepo.SetByUserActivity(1, []service.RedeemHistoryItem{
+					{
+						ID:        901,
+						Code:      "LUCKY-SESSION-1",
+						Type:      "lucky_wheel_bonus",
+						Value:     12.34,
+						Status:    service.StatusUsed,
+						UsedBy:    ptr(int64(1)),
+						UsedAt:    ptr(deps.now.Add(1 * time.Minute)),
+						CreatedAt: deps.now.Add(1 * time.Minute),
+						Source:    "lucky_wheel",
+						Title:     "Lucky Wheel Bonus",
+					},
+					{
+						ID:        900,
+						Code:      "CODE-123",
+						Type:      service.RedeemTypeBalance,
+						Value:     1.25,
+						Status:    service.StatusUsed,
+						UsedBy:    ptr(int64(1)),
+						UsedAt:    ptr(deps.now),
+						CreatedAt: deps.now,
+						Source:    "redeem_code",
+					},
+				})
 			},
 			method:     http.MethodGet,
 			path:       "/api/v1/redeem/history",
@@ -420,6 +445,20 @@ func TestAPIContracts(t *testing.T) {
 				"code": 0,
 				"message": "success",
 				"data": [
+					{
+						"id": 901,
+						"code": "LUCKY-SESSION-1",
+						"type": "lucky_wheel_bonus",
+						"value": 12.34,
+						"status": "used",
+						"used_by": 1,
+						"used_at": "2025-01-02T03:05:05Z",
+						"created_at": "2025-01-02T03:05:05Z",
+						"group_id": null,
+						"validity_days": 0,
+						"source": "lucky_wheel",
+						"title": "Lucky Wheel Bonus"
+					},
 					{
 						"id": 900,
 						"code": "CODE-123",
@@ -430,7 +469,9 @@ func TestAPIContracts(t *testing.T) {
 						"used_at": "2025-01-02T03:04:05Z",
 						"created_at": "2025-01-02T03:04:05Z",
 						"group_id": null,
-						"validity_days": 0
+						"validity_days": 0,
+						"source": "redeem_code",
+						"title": ""
 					}
 				]
 			}`,
@@ -712,8 +753,10 @@ func TestAPIContracts(t *testing.T) {
 						"site_logo": "",
 						"site_subtitle": "Subtitle",
 						"api_base_url": "https://api.example.com",
-					"contact_info": "support",
-					"doc_url": "https://docs.example.com",
+						"contact_info": "support",
+						"qq_group": "123456789",
+						"wechat_contact": "sub2api_support",
+						"doc_url": "https://docs.example.com",
 					"auth_source_default_email_balance": 0,
 					"auth_source_default_email_concurrency": 5,
 					"auth_source_default_email_subscriptions": [],
@@ -954,6 +997,8 @@ func TestAPIContracts(t *testing.T) {
 					"site_subtitle": "Subscription to API Conversion Platform",
 					"api_base_url": "",
 					"contact_info": "",
+					"qq_group": "",
+					"wechat_contact": "",
 					"doc_url": "",
 					"home_content": "",
 					"hide_ccs_import_button": false,
@@ -1758,7 +1803,8 @@ func (stubProxyRepo) ListAccountSummariesByProxyID(ctx context.Context, proxyID 
 }
 
 type stubRedeemCodeRepo struct {
-	byUser map[int64][]service.RedeemCode
+	byUser         map[int64][]service.RedeemCode
+	activityByUser map[int64][]service.RedeemHistoryItem
 }
 
 func (r *stubRedeemCodeRepo) SetByUser(userID int64, codes []service.RedeemCode) {
@@ -1766,6 +1812,13 @@ func (r *stubRedeemCodeRepo) SetByUser(userID int64, codes []service.RedeemCode)
 		r.byUser = make(map[int64][]service.RedeemCode)
 	}
 	r.byUser[userID] = append([]service.RedeemCode(nil), codes...)
+}
+
+func (r *stubRedeemCodeRepo) SetByUserActivity(userID int64, items []service.RedeemHistoryItem) {
+	if r.activityByUser == nil {
+		r.activityByUser = make(map[int64][]service.RedeemHistoryItem)
+	}
+	r.activityByUser[userID] = append([]service.RedeemHistoryItem(nil), items...)
 }
 
 func (stubRedeemCodeRepo) Create(ctx context.Context, code *service.RedeemCode) error {
@@ -1813,6 +1866,17 @@ func (r *stubRedeemCodeRepo) ListByUser(ctx context.Context, userID int64, limit
 		codes = codes[:limit]
 	}
 	return append([]service.RedeemCode(nil), codes...), nil
+}
+
+func (r *stubRedeemCodeRepo) ListUserActivity(ctx context.Context, userID int64, limit int) ([]service.RedeemHistoryItem, error) {
+	if r.activityByUser == nil {
+		return nil, nil
+	}
+	items := r.activityByUser[userID]
+	if limit > 0 && len(items) > limit {
+		items = items[:limit]
+	}
+	return append([]service.RedeemHistoryItem(nil), items...), nil
 }
 
 func (stubRedeemCodeRepo) ListByUserPaginated(ctx context.Context, userID int64, params pagination.PaginationParams, codeType string) ([]service.RedeemCode, *pagination.PaginationResult, error) {

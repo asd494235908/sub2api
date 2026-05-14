@@ -14,6 +14,8 @@ export interface RedeemHistoryItem {
   status: string
   used_at: string
   created_at: string
+  source?: string
+  title?: string
   // Notes from admin for admin_balance/admin_concurrency types
   notes?: string
   // Subscription-specific fields
@@ -23,6 +25,29 @@ export interface RedeemHistoryItem {
     id: number
     name: string
   }
+}
+
+export interface WeeklyQuotaInfo {
+  enabled: boolean
+  amount: number
+  status: 'claimable' | 'claimed' | 'disabled'
+  window_started_at: string
+  window_ends_at: string
+  claimed_at?: string
+  next_claim_at?: string
+  total_claim_count: number
+  total_claim_amount: number
+}
+
+export interface WeeklyQuotaClaimResult {
+  message: string
+  type: string
+  value: number
+  new_balance: number
+  claimed_at: string
+  window_started_at: string
+  window_ends_at: string
+  next_claim_at: string
 }
 
 /**
@@ -59,9 +84,21 @@ export async function getHistory(): Promise<RedeemHistoryItem[]> {
   return data
 }
 
+export async function getWeeklyQuota(): Promise<WeeklyQuotaInfo> {
+  const { data } = await apiClient.get<WeeklyQuotaInfo>('/redeem/weekly-quota')
+  return data
+}
+
+export async function claimWeeklyQuota(): Promise<WeeklyQuotaClaimResult> {
+  const { data } = await apiClient.post<WeeklyQuotaClaimResult>('/redeem/weekly-quota/claim')
+  return data
+}
+
 export const redeemAPI = {
   redeem,
-  getHistory
+  getHistory,
+  getWeeklyQuota,
+  claimWeeklyQuota
 }
 
 export default redeemAPI
