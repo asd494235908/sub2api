@@ -52,7 +52,7 @@
           </div>
         </div>
 
-        <div>
+        <div v-if="phoneVerifyEnabled">
           <label for="phone_number" class="input-label">
             {{ t('auth.phoneLabel') }}
           </label>
@@ -64,7 +64,6 @@
               id="phone_number"
               v-model="formData.phone_number"
               type="tel"
-              required
               autocomplete="tel"
               :disabled="isLoading"
               class="input pl-11"
@@ -899,13 +898,15 @@ function validateForm(): boolean {
     isValid = false
   }
 
-  if (!formData.phone_number.trim()) {
-    errors.phone_number = t('auth.phoneRequired')
-    isValid = false
-  }
-  if (phoneVerifyEnabled.value && !formData.phone_verify_code.trim()) {
-    errors.phone_verify_code = t('auth.smsCodeRequired')
-    isValid = false
+  if (phoneVerifyEnabled.value) {
+    if (!formData.phone_number.trim()) {
+      errors.phone_number = t('auth.phoneRequired')
+      isValid = false
+    }
+    if (!formData.phone_verify_code.trim()) {
+      errors.phone_verify_code = t('auth.smsCodeRequired')
+      isValid = false
+    }
   }
 
   // Password validation
@@ -993,13 +994,19 @@ async function handleRegister(): Promise<void> {
 
     // If email verification is enabled, redirect to verification page
     if (emailVerifyEnabled.value) {
+      const phoneFields = phoneVerifyEnabled.value
+        ? {
+            phone_number: formData.phone_number,
+            phone_verify_code: formData.phone_verify_code || undefined,
+          }
+        : {}
+
       // Store registration data in sessionStorage
       sessionStorage.setItem(
         'register_data',
         JSON.stringify({
           email: formData.email,
-          phone_number: formData.phone_number,
-          phone_verify_code: formData.phone_verify_code || undefined,
+          ...phoneFields,
           password: formData.password,
           turnstile_token: turnstileToken.value,
           promo_code: formData.promo_code || undefined,
@@ -1014,10 +1021,15 @@ async function handleRegister(): Promise<void> {
     }
 
     // Otherwise, directly register
+    const phoneFields = phoneVerifyEnabled.value
+      ? {
+          phone_number: formData.phone_number,
+          phone_verify_code: formData.phone_verify_code || undefined,
+        }
+      : {}
     await authStore.register({
       email: formData.email,
-      phone_number: formData.phone_number,
-      phone_verify_code: formData.phone_verify_code || undefined,
+      ...phoneFields,
       password: formData.password,
       turnstile_token: turnstileEnabled.value ? turnstileToken.value : undefined,
       promo_code: formData.promo_code || undefined,

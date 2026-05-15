@@ -150,15 +150,18 @@ func TestSettingService_GetPublicSettings_ExposesDefaultHomeLinks(t *testing.T) 
 
 	settings, err := svc.GetPublicSettings(context.Background())
 	require.NoError(t, err)
-	require.JSONEq(t, defaultHomeLinksJSON, settings.HomeLinks)
+	require.JSONEq(t, `[
+		{"id":"gpshop","label":"格品购物","label_zh":"格品购物","label_en":"Gepin Shop","url":"https://card.gepinkeji.com","enabled":true,"sort_order":0},
+		{"id":"gpci","label":"格品生图","label_zh":"格品生图","label_en":"Gepin Image","url":"https://chat.gepinkeji.com/","enabled":true,"sort_order":1}
+	]`, settings.HomeLinks)
 }
 
 func TestSettingService_GetPublicSettings_ExposesConfiguredHomeLinks(t *testing.T) {
 	repo := &settingPublicRepoStub{
 		values: map[string]string{
 			SettingKeyHomeLinks: `[
-				{"id":"custom-b","label":"B","url":"https://b.example.com","enabled":false,"sort_order":9},
-				{"id":"custom-a","label":"A","url":"https://a.example.com","enabled":true,"sort_order":2}
+				{"id":"custom-b","label":"B","label_zh":"乙","label_en":"B","url":"https://b.example.com","enabled":false,"sort_order":9},
+				{"id":"custom-a","label":"A","label_zh":"甲","label_en":"A","url":"https://a.example.com","enabled":true,"sort_order":2}
 			]`,
 		},
 	}
@@ -167,8 +170,8 @@ func TestSettingService_GetPublicSettings_ExposesConfiguredHomeLinks(t *testing.
 	settings, err := svc.GetPublicSettings(context.Background())
 	require.NoError(t, err)
 	require.JSONEq(t, `[
-		{"id":"custom-a","label":"A","url":"https://a.example.com","enabled":true,"sort_order":0},
-		{"id":"custom-b","label":"B","url":"https://b.example.com","enabled":false,"sort_order":1}
+		{"id":"custom-a","label":"A","label_zh":"甲","label_en":"A","url":"https://a.example.com","enabled":true,"sort_order":0},
+		{"id":"custom-b","label":"B","label_zh":"乙","label_en":"B","url":"https://b.example.com","enabled":false,"sort_order":1}
 	]`, settings.HomeLinks)
 }
 

@@ -431,6 +431,49 @@ func TestAuthService_Register_EmailSuffixAllowed(t *testing.T) {
 	require.Equal(t, int64(8), user.ID)
 }
 
+func TestAuthService_Register_AllowsEmptyPhoneWhenPhoneVerifyDisabled(t *testing.T) {
+	repo := &userRepoStub{nextID: 10}
+	service := newAuthService(repo, map[string]string{
+		SettingKeyRegistrationEnabled: "true",
+		SettingKeyPhoneVerifyEnabled:  "false",
+	}, nil)
+
+	_, user, err := service.Register(context.Background(), "user@test.com", "", "password")
+	require.NoError(t, err)
+	require.NotNil(t, user)
+	require.Equal(t, "", user.PhoneNumber)
+	require.Len(t, repo.created, 1)
+	require.Equal(t, "", repo.created[0].PhoneNumber)
+}
+
+func TestAuthService_Register_StoresOptionalPhoneWhenPhoneVerifyDisabled(t *testing.T) {
+	repo := &userRepoStub{nextID: 11}
+	service := newAuthService(repo, map[string]string{
+		SettingKeyRegistrationEnabled: "true",
+		SettingKeyPhoneVerifyEnabled:  "false",
+	}, nil)
+
+	_, user, err := service.Register(context.Background(), "user@test.com", "13800138000", "password")
+	require.NoError(t, err)
+	require.NotNil(t, user)
+	require.Equal(t, "+8613800138000", user.PhoneNumber)
+	require.Len(t, repo.created, 1)
+	require.Equal(t, "+8613800138000", repo.created[0].PhoneNumber)
+}
+
+func TestAuthService_Register_RequiresPhoneWhenPhoneVerifyEnabled(t *testing.T) {
+	repo := &userRepoStub{nextID: 12}
+	service := newAuthService(repo, map[string]string{
+		SettingKeyRegistrationEnabled: "true",
+		SettingKeyPhoneVerifyEnabled:  "true",
+	}, nil)
+
+	_, _, err := service.Register(context.Background(), "user@test.com", "", "password")
+	require.Error(t, err)
+	appErr := infraerrors.FromError(err)
+	require.Equal(t, "PHONE_REQUIRED", appErr.Reason)
+}
+
 func TestAuthService_Register_RejectsExistingPhoneNumber(t *testing.T) {
 	repo := &userRepoStub{
 		user: &User{

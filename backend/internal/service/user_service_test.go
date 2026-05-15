@@ -27,6 +27,8 @@ type mockUserRepo struct {
 	updateBalanceFn         func(ctx context.Context, id int64, amount float64) error
 	getByIDUser             *User
 	getByIDErr              error
+	getByPhoneUser          *User
+	getByPhoneErr           error
 	identities              []UserAuthIdentityRecord
 	unbindIdentityErr       error
 	unboundProviders        []string
@@ -55,12 +57,55 @@ type mockUserSettingRepo struct {
 	values map[string]string
 }
 
+type mockUserSMSCache struct {
+	code    string
+	deleted bool
+}
+
+func (m *mockUserSMSCache) GetPhoneVerificationCode(context.Context, string) (*VerificationCodeData, error) {
+	code := m.code
+	if code == "" {
+		code = "123456"
+	}
+	return &VerificationCodeData{
+		Code:      code,
+		Attempts:  0,
+		CreatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(time.Minute),
+	}, nil
+}
+
+func (m *mockUserSMSCache) SetPhoneVerificationCode(context.Context, string, *VerificationCodeData, time.Duration) error {
+	return nil
+}
+
+func (m *mockUserSMSCache) DeletePhoneVerificationCode(context.Context, string) error {
+	m.deleted = true
+	return nil
+}
+
+type mockUserSMSProvider struct {
+	sent int
+}
+
+func (m *mockUserSMSProvider) SendVerificationCode(context.Context, string, string) error {
+	m.sent++
+	return nil
+}
+
 func (m *mockUserSettingRepo) Get(context.Context, string) (*Setting, error) {
 	panic("unexpected Get call")
 }
 
 func (m *mockUserSettingRepo) GetValue(context.Context, string) (string, error) {
-	panic("unexpected GetValue call")
+	if m.values == nil {
+		return "", ErrSettingNotFound
+	}
+	value, ok := m.values[SettingKeyPhoneVerifyEnabled]
+	if !ok {
+		return "", ErrSettingNotFound
+	}
+	return value, nil
 }
 
 func (m *mockUserSettingRepo) Set(context.Context, string, string) error {
@@ -105,7 +150,16 @@ func (m *mockUserRepo) GetByID(ctx context.Context, _ int64) (*User, error) {
 	return &User{}, nil
 }
 func (m *mockUserRepo) GetByEmail(context.Context, string) (*User, error) { return &User{}, nil }
-func (m *mockUserRepo) GetByPhone(context.Context, string) (*User, error) { return &User{}, nil }
+func (m *mockUserRepo) GetByPhone(context.Context, string) (*User, error) {
+	if m.getByPhoneErr != nil {
+		return nil, m.getByPhoneErr
+	}
+	if m.getByPhoneUser != nil {
+		cloned := *m.getByPhoneUser
+		return &cloned, nil
+	}
+	return nil, ErrUserNotFound
+}
 func (m *mockUserRepo) GetFirstAdmin(context.Context) (*User, error)      { return &User{}, nil }
 func (m *mockUserRepo) Update(ctx context.Context, user *User) error {
 	m.updateCalls++
@@ -785,6 +839,67 @@ func TestNormalizePhoneNumber(t *testing.T) {
 	require.Equal(t, "+8613800138000", NormalizePhoneNumber("  138-0013-8000  ", "86"))
 	require.Equal(t, "+15551234567", NormalizePhoneNumber("+1 (555) 123-4567", "1"))
 	require.Equal(t, "", NormalizePhoneNumber("abc", "86"))
+}
+
+func TestUserService_SendPhoneBindingCodeRejectsWhenPhoneVerifyDisabled(t *testing.T) {
+	provider := &mockUserSMSProvider{}
+	svc := NewUserService(
+		&mockUserRepo{getByIDUser: &User{ID: 1, Email: "user@example.com"}},
+		&mockUserSettingRepo{values: map[string]string{SettingKeyPhoneVerifyEnabled: "false"}},
+		nil,
+		nil,
+	)
+	svc.SetSMSService(NewSMSService(&mockUserSMSCache{}, provider))
+
+	_, err := svc.SendPhoneBindingCode(context.Background(), 1, "13800138000")
+
+	require.Error(t, err)
+	require.Equal(t, 0, provider.sent)
+}
+
+func TestUserService_BindPhoneRejectsWhenPhoneVerifyDisabled(t *testing.T) {
+	repo := &mockUserRepo{
+		getByIDUser: &User{ID: 1, Email: "user@example.com"},
+	}
+	svc := NewUserService(
+		repo,
+		&mockUserSettingRepo{values: map[string]string{SettingKeyPhoneVerifyEnabled: "false"}},
+		nil,
+		nil,
+	)
+	svc.SetSMSService(NewSMSService(&mockUserSMSCache{}, &mockUserSMSProvider{}))
+
+	_, err := svc.BindPhone(context.Background(), 1, BindPhoneRequest{
+		PhoneNumber:      "13800138000",
+		PhoneVerifyCode: "123456",
+	})
+
+	require.Error(t, err)
+	require.Equal(t, 0, repo.updateCalls)
+}
+
+func TestUserService_BindPhoneAllowsWhenPhoneVerifyEnabled(t *testing.T) {
+	repo := &mockUserRepo{
+		getByIDUser: &User{ID: 1, Email: "user@example.com"},
+	}
+	cache := &mockUserSMSCache{code: "123456"}
+	svc := NewUserService(
+		repo,
+		&mockUserSettingRepo{values: map[string]string{SettingKeyPhoneVerifyEnabled: "true"}},
+		nil,
+		nil,
+	)
+	svc.SetSMSService(NewSMSService(cache, &mockUserSMSProvider{}))
+
+	user, err := svc.BindPhone(context.Background(), 1, BindPhoneRequest{
+		PhoneNumber:      "13800138000",
+		PhoneVerifyCode: "123456",
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, "+8613800138000", user.PhoneNumber)
+	require.Equal(t, 1, repo.updateCalls)
+	require.True(t, cache.deleted)
 }
 
 func TestUpdateProfile_DeletesAvatarOnEmptyString(t *testing.T) {

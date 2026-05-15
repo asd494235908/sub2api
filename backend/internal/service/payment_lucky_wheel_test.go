@@ -89,27 +89,33 @@ func saveLuckyWheelConfig(t *testing.T, repo *settingPublicRepoStub, cfg *LuckyW
 
 func defaultLuckyWheelConfig() *LuckyWheelConfig {
 	return &LuckyWheelConfig{
-		EligibleOrderTypes:   []string{payment.OrderTypeBalance, payment.OrderTypeSubscription},
-		MultiplierStep:       0.1,
-		GlobalMaxMultiplier:  3.0,
+		EligibleOrderTypes:  []string{payment.OrderTypeBalance, payment.OrderTypeSubscription},
+		MultiplierStep:      0.1,
+		GlobalMaxMultiplier: 3.0,
+		IntroText:           "默认活动简介",
+		RulesTitle:          "默认活动规则",
+		RulesItems: []string{
+			"默认规则一",
+			"默认规则二",
+		},
 		AmountTiers: []LuckyWheelAmountTier{
 			{
-				ID:             "tier_20_50",
-				Name:           "20-50",
-				MinAmount:      20,
-				MaxAmount:      luckyWheelPtrFloat64(50),
-				MinMultiplier:  1.1,
-				MaxMultiplier:  2.0,
-				DrawCount:      2,
+				ID:            "tier_20_50",
+				Name:          "20-50",
+				MinAmount:     20,
+				MaxAmount:     luckyWheelPtrFloat64(50),
+				MinMultiplier: 1.1,
+				MaxMultiplier: 2.0,
+				DrawCount:     2,
 			},
 			{
-				ID:             "tier_51_plus",
-				Name:           "51+",
-				MinAmount:      51,
-				MaxAmount:      nil,
-				MinMultiplier:  1.2,
-				MaxMultiplier:  3.0,
-				DrawCount:      3,
+				ID:            "tier_51_plus",
+				Name:          "51+",
+				MinAmount:     51,
+				MaxAmount:     nil,
+				MinMultiplier: 1.2,
+				MaxMultiplier: 3.0,
+				DrawCount:     3,
 			},
 		},
 		InviteBonus: LuckyWheelInviteBonusConfig{
@@ -120,13 +126,13 @@ func defaultLuckyWheelConfig() *LuckyWheelConfig {
 			ConsumePolicy:    LuckyWheelInviteBonusConsumeNextSessionOnce,
 		},
 		GoldenWindow: LuckyWheelGoldenWindowConfig{
-			Enabled:       true,
-			Timezone:      "Asia/Shanghai",
-			StartTime:     "20:00",
-			EndTime:       "22:00",
-			MinAmount:     51,
-			ExtraDraws:    1,
-			DailyQuota:    5,
+			Enabled:    true,
+			Timezone:   "Asia/Shanghai",
+			StartTime:  "20:00",
+			EndTime:    "22:00",
+			MinAmount:  51,
+			ExtraDraws: 1,
+			DailyQuota: 5,
 		},
 	}
 }
@@ -151,6 +157,42 @@ func TestNormalizeLuckyWheelConfig_RejectsInvalidMultiplierStep(t *testing.T) {
 	_, err := normalizeLuckyWheelConfig(cfg)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "step")
+}
+
+func TestNormalizeLuckyWheelConfig_FillsDefaultCopyWhenMissing(t *testing.T) {
+	cfg := defaultLuckyWheelConfig()
+	cfg.IntroText = ""
+	cfg.RulesTitle = ""
+	cfg.RulesItems = nil
+
+	normalized, err := normalizeLuckyWheelConfig(cfg)
+	require.NoError(t, err)
+	require.NotEmpty(t, normalized.IntroText)
+	require.NotEmpty(t, normalized.RulesTitle)
+	require.NotEmpty(t, normalized.RulesItems)
+}
+
+func TestUpdateLuckyWheelConfig_RoundTripsCopyFields(t *testing.T) {
+	ctx := context.Background()
+	svc, repo, _ := newLuckyWheelPaymentService(t)
+	cfg := defaultLuckyWheelConfig()
+	cfg.IntroText = "测试活动简介"
+	cfg.RulesTitle = "测试活动规则"
+	cfg.RulesItems = []string{"规则 A", "规则 B"}
+
+	saved, err := svc.UpdateLuckyWheelConfig(ctx, true, cfg)
+	require.NoError(t, err)
+	require.Equal(t, "测试活动简介", saved.IntroText)
+	require.Equal(t, "测试活动规则", saved.RulesTitle)
+	require.Equal(t, []string{"规则 A", "规则 B"}, saved.RulesItems)
+
+	loaded, enabled, err := svc.GetLuckyWheelConfig(ctx)
+	require.NoError(t, err)
+	require.True(t, enabled)
+	require.Equal(t, "测试活动简介", loaded.IntroText)
+	require.Equal(t, "测试活动规则", loaded.RulesTitle)
+	require.Equal(t, []string{"规则 A", "规则 B"}, loaded.RulesItems)
+	require.NotEmpty(t, repo.values[SettingKeyLuckyWheelConfig])
 }
 
 func TestGrantLuckyWheelSessionForOrder_IsIdempotent(t *testing.T) {
@@ -211,7 +253,7 @@ WHERE source_order_id = ?`, int64(order.ID))
 	require.InDelta(t, 1.0, goldenExtra, 1e-9)
 }
 
-func TestDrawLuckyWheel_SettlesOnLastDrawAndCreditsOnlyBonus(t *testing.T) {
+func TestDrawLuckyWheel_SettlesOnLastDrawAndCreditsRewardAmount(t *testing.T) {
 	ctx := context.Background()
 	svc, repo, userRepo := newLuckyWheelPaymentService(t)
 	saveLuckyWheelConfig(t, repo, defaultLuckyWheelConfig())
@@ -249,10 +291,126 @@ func TestDrawLuckyWheel_SettlesOnLastDrawAndCreditsOnlyBonus(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, second.Settled)
 	require.NotNil(t, second.SettledBonusAmount)
-	require.InDelta(t, 50.0, *second.SettledBonusAmount, 1e-9)
-	require.InDelta(t, 150.0, userRepo.getByIDUser.Balance, 1e-9)
+	require.InDelta(t, 100.0, *second.SettledBonusAmount, 1e-9)
+	require.InDelta(t, 200.0, userRepo.getByIDUser.Balance, 1e-9)
 	require.InDelta(t, 2.0, second.BestMultiplier, 1e-9)
 	require.Equal(t, 0, second.RemainingDraws)
+}
+
+func TestDrawLuckyWheel_ConvertsRewardRMBToPlatformBalance(t *testing.T) {
+	ctx := context.Background()
+	svc, repo, userRepo := newLuckyWheelPaymentService(t)
+	repo.values[SettingBalanceRechargeMult] = "2"
+	cfg := defaultLuckyWheelConfig()
+	cfg.AmountTiers[0].MinMultiplier = 0.5
+	cfg.AmountTiers[0].MaxMultiplier = 0.5
+	saveLuckyWheelConfig(t, repo, cfg)
+	setLuckyWheelTestNow(t, time.Date(2026, 5, 13, 8, 0, 0, 0, time.UTC))
+	setLuckyWheelTestDrawSequence(t, 0)
+
+	userRepo.getByIDUser = &User{ID: 1, Balance: 100}
+	userRepo.updateBalanceFn = func(ctx context.Context, id int64, amount float64) error {
+		require.Equal(t, int64(1), id)
+		userRepo.getByIDUser.Balance += amount
+		return nil
+	}
+
+	order := &dbent.PaymentOrder{
+		ID:        302,
+		UserID:    1,
+		OrderType: payment.OrderTypeBalance,
+		Amount:    100,
+		PayAmount: 50,
+	}
+
+	require.NoError(t, svc.GrantLuckyWheelChanceForOrder(ctx, order))
+
+	summary, err := svc.GetLuckyWheelSummary(ctx, 1)
+	require.NoError(t, err)
+	require.NotNil(t, summary.ActiveSession)
+	require.Equal(t, "tier_20_50", summary.ActiveSession.MatchedTierID)
+
+	_, err = svc.DrawLuckyWheel(ctx, 1, summary.ActiveSession.ID)
+	require.NoError(t, err)
+	result, err := svc.DrawLuckyWheel(ctx, 1, summary.ActiveSession.ID)
+	require.NoError(t, err)
+	require.True(t, result.Settled)
+	require.NotNil(t, result.SettledBonusAmount)
+	require.InDelta(t, 0.5, result.BestMultiplier, 1e-9)
+	require.InDelta(t, 50.0, *result.SettledBonusAmount, 1e-9)
+	require.InDelta(t, 150.0, userRepo.getByIDUser.Balance, 1e-9)
+}
+
+func TestDrawLuckyWheel_ConvertsSubscriptionBonusToPlatformBalanceWhenEligible(t *testing.T) {
+	ctx := context.Background()
+	svc, repo, userRepo := newLuckyWheelPaymentService(t)
+	repo.values[SettingBalanceRechargeMult] = "2"
+	saveLuckyWheelConfig(t, repo, defaultLuckyWheelConfig())
+	setLuckyWheelTestNow(t, time.Date(2026, 5, 13, 8, 0, 0, 0, time.UTC))
+	setLuckyWheelTestDrawSequence(t, 0.999)
+
+	userRepo.getByIDUser = &User{ID: 1, Balance: 100}
+	userRepo.updateBalanceFn = func(ctx context.Context, id int64, amount float64) error {
+		require.Equal(t, int64(1), id)
+		userRepo.getByIDUser.Balance += amount
+		return nil
+	}
+
+	order := &dbent.PaymentOrder{
+		ID:        303,
+		UserID:    1,
+		OrderType: payment.OrderTypeSubscription,
+		Amount:    80,
+		PayAmount: 50,
+	}
+
+	require.NoError(t, svc.GrantLuckyWheelChanceForOrder(ctx, order))
+
+	summary, err := svc.GetLuckyWheelSummary(ctx, 1)
+	require.NoError(t, err)
+	require.NotNil(t, summary.ActiveSession)
+	require.Equal(t, payment.OrderTypeSubscription, summary.ActiveSession.SourceOrderType)
+	require.Equal(t, "tier_20_50", summary.ActiveSession.MatchedTierID)
+
+	_, err = svc.DrawLuckyWheel(ctx, 1, summary.ActiveSession.ID)
+	require.NoError(t, err)
+	result, err := svc.DrawLuckyWheel(ctx, 1, summary.ActiveSession.ID)
+	require.NoError(t, err)
+	require.True(t, result.Settled)
+	require.NotNil(t, result.SettledBonusAmount)
+	require.InDelta(t, 200.0, *result.SettledBonusAmount, 1e-9)
+	require.InDelta(t, 300.0, userRepo.getByIDUser.Balance, 1e-9)
+}
+
+func TestGrantLuckyWheelChanceForOrder_SkipsWhenPayAmountDoesNotMatchAnyTier(t *testing.T) {
+	ctx := context.Background()
+	svc, repo, _ := newLuckyWheelPaymentService(t)
+	saveLuckyWheelConfig(t, repo, defaultLuckyWheelConfig())
+
+	order := &dbent.PaymentOrder{
+		ID:        304,
+		UserID:    1,
+		OrderType: payment.OrderTypeBalance,
+		PayAmount: 19.99,
+	}
+
+	require.NoError(t, svc.GrantLuckyWheelChanceForOrder(ctx, order))
+
+	summary, err := svc.GetLuckyWheelSummary(ctx, 1)
+	require.NoError(t, err)
+	require.Nil(t, summary.ActiveSession)
+	require.Empty(t, summary.PendingSessions)
+}
+
+func TestNormalizeLuckyWheelConfig_AllowsPositiveSubOneMultipliers(t *testing.T) {
+	cfg := defaultLuckyWheelConfig()
+	cfg.AmountTiers[0].MinMultiplier = 0.5
+	cfg.AmountTiers[0].MaxMultiplier = 0.8
+
+	normalized, err := normalizeLuckyWheelConfig(cfg)
+	require.NoError(t, err)
+	require.InDelta(t, 0.5, normalized.AmountTiers[0].MinMultiplier, 1e-9)
+	require.InDelta(t, 0.8, normalized.AmountTiers[0].MaxMultiplier, 1e-9)
 }
 
 func TestDrawLuckyWheel_CapsFinalMultiplierByAdminMax(t *testing.T) {
@@ -307,7 +465,7 @@ VALUES (?, ?, ?, ?)`, int64(9), int64(1), time.Now().UTC(), time.Now().UTC())
 	require.True(t, result.Settled)
 	require.NotNil(t, result.SettledBonusAmount)
 	require.InDelta(t, 2.0, result.BestMultiplier, 1e-9)
-	require.InDelta(t, 188.0, userRepo.getByIDUser.Balance, 1e-9)
+	require.InDelta(t, 276.0, userRepo.getByIDUser.Balance, 1e-9)
 }
 
 func TestGrantLuckyWheelSessionForOrder_ConsumesInviteBonusOnNextSession(t *testing.T) {

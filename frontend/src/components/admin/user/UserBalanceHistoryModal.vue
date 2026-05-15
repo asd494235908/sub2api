@@ -289,6 +289,13 @@ const getValueColor = (item: BalanceHistoryItem) => {
 
 // Item title
 const getItemTitle = (item: BalanceHistoryItem) => {
+  if (item.source?.startsWith('payment:')) {
+    const paymentType = item.source.slice('payment:'.length)
+    if (paymentType.includes('wxpay')) return t('redeem.balanceAddedWxpay')
+    if (paymentType.includes('alipay')) return t('redeem.balanceAddedAlipay')
+    if (paymentType.includes('stripe') || paymentType === 'card' || paymentType === 'link') return t('redeem.balanceAddedStripe')
+    return t('redeem.balanceAddedPayment')
+  }
   switch (item.type) {
     case 'balance':
       return t('redeem.balanceAddedRedeem')

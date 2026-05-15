@@ -140,7 +140,7 @@ func TestSettingHandler_GetPublicSettings_ExposesHomeLinks(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &resp))
 	require.Equal(t, 0, resp.Code)
-	require.JSONEq(t, `[{"id":"docs","label":"Docs","url":"https://docs.example.com","enabled":true,"sort_order":0}]`, string(resp.Data.HomeLinks))
+	require.JSONEq(t, `[{"id":"docs","label":"Docs","label_zh":"Docs","label_en":"Docs","url":"https://docs.example.com","enabled":true,"sort_order":0}]`, string(resp.Data.HomeLinks))
 }
 
 func TestSettingHandler_GetPublicSettings_ExposesWeChatOAuthModeCapabilities(t *testing.T) {

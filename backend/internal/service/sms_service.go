@@ -48,13 +48,25 @@ type SMSProvider interface {
 	SendVerificationCode(ctx context.Context, phoneNumber, code string) error
 }
 
+type SMSProviderFactory func(settings SMSProviderSettings) SMSProvider
+
 type SMSService struct {
-	cache    SMSCache
-	provider SMSProvider
+	cache           SMSCache
+	provider        SMSProvider
+	settingRepo     SettingRepository
+	providerFactory SMSProviderFactory
 }
 
 func NewSMSService(cache SMSCache, provider SMSProvider) *SMSService {
 	return &SMSService{cache: cache, provider: provider}
+}
+
+func NewSMSServiceWithProviderFactory(cache SMSCache, settingRepo SettingRepository, providerFactory SMSProviderFactory) *SMSService {
+	return &SMSService{
+		cache:           cache,
+		settingRepo:     settingRepo,
+		providerFactory: providerFactory,
+	}
 }
 
 func (s *SMSService) GenerateVerifyCode() (string, error) {
@@ -71,7 +83,11 @@ func (s *SMSService) GenerateVerifyCode() (string, error) {
 }
 
 func (s *SMSService) SendVerifyCode(ctx context.Context, phoneNumber string) error {
-	if s == nil || s.cache == nil || s.provider == nil {
+	if s == nil || s.cache == nil {
+		return ErrSMSNotConfigured
+	}
+	provider := s.resolveProvider()
+	if provider == nil {
 		return ErrSMSNotConfigured
 	}
 	phoneNumber = NormalizePhoneNumber(phoneNumber, "86")
@@ -101,10 +117,20 @@ func (s *SMSService) SendVerifyCode(ctx context.Context, phoneNumber string) err
 	if err := s.cache.SetPhoneVerificationCode(ctx, phoneNumber, data, verifyCodeTTL); err != nil {
 		return fmt.Errorf("save phone verify code: %w", err)
 	}
-	if err := s.provider.SendVerificationCode(ctx, phoneNumber, code); err != nil {
+	if err := provider.SendVerificationCode(ctx, phoneNumber, code); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (s *SMSService) resolveProvider() SMSProvider {
+	if s == nil {
+		return nil
+	}
+	if s.providerFactory == nil {
+		return s.provider
+	}
+	return s.providerFactory(ResolveIHuyiSMSProviderSettings(s.settingRepo))
 }
 
 func (s *SMSService) VerifyCode(ctx context.Context, phoneNumber, code string) error {
@@ -276,6 +302,32 @@ func ResolveIHuyiSMSProviderSettings(settingRepo SettingRepository) SMSProviderS
 	if settingRepo == nil {
 		return settings
 	}
-	// 先保留 env 优先；未来如果需要 DB 配置，可以在这里扩展。
+	stored, err := settingRepo.GetMultiple(context.Background(), []string{
+		SettingKeySMSIHuyiEnabled,
+		SettingKeySMSIHuyiAPIID,
+		SettingKeySMSIHuyiAPIKey,
+		SettingKeySMSIHuyiTemplateID,
+	})
+	if err != nil {
+		return settings
+	}
+	if rawEnabled, ok := stored[SettingKeySMSIHuyiEnabled]; ok {
+		settings.Enabled = strings.TrimSpace(rawEnabled) == "true"
+	}
+	if rawAPIID, ok := stored[SettingKeySMSIHuyiAPIID]; ok {
+		if trimmed := strings.TrimSpace(rawAPIID); trimmed != "" {
+			settings.Account = trimmed
+		}
+	}
+	if rawAPIKey, ok := stored[SettingKeySMSIHuyiAPIKey]; ok {
+		if trimmed := strings.TrimSpace(rawAPIKey); trimmed != "" {
+			settings.Password = trimmed
+		}
+	}
+	if rawTemplateID, ok := stored[SettingKeySMSIHuyiTemplateID]; ok {
+		settings.TemplateID = firstNonEmpty(rawTemplateID, defaultIHuyiTemplateID)
+	} else {
+		settings.TemplateID = firstNonEmpty(settings.TemplateID, defaultIHuyiTemplateID)
+	}
 	return settings
 }

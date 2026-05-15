@@ -129,6 +129,7 @@
             <div class="rounded-3xl border border-gray-100 bg-gray-50/80 p-5 dark:border-dark-700 dark:bg-dark-900/30">
               <ProfileEditForm
                 :initial-username="user?.username || ''"
+                :phone-verify-enabled="phoneVerifyEnabled"
                 embedded
               />
             </div>
@@ -192,6 +193,7 @@ import type { User, UserAuthBindingStatus, UserAuthProvider, UserProfileSourceCo
 
 const props = withDefaults(defineProps<{
   user: User | null
+  phoneVerifyEnabled?: boolean
   linuxdoEnabled?: boolean
   oidcEnabled?: boolean
   oidcProviderName?: string
@@ -199,6 +201,7 @@ const props = withDefaults(defineProps<{
   wechatOpenEnabled?: boolean
   wechatMpEnabled?: boolean
 }>(), {
+  phoneVerifyEnabled: false,
   linuxdoEnabled: false,
   oidcEnabled: false,
   oidcProviderName: 'OIDC',

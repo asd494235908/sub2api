@@ -64,6 +64,7 @@ describe('ProfileView', () => {
       contact_info: '',
       balance_low_notify_enabled: false,
       balance_low_notify_threshold: 0,
+      phone_verify_enabled: false,
       linuxdo_oauth_enabled: true,
       wechat_oauth_enabled: true,
       wechat_oauth_open_enabled: true,
@@ -95,5 +96,42 @@ describe('ProfileView', () => {
     expect(wrapper.get('[data-testid="profile-shell"]').html()).toContain('profile-info-card')
     expect(wrapper.get('[data-testid="profile-shell"]').html()).toContain('profile-password-form')
     expect(wrapper.get('[data-testid="profile-shell"]').html()).toContain('profile-totp-card')
+  })
+
+  it('passes phone verification setting to profile child components', async () => {
+    fetchPublicSettingsMock.mockResolvedValueOnce({
+      contact_info: '',
+      balance_low_notify_enabled: false,
+      balance_low_notify_threshold: 0,
+      phone_verify_enabled: true,
+      linuxdo_oauth_enabled: false,
+      wechat_oauth_enabled: false,
+      oidc_oauth_enabled: false,
+      oidc_oauth_provider_name: 'OIDC'
+    })
+
+    const wrapper = mount(ProfileView, {
+      global: {
+        stubs: {
+          AppLayout: { template: '<div><slot /></div>' },
+          ProfileInfoCard: {
+            props: ['phoneVerifyEnabled'],
+            template: '<div data-testid="profile-info-card">{{ String(phoneVerifyEnabled) }}</div>'
+          },
+          ProfileBalanceNotifyCard: true,
+          ProfilePasswordForm: {
+            props: ['phoneVerifyEnabled'],
+            template: '<div data-testid="profile-password-form">{{ String(phoneVerifyEnabled) }}</div>'
+          },
+          ProfileTotpCard: true,
+          Icon: true
+        }
+      }
+    })
+
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="profile-info-card"]').text()).toBe('true')
+    expect(wrapper.get('[data-testid="profile-password-form"]').text()).toBe('true')
   })
 })

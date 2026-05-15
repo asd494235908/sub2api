@@ -235,6 +235,7 @@ export interface BalanceHistoryItem {
   group_id: number | null
   validity_days: number
   notes: string
+  source?: string
   user?: { id: number; email: string } | null
   group?: { id: number; name: string } | null
 }

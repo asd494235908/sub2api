@@ -230,6 +230,23 @@ func TestSettingService_UpdateSettings_RegistrationEmailSuffixWhitelist_Invalid(
 	require.Equal(t, "INVALID_REGISTRATION_EMAIL_SUFFIX_WHITELIST", infraerrors.Reason(err))
 }
 
+func TestSettingService_UpdateSettings_NormalizesSMSProviderSettings(t *testing.T) {
+	repo := &settingUpdateRepoStub{}
+	svc := NewSettingService(repo, &config.Config{})
+
+	err := svc.UpdateSettings(context.Background(), &SystemSettings{
+		SMSIHuyiEnabled:    true,
+		SMSIHuyiAPIID:      "  sms-api-id  ",
+		SMSIHuyiAPIKey:     "  sms-api-key  ",
+		SMSIHuyiTemplateID: "   ",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "true", repo.updates[SettingKeySMSIHuyiEnabled])
+	require.Equal(t, "sms-api-id", repo.updates[SettingKeySMSIHuyiAPIID])
+	require.Equal(t, "sms-api-key", repo.updates[SettingKeySMSIHuyiAPIKey])
+	require.Equal(t, defaultIHuyiTemplateID, repo.updates[SettingKeySMSIHuyiTemplateID])
+}
+
 func TestParseDefaultSubscriptions_NormalizesValues(t *testing.T) {
 	got := parseDefaultSubscriptions(`[{"group_id":11,"validity_days":30},{"group_id":11,"validity_days":60},{"group_id":0,"validity_days":10},{"group_id":12,"validity_days":99999}]`)
 	require.Equal(t, []DefaultSubscriptionSetting{
@@ -279,14 +296,27 @@ func TestSettingService_UpdateSettings_HomeLinks_NormalizesAndStores(t *testing.
 
 	err := svc.UpdateSettings(context.Background(), &SystemSettings{
 		HomeLinks: `[
-			{"id":"","label":"  自定义 A  ","url":" https://a.example.com/path ","enabled":true,"sort_order":5},
-			{"id":"custom-b","label":"自定义 B","url":"https://b.example.com","enabled":false,"sort_order":2}
+			{"id":"","label":"  自定义 A  ","label_zh":"  自定义甲  ","label_en":" Custom A ","url":" https://a.example.com/path ","enabled":true,"sort_order":5},
+			{"id":"custom-b","label":"自定义 B","label_zh":"自定义乙","label_en":"Custom B","url":"https://b.example.com","enabled":false,"sort_order":2}
 		]`,
 	})
 	require.NoError(t, err)
 	require.JSONEq(t, `[
-		{"id":"custom-b","label":"自定义 B","url":"https://b.example.com","enabled":false,"sort_order":0},
-		{"id":"home-link-2","label":"自定义 A","url":"https://a.example.com/path","enabled":true,"sort_order":1}
+		{"id":"custom-b","label":"自定义 B","label_zh":"自定义乙","label_en":"Custom B","url":"https://b.example.com","enabled":false,"sort_order":0},
+		{"id":"home-link-2","label":"自定义 A","label_zh":"自定义甲","label_en":"Custom A","url":"https://a.example.com/path","enabled":true,"sort_order":1}
+	]`, repo.updates[SettingKeyHomeLinks])
+}
+
+func TestSettingService_UpdateSettings_HomeLinks_BackfillsLegacyLabel(t *testing.T) {
+	repo := &settingUpdateRepoStub{}
+	svc := NewSettingService(repo, &config.Config{})
+
+	err := svc.UpdateSettings(context.Background(), &SystemSettings{
+		HomeLinks: `[{"id":"legacy","label":"Legacy Label","url":"https://legacy.example.com","enabled":true,"sort_order":0}]`,
+	})
+	require.NoError(t, err)
+	require.JSONEq(t, `[
+		{"id":"legacy","label":"Legacy Label","label_zh":"Legacy Label","label_en":"Legacy Label","url":"https://legacy.example.com","enabled":true,"sort_order":0}
 	]`, repo.updates[SettingKeyHomeLinks])
 }
 
@@ -307,7 +337,7 @@ func TestSettingService_UpdateSettings_HomeLinks_RejectsEmptyLabel(t *testing.T)
 	svc := NewSettingService(repo, &config.Config{})
 
 	err := svc.UpdateSettings(context.Background(), &SystemSettings{
-		HomeLinks: `[{"id":"bad","label":" ","url":"https://example.com","enabled":true,"sort_order":0}]`,
+		HomeLinks: `[{"id":"bad","label":" ","label_zh":" ","label_en":" ","url":"https://example.com","enabled":true,"sort_order":0}]`,
 	})
 	require.Error(t, err)
 	require.Equal(t, "HOME_LINK_LABEL_REQUIRED", infraerrors.Reason(err))

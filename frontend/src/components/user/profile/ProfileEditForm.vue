@@ -28,7 +28,7 @@
           />
         </div>
 
-        <div class="space-y-3">
+        <div v-if="phoneVerifyEnabled" class="space-y-3">
           <div>
             <p class="text-sm font-semibold text-gray-900 dark:text-white">
               {{ phoneSectionTitle }}
@@ -95,8 +95,10 @@ import { userAPI } from '@/api'
 const props = withDefaults(defineProps<{
   initialUsername: string
   embedded?: boolean
+  phoneVerifyEnabled?: boolean
 }>(), {
   embedded: false,
+  phoneVerifyEnabled: false,
 })
 
 const { t } = useI18n()
@@ -183,6 +185,9 @@ function extractCooldownCountdown(error: unknown): number | null {
 }
 
 const sendPhoneCode = async () => {
+  if (!props.phoneVerifyEnabled) {
+    return
+  }
   if (!phoneNumber.value.trim()) {
     appStore.showError(t('profile.phoneBinding.phoneRequired'))
     return
@@ -210,6 +215,19 @@ const sendPhoneCode = async () => {
 const handleUpdateProfile = async () => {
   if (!username.value.trim()) {
     appStore.showError(t('profile.usernameRequired'))
+    return
+  }
+  if (!props.phoneVerifyEnabled) {
+    loading.value = true
+    try {
+      const updatedUser = await userAPI.updateProfile({ username: username.value })
+      authStore.user = updatedUser
+      appStore.showSuccess(t('profile.updateSuccess'))
+    } catch (error: any) {
+      appStore.showError(error.response?.data?.detail || t('profile.updateFailed'))
+    } finally {
+      loading.value = false
+    }
     return
   }
   if (!phoneNumber.value.trim()) {

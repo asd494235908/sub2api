@@ -26,6 +26,8 @@ type CustomEndpoint struct {
 type HomeLink struct {
 	ID        string `json:"id"`
 	Label     string `json:"label"`
+	LabelZH   string `json:"label_zh"`
+	LabelEN   string `json:"label_en"`
 	URL       string `json:"url"`
 	Enabled   bool   `json:"enabled"`
 	SortOrder int    `json:"sort_order"`

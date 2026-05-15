@@ -46,7 +46,7 @@ func NewAuthHandler(cfg *config.Config, authService *service.AuthService, userSe
 // RegisterRequest represents the registration request payload
 type RegisterRequest struct {
 	Email          string `json:"email" binding:"required,email"`
-	PhoneNumber    string `json:"phone_number" binding:"required"`
+	PhoneNumber    string `json:"phone_number"`
 	Password       string `json:"password" binding:"required,min=6"`
 	VerifyCode     string `json:"verify_code"`
 	PhoneVerifyCode string `json:"phone_verify_code"`
@@ -294,6 +294,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	if normalizedPhone != "" {
+		if h.settingSvc == nil || !h.settingSvc.IsPhoneVerifyEnabled(c.Request.Context()) {
+			response.BadRequest(c, "Phone verification is disabled")
+			return
+		}
 		if req.SMSCode == "" {
 			response.BadRequest(c, "Invalid request: sms_code is required")
 			return

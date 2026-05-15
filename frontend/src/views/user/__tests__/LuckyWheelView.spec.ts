@@ -45,6 +45,9 @@ const baseSummary = {
     eligible_order_types: ['balance', 'subscription'],
     multiplier_step: 0.1,
     global_max_multiplier: 3,
+    intro_text: '后台活动简介',
+    rules_title: '后台活动规则',
+    rules_items: ['后台规则 1', '后台规则 2'],
     amount_tiers: [
       { id: 'tier_20_50', name: '20-50', min_amount: 20, max_amount: 50, min_multiplier: 1.1, max_multiplier: 2, draw_count: 2 },
       { id: 'tier_51_plus', name: '51+', min_amount: 51, max_amount: null, min_multiplier: 1.2, max_multiplier: 3, draw_count: 3 },
@@ -202,10 +205,15 @@ describe('LuckyWheelView', () => {
     const wrapper = mountView()
     await flushPromises()
 
+    expect(wrapper.text()).toContain('后台活动简介')
+    expect(wrapper.text()).toContain('后台活动规则')
+    expect(wrapper.text()).toContain('后台规则 1')
+    expect(wrapper.text()).toContain('luckyWheel.rechargeAmount')
     expect(wrapper.text()).toContain('88.00')
     expect(wrapper.text()).toContain('1.8x')
     expect(wrapper.text()).toContain('50.00')
     expect(wrapper.find('[data-test="wheel-board"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="history-scroll-container"]').exists()).toBe(true)
     expect(wrapper.find('[data-test="wheel-rotor"]').attributes('style')).toContain('rotate(')
     expect(wrapper.find('[data-test="wheel-pointer-dot"]').exists()).toBe(false)
     expect(wrapper.find('[data-test="wheel-pointer-arrow"]').exists()).toBe(true)
@@ -246,6 +254,7 @@ describe('LuckyWheelView', () => {
       expect(wrapper.get('[data-test="wheel-pointer-tip"]').classes()).not.toContain('is-ticking')
       expect(showSuccess).toHaveBeenCalled()
       expect(wrapper.find('[data-test="result-modal"]').exists()).toBe(true)
+      expect(wrapper.text()).toContain('luckyWheel.resultHint')
       expect(wrapper.text()).toContain('123.20')
       expect(wrapper.find('[data-test="wheel-rotor"]').attributes('style')).toContain('rotate(')
     } finally {
@@ -285,5 +294,40 @@ describe('LuckyWheelView', () => {
 
     expect(wrapper.text()).toContain('luckyWheel.noActiveSession')
     expect(wrapper.find('[data-test="draw-button"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('does not render the history scroll container when history is empty', async () => {
+    getLuckyWheelSummary.mockResolvedValueOnce({
+      data: {
+        ...baseSummary,
+        history_sessions: [],
+      },
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="history-scroll-container"]').exists()).toBe(false)
+  })
+
+  it('falls back to i18n copy when backend intro fields are empty', async () => {
+    getLuckyWheelSummary.mockResolvedValueOnce({
+      data: {
+        ...baseSummary,
+        config: {
+          ...baseSummary.config,
+          intro_text: '',
+          rules_title: '',
+          rules_items: [],
+        },
+      },
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('luckyWheel.heroDescription')
+    expect(wrapper.text()).toContain('luckyWheel.rulesTitle')
+    expect(wrapper.text()).toContain('luckyWheel.ruleTier20To50')
   })
 })

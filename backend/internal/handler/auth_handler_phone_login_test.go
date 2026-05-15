@@ -190,3 +190,39 @@ func TestAuthHandlerPhoneLoginAllowsSMSCodeWithoutPassword(t *testing.T) {
 	require.Equal(t, int64(42), resp.Data.User.ID)
 	require.Equal(t, "phone-login"+service.LinuxDoConnectSyntheticEmailDomain, resp.Data.User.Email)
 }
+
+func TestAuthHandlerPhoneLoginRejectsWhenPhoneVerifyDisabled(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := &userHandlerRepoStub{
+		user: &service.User{
+			ID:           43,
+			Email:        "phone-login-disabled" + service.LinuxDoConnectSyntheticEmailDomain,
+			PhoneNumber:  "+8613800138000",
+			Role:         service.RoleUser,
+			Status:       service.StatusActive,
+			TokenVersion: 1,
+		},
+	}
+	handler := newAuthHandlerForPhoneTests(t, repo, map[string]string{
+		service.SettingKeyPhoneVerifyEnabled: "false",
+	})
+
+	body := []byte(`{"identifier":"13800138000","phone_number":"13800138000","sms_code":"123456"}`)
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewReader(body))
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	handler.Login(c)
+
+	require.Equal(t, http.StatusBadRequest, recorder.Code)
+
+	var resp struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &resp))
+	require.Equal(t, http.StatusBadRequest, resp.Code)
+	require.Equal(t, "Phone verification is disabled", resp.Message)
+}
