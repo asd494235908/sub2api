@@ -4030,18 +4030,31 @@
                         </button>
                       </div>
                     </div>
-                    <div class="grid gap-3 sm:grid-cols-[0.8fr_1.4fr]">
+                    <div class="grid gap-3 sm:grid-cols-2">
                       <div>
                         <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                          {{ t("admin.settings.site.homeLinks.label") }}
+                          {{ t("admin.settings.site.homeLinks.labelZh") }}
                         </label>
                         <input
-                          v-model="item.label"
+                          v-model="item.label_zh"
                           type="text"
                           class="input text-sm"
-                          :placeholder="t('admin.settings.site.homeLinks.labelPlaceholder')"
+                          :placeholder="t('admin.settings.site.homeLinks.labelZhPlaceholder')"
                         />
                       </div>
+                      <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                          {{ t("admin.settings.site.homeLinks.labelEn") }}
+                        </label>
+                        <input
+                          v-model="item.label_en"
+                          type="text"
+                          class="input text-sm"
+                          :placeholder="t('admin.settings.site.homeLinks.labelEnPlaceholder')"
+                        />
+                      </div>
+                    </div>
+                    <div class="mt-3">
                       <div>
                         <label class="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
                           {{ t("admin.settings.site.homeLinks.url") }}
@@ -6058,6 +6071,8 @@ const form = reactive<SettingsForm>({
     {
       id: "gpshop",
       label: "格品购物",
+      label_zh: "格品购物",
+      label_en: "Gepin Shop",
       url: "https://card.gepinkeji.com",
       enabled: true,
       sort_order: 0,
@@ -6065,6 +6080,8 @@ const form = reactive<SettingsForm>({
     {
       id: "gpci",
       label: "格品生图",
+      label_zh: "格品生图",
+      label_en: "Gepin Image",
       url: "https://chat.gepinkeji.com/",
       enabled: true,
       sort_order: 1,
@@ -6708,6 +6725,8 @@ function addHomeLink() {
   form.home_links.push({
     id: "",
     label: "",
+    label_zh: "",
+    label_en: "",
     url: "",
     enabled: true,
     sort_order: form.home_links.length,
@@ -6730,6 +6749,20 @@ function moveHomeLink(index: number, direction: -1 | 1) {
   items[targetIndex] = temp;
   items.forEach((item, i) => {
     item.sort_order = i;
+  });
+}
+
+function normalizeHomeLinksForForm() {
+  if (!Array.isArray(form.home_links)) {
+    form.home_links = [];
+    return;
+  }
+  form.home_links.forEach((item, index) => {
+    item.label = item.label?.trim() || item.label_zh?.trim() || item.label_en?.trim() || "";
+    item.label_zh = item.label_zh?.trim() || item.label || item.label_en?.trim() || "";
+    item.label_en = item.label_en?.trim() || item.label || item.label_zh?.trim() || "";
+    item.url = item.url?.trim() || "";
+    item.sort_order = index;
   });
 }
 
@@ -6789,6 +6822,7 @@ async function loadSettings() {
     if (!Array.isArray(settings.home_links)) {
       form.home_links = [];
     }
+    normalizeHomeLinksForForm();
     Object.assign(authSourceDefaults, buildAuthSourceDefaultsState(settings));
     form.backend_mode_enabled = settings.backend_mode_enabled;
     form.default_subscriptions = normalizeDefaultSubscriptionSettings(
@@ -7067,8 +7101,19 @@ async function saveSettings() {
     if (!isValidHttpUrl(form.doc_url)) form.doc_url = "";
     for (const item of form.home_links) {
       item.label = item.label.trim();
-      item.url = item.url.trim();
+      item.label_zh = item.label_zh?.trim() || "";
+      item.label_en = item.label_en?.trim() || "";
       if (!item.label) {
+        item.label = item.label_zh || item.label_en;
+      }
+      if (!item.label_zh) {
+        item.label_zh = item.label || item.label_en;
+      }
+      if (!item.label_en) {
+        item.label_en = item.label || item.label_zh;
+      }
+      item.url = item.url.trim();
+      if (!item.label && !item.label_zh && !item.label_en) {
         appStore.showError(t("admin.settings.site.homeLinks.labelRequired"));
         return;
       }
@@ -7303,6 +7348,7 @@ async function saveSettings() {
     if (!Array.isArray(updated.home_links)) {
       form.home_links = [];
     }
+    normalizeHomeLinksForForm();
     Object.assign(authSourceDefaults, buildAuthSourceDefaultsState(updated));
     registrationEmailSuffixWhitelistTags.value =
       normalizeRegistrationEmailSuffixDomains(

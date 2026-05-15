@@ -592,6 +592,7 @@ func redeemCodeFromServiceBase(rc *service.RedeemCode) RedeemCode {
 		ValidityDays: rc.ValidityDays,
 		User:         UserFromServiceShallow(rc.User),
 		Group:        GroupFromServiceShallow(rc.Group),
+		Source:       rc.Source,
 	}
 
 	// For admin_balance/admin_concurrency types, include notes so users can see

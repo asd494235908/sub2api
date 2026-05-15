@@ -243,6 +243,9 @@ export interface LuckyWheelConfig {
   eligible_order_types: OrderType[]
   multiplier_step: number
   global_max_multiplier: number
+  intro_text: string
+  rules_title: string
+  rules_items: string[]
   prizes: LuckyWheelPrize[]
   tiers: LuckyWheelTier[]
   amount_tiers: LuckyWheelAmountTier[]

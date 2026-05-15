@@ -27,8 +27,11 @@ vi.mock('@/stores', () => ({
   useAppStore: () => appState
 }))
 
+let currentLocale = 'zh'
+
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
+    locale: { value: currentLocale },
     t: (key: string) => ({
       'home.landing.nav.gpshop': '格品购物',
       'home.landing.nav.gpci': '格品生图',
@@ -58,6 +61,7 @@ vi.mock('@/components/icons/Icon.vue', () => ({
 
 describe('HomeView', () => {
   beforeEach(() => {
+    currentLocale = 'zh'
     authState.isAuthenticated = false
     authState.isAdmin = false
     authState.checkAuth.mockReset()
@@ -254,9 +258,9 @@ describe('HomeView', () => {
       qq_group: '',
       wechat_contact: '',
       home_links: [
-        { id: 'disabled', label: '隐藏链接', url: 'https://hidden.example.com', enabled: false, sort_order: 1 },
-        { id: 'docs2', label: '配置链接 B', url: 'https://b.example.com', enabled: true, sort_order: 2 },
-        { id: 'docs1', label: '配置链接 A', url: 'https://a.example.com', enabled: true, sort_order: 0 }
+        { id: 'disabled', label: '隐藏链接', label_zh: '隐藏链接', label_en: 'Hidden Link', url: 'https://hidden.example.com', enabled: false, sort_order: 1 },
+        { id: 'docs2', label: '配置链接 B', label_zh: '配置链接乙', label_en: 'Configured Link B', url: 'https://b.example.com', enabled: true, sort_order: 2 },
+        { id: 'docs1', label: '配置链接 A', label_zh: '配置链接甲', label_en: 'Configured Link A', url: 'https://a.example.com', enabled: true, sort_order: 0 }
       ]
     }
 
@@ -272,11 +276,66 @@ describe('HomeView', () => {
     })
 
     const links = wrapper.findAll('a')
-    expect(links.filter((link) => link.text().includes('配置链接 A'))).toHaveLength(2)
-    expect(links.filter((link) => link.text().includes('配置链接 B'))).toHaveLength(2)
+    expect(links.filter((link) => link.text().includes('配置链接甲'))).toHaveLength(2)
+    expect(links.filter((link) => link.text().includes('配置链接乙'))).toHaveLength(2)
     expect(links.some((link) => link.text().includes('隐藏链接'))).toBe(false)
-    expect(links.some((link) => link.text().includes('配置链接 A') && link.attributes('href') === 'https://a.example.com')).toBe(true)
-    expect(links.some((link) => link.text().includes('配置链接 B') && link.attributes('href') === 'https://b.example.com')).toBe(true)
+    expect(links.some((link) => link.text().includes('配置链接甲') && link.attributes('href') === 'https://a.example.com')).toBe(true)
+    expect(links.some((link) => link.text().includes('配置链接乙') && link.attributes('href') === 'https://b.example.com')).toBe(true)
+  })
+
+  it('renders English home link labels when locale is English', () => {
+    currentLocale = 'en'
+    appState.cachedPublicSettings = {
+      home_content: '',
+      site_logo: '/brand.svg',
+      qq_group: '',
+      wechat_contact: '',
+      home_links: [
+        { id: 'docs1', label: '配置链接 A', label_zh: '配置链接甲', label_en: 'Configured Link A', url: 'https://a.example.com', enabled: true, sort_order: 0 }
+      ]
+    }
+
+    const wrapper = mount(HomeView, {
+      global: {
+        stubs: {
+          RouterLink: {
+            props: ['to'],
+            template: '<a :href="typeof to === \'string\' ? to : to?.path"><slot /></a>'
+          }
+        }
+      }
+    })
+
+    const links = wrapper.findAll('a')
+    expect(links.filter((link) => link.text().includes('Configured Link A'))).toHaveLength(2)
+    expect(wrapper.text()).not.toContain('配置链接甲')
+  })
+
+  it('falls back to legacy home link label when localized labels are missing', () => {
+    currentLocale = 'en'
+    appState.cachedPublicSettings = {
+      home_content: '',
+      site_logo: '/brand.svg',
+      qq_group: '',
+      wechat_contact: '',
+      home_links: [
+        { id: 'legacy', label: 'Legacy Link', url: 'https://legacy.example.com', enabled: true, sort_order: 0 }
+      ]
+    }
+
+    const wrapper = mount(HomeView, {
+      global: {
+        stubs: {
+          RouterLink: {
+            props: ['to'],
+            template: '<a :href="typeof to === \'string\' ? to : to?.path"><slot /></a>'
+          }
+        }
+      }
+    })
+
+    const links = wrapper.findAll('a')
+    expect(links.filter((link) => link.text().includes('Legacy Link'))).toHaveLength(2)
   })
 
   it('falls back to default home links when configured home links are empty', () => {

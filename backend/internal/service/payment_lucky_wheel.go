@@ -32,12 +32,15 @@ var (
 )
 
 type LuckyWheelConfig struct {
-	EligibleOrderTypes  []string                      `json:"eligible_order_types"`
-	MultiplierStep      float64                       `json:"multiplier_step"`
-	GlobalMaxMultiplier float64                       `json:"global_max_multiplier"`
-	AmountTiers         []LuckyWheelAmountTier        `json:"amount_tiers"`
-	InviteBonus         LuckyWheelInviteBonusConfig   `json:"invite_bonus"`
-	GoldenWindow        LuckyWheelGoldenWindowConfig  `json:"golden_window"`
+	EligibleOrderTypes  []string                     `json:"eligible_order_types"`
+	MultiplierStep      float64                      `json:"multiplier_step"`
+	GlobalMaxMultiplier float64                      `json:"global_max_multiplier"`
+	IntroText           string                       `json:"intro_text"`
+	RulesTitle          string                       `json:"rules_title"`
+	RulesItems          []string                     `json:"rules_items"`
+	AmountTiers         []LuckyWheelAmountTier       `json:"amount_tiers"`
+	InviteBonus         LuckyWheelInviteBonusConfig  `json:"invite_bonus"`
+	GoldenWindow        LuckyWheelGoldenWindowConfig `json:"golden_window"`
 }
 
 type LuckyWheelAmountTier struct {
@@ -113,13 +116,13 @@ type LuckyWheelSummary struct {
 }
 
 type LuckyWheelDrawResult struct {
-	SessionID          int64                 `json:"session_id"`
-	DrawRecord         LuckyWheelDrawRecord  `json:"draw_record"`
-	BestMultiplier     float64               `json:"best_multiplier"`
-	RemainingDraws     int                   `json:"remaining_draws"`
-	Settled            bool                  `json:"settled"`
-	SettledBonusAmount *float64              `json:"settled_bonus_amount,omitempty"`
-	Session            *LuckyWheelSession    `json:"session,omitempty"`
+	SessionID          int64                `json:"session_id"`
+	DrawRecord         LuckyWheelDrawRecord `json:"draw_record"`
+	BestMultiplier     float64              `json:"best_multiplier"`
+	RemainingDraws     int                  `json:"remaining_draws"`
+	Settled            bool                 `json:"settled"`
+	SettledBonusAmount *float64             `json:"settled_bonus_amount,omitempty"`
+	Session            *LuckyWheelSession   `json:"session,omitempty"`
 }
 
 type LuckyWheelMultiplierStat struct {
@@ -128,15 +131,15 @@ type LuckyWheelMultiplierStat struct {
 }
 
 type LuckyWheelStats struct {
-	Enabled               bool                      `json:"enabled"`
-	TotalSessions         int64                     `json:"total_sessions"`
-	PendingSessions       int64                     `json:"pending_sessions"`
-	SettledSessions       int64                     `json:"settled_sessions"`
-	TotalBonusAmount      float64                   `json:"total_bonus_amount"`
-	RecentSessions        []LuckyWheelSession       `json:"recent_sessions"`
-	MultiplierStats       []LuckyWheelMultiplierStat `json:"multiplier_stats"`
-	GoldenWindowUsedToday int                       `json:"golden_window_used_today"`
-	GoldenWindowDailyQuota int                      `json:"golden_window_daily_quota"`
+	Enabled                bool                       `json:"enabled"`
+	TotalSessions          int64                      `json:"total_sessions"`
+	PendingSessions        int64                      `json:"pending_sessions"`
+	SettledSessions        int64                      `json:"settled_sessions"`
+	TotalBonusAmount       float64                    `json:"total_bonus_amount"`
+	RecentSessions         []LuckyWheelSession        `json:"recent_sessions"`
+	MultiplierStats        []LuckyWheelMultiplierStat `json:"multiplier_stats"`
+	GoldenWindowUsedToday  int                        `json:"golden_window_used_today"`
+	GoldenWindowDailyQuota int                        `json:"golden_window_daily_quota"`
 }
 
 func (s *PaymentService) luckyWheelEnabled(ctx context.Context) bool {
@@ -345,6 +348,10 @@ func (s *PaymentService) DrawLuckyWheel(ctx context.Context, userID, sessionID i
 	if !enabled {
 		return nil, infraerrors.Forbidden("LUCKY_WHEEL_DISABLED", "lucky wheel is disabled")
 	}
+	balanceRechargeMultiplier, err := s.luckyWheelBalanceRechargeMultiplier(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	tx, err := s.entClient.Tx(ctx)
 	if err != nil {
@@ -393,7 +400,8 @@ func (s *PaymentService) DrawLuckyWheel(ctx context.Context, userID, sessionID i
 	settled := drawIndex >= session.TotalDraws
 	var settledBonus *float64
 	if settled {
-		bonus := roundLuckyWheelAmount(session.SourcePayAmount * math.Max(best-1, 0))
+		rewardRMB := roundLuckyWheelAmount(session.SourcePayAmount * best)
+		bonus := calculateCreditedBalance(rewardRMB, balanceRechargeMultiplier)
 		settledBonus = &bonus
 		if bonus > 0 {
 			if err := s.userRepo.UpdateBalance(txCtx, userID, bonus); err != nil {
@@ -484,6 +492,17 @@ FROM lucky_wheel_sessions`)
 	return stats, nil
 }
 
+func (s *PaymentService) luckyWheelBalanceRechargeMultiplier(ctx context.Context) (float64, error) {
+	if s == nil || s.configService == nil {
+		return defaultBalanceRechargeMultiplier, nil
+	}
+	cfg, err := s.configService.GetPaymentConfig(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("get payment config for lucky wheel settlement: %w", err)
+	}
+	return normalizeBalanceRechargeMultiplier(cfg.BalanceRechargeMultiplier), nil
+}
+
 func normalizeLuckyWheelConfig(cfg *LuckyWheelConfig) (*LuckyWheelConfig, error) {
 	if cfg == nil || luckyWheelConfigLooksEmptyOrLegacy(cfg) {
 		return cloneDefaultLuckyWheelConfig(), nil
@@ -493,9 +512,28 @@ func normalizeLuckyWheelConfig(cfg *LuckyWheelConfig) (*LuckyWheelConfig, error)
 		EligibleOrderTypes:  normalizeLuckyWheelOrderTypes(cfg.EligibleOrderTypes),
 		MultiplierStep:      cfg.MultiplierStep,
 		GlobalMaxMultiplier: cfg.GlobalMaxMultiplier,
+		IntroText:           strings.TrimSpace(cfg.IntroText),
+		RulesTitle:          strings.TrimSpace(cfg.RulesTitle),
+		RulesItems:          make([]string, 0, len(cfg.RulesItems)),
 		AmountTiers:         make([]LuckyWheelAmountTier, 0, len(cfg.AmountTiers)),
 		InviteBonus:         cfg.InviteBonus,
 		GoldenWindow:        cfg.GoldenWindow,
+	}
+	for _, item := range cfg.RulesItems {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		normalized.RulesItems = append(normalized.RulesItems, item)
+	}
+	if normalized.IntroText == "" {
+		normalized.IntroText = defaultLuckyWheelIntroText
+	}
+	if normalized.RulesTitle == "" {
+		normalized.RulesTitle = defaultLuckyWheelRulesTitle
+	}
+	if len(normalized.RulesItems) == 0 {
+		normalized.RulesItems = append(normalized.RulesItems, defaultLuckyWheelRulesItems...)
 	}
 	if len(normalized.EligibleOrderTypes) == 0 {
 		return nil, infraerrors.BadRequest("LUCKY_WHEEL_ORDER_TYPES_REQUIRED", "at least one eligible order type is required")
@@ -619,6 +657,9 @@ func cloneDefaultLuckyWheelConfig() *LuckyWheelConfig {
 		EligibleOrderTypes:  []string{payment.OrderTypeBalance, payment.OrderTypeSubscription},
 		MultiplierStep:      0.1,
 		GlobalMaxMultiplier: 3.0,
+		IntroText:           defaultLuckyWheelIntroText,
+		RulesTitle:          defaultLuckyWheelRulesTitle,
+		RulesItems:          append([]string(nil), defaultLuckyWheelRulesItems...),
 		AmountTiers: []LuckyWheelAmountTier{
 			{ID: "tier_20_50", Name: "20-50", MinAmount: 20, MaxAmount: &max50, MinMultiplier: 1.1, MaxMultiplier: 2.0, DrawCount: 2},
 			{ID: "tier_51_plus", Name: "51+", MinAmount: 51, MaxAmount: nil, MinMultiplier: 1.2, MaxMultiplier: 3.0, DrawCount: 3},
@@ -640,6 +681,17 @@ func cloneDefaultLuckyWheelConfig() *LuckyWheelConfig {
 			DailyQuota: 5,
 		},
 	}
+}
+
+const defaultLuckyWheelIntroText = "按用户实付人民币进入不同倍率档位，多次抽奖取最高倍率；抽中奖励人民币会按配置中心比例转换为平台金额到账。"
+const defaultLuckyWheelRulesTitle = "活动规则"
+
+var defaultLuckyWheelRulesItems = []string{
+	"实付 20-50 元：1.1x-2.0x，保底 1.1x，最多 2 次。",
+	"实付 51 元及以上：1.2x-3.0x，保底 1.2x，最多 3 次，黄金窗口可额外 +1 次。",
+	"同一笔支付多次抽奖取最高倍率，人民币奖励按“实付金额 × 最高倍率”计算后统一结算。",
+	"每邀请 1 位新用户完成满 20 元实付订单，下次会话倍率加成 +0.2x，累计上限 +1.0x。",
+	"北京时间 20:00-22:00 的 51 元以上实付订单，前 5 名可额外获得 1 次机会。",
 }
 
 func normalizeLuckyWheelOrderTypes(values []string) []string {

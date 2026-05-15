@@ -237,9 +237,24 @@ func (s *UserService) SetSMSService(smsService *SMSService) {
 	s.smsService = smsService
 }
 
+func (s *UserService) isPhoneVerifyEnabled(ctx context.Context) bool {
+	if s == nil || s.settingRepo == nil {
+		return false
+	}
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyPhoneVerifyEnabled)
+	return err == nil && value == "true"
+}
+
+func errPhoneVerifyDisabled() error {
+	return infraerrors.BadRequest("PHONE_VERIFY_DISABLED", "phone verification is disabled")
+}
+
 func (s *UserService) SendPhoneBindingCode(ctx context.Context, userID int64, phoneNumber string) (int, error) {
 	if s == nil || s.userRepo == nil {
 		return 0, ErrServiceUnavailable
+	}
+	if !s.isPhoneVerifyEnabled(ctx) {
+		return 0, errPhoneVerifyDisabled()
 	}
 	if s.smsService == nil {
 		return 0, ErrServiceUnavailable
@@ -271,6 +286,9 @@ func (s *UserService) SendPhoneBindingCode(ctx context.Context, userID int64, ph
 func (s *UserService) BindPhone(ctx context.Context, userID int64, req BindPhoneRequest) (*User, error) {
 	if s == nil || s.userRepo == nil {
 		return nil, ErrServiceUnavailable
+	}
+	if !s.isPhoneVerifyEnabled(ctx) {
+		return nil, errPhoneVerifyDisabled()
 	}
 	if s.smsService == nil {
 		return nil, ErrServiceUnavailable
@@ -1008,8 +1026,8 @@ func (s *UserService) ChangePassword(ctx context.Context, userID int64, req Chan
 	if !user.CheckPassword(req.CurrentPassword) {
 		return ErrPasswordIncorrect
 	}
-	if s.settingRepo != nil {
-		if enabled, err := s.settingRepo.GetValue(ctx, SettingKeyPhoneVerifyEnabled); err == nil && enabled == "true" && strings.TrimSpace(user.PhoneNumber) != "" {
+	if s.isPhoneVerifyEnabled(ctx) {
+		if strings.TrimSpace(user.PhoneNumber) != "" {
 			if strings.TrimSpace(req.PhoneVerifyCode) == "" {
 				return infraerrors.BadRequest("PHONE_VERIFY_REQUIRED", "phone verification is required")
 			}

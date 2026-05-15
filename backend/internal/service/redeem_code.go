@@ -22,6 +22,8 @@ type RedeemCode struct {
 
 	User  *User
 	Group *Group
+
+	Source string
 }
 
 type RedeemHistoryItem struct {

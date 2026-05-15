@@ -78,7 +78,11 @@ describe('ProfilePasswordForm', () => {
   })
 
   it('shows validation failures as toast messages instead of inline errors', async () => {
-    const wrapper = mount(ProfilePasswordForm)
+    const wrapper = mount(ProfilePasswordForm, {
+      props: {
+        phoneVerifyEnabled: true
+      }
+    })
 
     await wrapper.get('#old_password').setValue('old-password')
     await wrapper.get('#new_password').setValue('new-password')
@@ -95,7 +99,11 @@ describe('ProfilePasswordForm', () => {
       response: { data: { detail: 'backend failure' } }
     })
 
-    const wrapper = mount(ProfilePasswordForm)
+    const wrapper = mount(ProfilePasswordForm, {
+      props: {
+        phoneVerifyEnabled: true
+      }
+    })
 
     await wrapper.get('#old_password').setValue('old-password')
     await wrapper.get('#new_password').setValue('new-password')
@@ -111,7 +119,11 @@ describe('ProfilePasswordForm', () => {
     sendPhoneCodeMock.mockResolvedValue({ message: 'ok', countdown: 60 })
     vi.useFakeTimers()
 
-    const wrapper = mount(ProfilePasswordForm)
+    const wrapper = mount(ProfilePasswordForm, {
+      props: {
+        phoneVerifyEnabled: true
+      }
+    })
 
     await wrapper.get('button[type="button"]').trigger('click')
     await Promise.resolve()
@@ -139,7 +151,11 @@ describe('ProfilePasswordForm', () => {
     })
     vi.useFakeTimers()
 
-    const wrapper = mount(ProfilePasswordForm)
+    const wrapper = mount(ProfilePasswordForm, {
+      props: {
+        phoneVerifyEnabled: true
+      }
+    })
 
     await wrapper.get('button[type="button"]').trigger('click')
     await Promise.resolve()
@@ -150,7 +166,11 @@ describe('ProfilePasswordForm', () => {
   })
 
   it('renders phone verification copy in English without Chinese hardcoded text', () => {
-    const wrapper = mount(ProfilePasswordForm)
+    const wrapper = mount(ProfilePasswordForm, {
+      props: {
+        phoneVerifyEnabled: true
+      }
+    })
 
     expect(wrapper.text()).toContain('SMS verification code')
     expect(wrapper.text()).toContain('Current bound phone: 18380640817')
@@ -164,7 +184,11 @@ describe('ProfilePasswordForm', () => {
     authStoreState.user = {
       phone_number: ''
     }
-    const wrapper = mount(ProfilePasswordForm)
+    const wrapper = mount(ProfilePasswordForm, {
+      props: {
+        phoneVerifyEnabled: true
+      }
+    })
 
     await wrapper.get('button[type="button"]').trigger('click')
 
@@ -176,11 +200,36 @@ describe('ProfilePasswordForm', () => {
     sendPhoneCodeMock.mockRejectedValue({
       response: { data: {} }
     })
-    const wrapper = mount(ProfilePasswordForm)
+    const wrapper = mount(ProfilePasswordForm, {
+      props: {
+        phoneVerifyEnabled: true
+      }
+    })
 
     await wrapper.get('button[type="button"]').trigger('click')
     await Promise.resolve()
 
     expect(showErrorMock).toHaveBeenCalledWith('Failed to send SMS verification code')
+  })
+
+  it('hides phone verification and changes password without sms code when phone verification is disabled', async () => {
+    changePasswordMock.mockResolvedValue({ message: 'ok' })
+    const wrapper = mount(ProfilePasswordForm, {
+      props: {
+        phoneVerifyEnabled: false
+      }
+    })
+
+    expect(wrapper.find('#phone_verify_code').exists()).toBe(false)
+    expect(wrapper.find('button[type="button"]').exists()).toBe(false)
+
+    await wrapper.get('#old_password').setValue('old-password')
+    await wrapper.get('#new_password').setValue('new-password')
+    await wrapper.get('#confirm_password').setValue('new-password')
+    await wrapper.get('form').trigger('submit.prevent')
+
+    expect(sendPhoneCodeMock).not.toHaveBeenCalled()
+    expect(changePasswordMock).toHaveBeenCalledWith('old-password', 'new-password', '')
+    expect(showSuccessMock).toHaveBeenCalledWith('Password changed successfully')
   })
 })

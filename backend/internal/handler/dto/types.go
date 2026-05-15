@@ -343,6 +343,8 @@ type RedeemCode struct {
 
 	User  *User  `json:"user,omitempty"`
 	Group *Group `json:"group,omitempty"`
+
+	Source string `json:"source,omitempty"`
 }
 
 type RedeemHistoryItem struct {

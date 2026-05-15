@@ -16,6 +16,7 @@ import (
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/ent/authidentity"
 	"github.com/Wei-Shaw/sub2api/ent/authidentitychannel"
+	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/httpclient"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
@@ -983,12 +984,55 @@ func (s *adminServiceImpl) GetUserBalanceHistory(ctx context.Context, userID int
 	if err != nil {
 		return nil, 0, 0, err
 	}
+	s.attachPaymentSources(ctx, codes)
 	// Aggregate total recharged amount (only once, regardless of type filter)
 	totalRecharged, err := s.redeemCodeRepo.SumPositiveBalanceByUser(ctx, userID)
 	if err != nil {
 		return nil, 0, 0, err
 	}
 	return codes, result.Total, totalRecharged, nil
+}
+
+func (s *adminServiceImpl) attachPaymentSources(ctx context.Context, codes []RedeemCode) {
+	if s == nil || s.entClient == nil || len(codes) == 0 {
+		return
+	}
+	codeSet := make(map[string]struct{}, len(codes))
+	rechargeCodes := make([]string, 0, len(codes))
+	for i := range codes {
+		code := strings.TrimSpace(codes[i].Code)
+		if code == "" {
+			continue
+		}
+		if _, ok := codeSet[code]; ok {
+			continue
+		}
+		codeSet[code] = struct{}{}
+		rechargeCodes = append(rechargeCodes, code)
+	}
+	if len(rechargeCodes) == 0 {
+		return
+	}
+	orders, err := s.entClient.PaymentOrder.Query().
+		Where(paymentorder.RechargeCodeIn(rechargeCodes...)).
+		All(ctx)
+	if err != nil {
+		logger.LegacyPrintf("service.admin", "failed to attach payment sources to balance history: %v", err)
+		return
+	}
+	sourceByCode := make(map[string]string, len(orders))
+	for _, order := range orders {
+		paymentType := strings.TrimSpace(order.PaymentType)
+		if paymentType == "" {
+			paymentType = "payment"
+		}
+		sourceByCode[order.RechargeCode] = "payment:" + paymentType
+	}
+	for i := range codes {
+		if source, ok := sourceByCode[codes[i].Code]; ok {
+			codes[i].Source = source
+		}
+	}
 }
 
 func (s *adminServiceImpl) BindUserAuthIdentity(ctx context.Context, userID int64, input AdminBindAuthIdentityInput) (*AdminBoundAuthIdentity, error) {

@@ -7,7 +7,7 @@
           <div class="max-w-2xl">
             <p class="text-sm font-semibold uppercase tracking-[0.3em] text-amber-500">{{ t('luckyWheel.heroTag') }}</p>
             <h1 class="mt-3 font-serif text-4xl font-black text-slate-900">{{ t('nav.luckyWheel') }}</h1>
-            <p class="mt-4 text-sm leading-6 text-slate-600">{{ t('luckyWheel.heroDescription') }}</p>
+            <p class="mt-4 whitespace-pre-line text-sm leading-6 text-slate-600">{{ introText }}</p>
 
             <div class="mt-5 flex flex-wrap gap-3 text-xs font-semibold text-slate-600">
               <span class="rounded-full bg-white/80 px-4 py-2 shadow-sm">{{ t('luckyWheel.summaryStep') }} {{ summary?.config.multiplier_step?.toFixed(1) ?? '0.1' }}x</span>
@@ -171,13 +171,9 @@
 
           <section class="space-y-6">
             <div class="rounded-[32px] border border-slate-100 bg-white p-6 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
-              <h2 class="text-xl font-black text-slate-900">{{ t('luckyWheel.rulesTitle') }}</h2>
+              <h2 class="text-xl font-black text-slate-900">{{ rulesTitle }}</h2>
               <div class="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-                <p>{{ t('luckyWheel.ruleTier20To50') }}</p>
-                <p>{{ t('luckyWheel.ruleTier51Plus') }}</p>
-                <p>{{ t('luckyWheel.ruleHighestWins') }}</p>
-                <p>{{ t('luckyWheel.ruleInviteBonus') }}</p>
-                <p>{{ t('luckyWheel.ruleGoldenWindow') }}</p>
+                <p v-for="rule in rulesItems" :key="rule">{{ rule }}</p>
               </div>
             </div>
 
@@ -187,22 +183,24 @@
                 <span class="text-xs uppercase tracking-[0.24em] text-slate-400">{{ historySessions.length }}</span>
               </div>
               <div v-if="!historySessions.length" class="py-10 text-center text-sm text-slate-400">{{ t('luckyWheel.noRecords') }}</div>
-              <div v-else class="mt-4 space-y-3">
-                <div
-                  v-for="session in historySessions"
-                  :key="session.id"
-                  class="rounded-3xl border border-slate-100 bg-slate-50/80 p-4"
-                >
-                  <div class="flex items-start justify-between gap-4">
-                    <div>
-                      <div class="text-sm font-bold text-slate-900">{{ session.matched_tier_name }} · {{ formatAmount(session.source_pay_amount) }}</div>
-                      <div class="mt-2 text-xs text-slate-500">
-                        {{ t('luckyWheel.historyDraws', { value: `${session.completed_draws}/${session.total_draws}` }) }}
+              <div v-else data-test="history-scroll-container" class="mt-4 max-h-[26rem] overflow-y-auto pr-1">
+                <div class="space-y-3">
+                  <div
+                    v-for="session in historySessions"
+                    :key="session.id"
+                    class="rounded-3xl border border-slate-100 bg-slate-50/80 p-4"
+                  >
+                    <div class="flex items-start justify-between gap-4">
+                      <div>
+                        <div class="text-sm font-bold text-slate-900">{{ session.matched_tier_name }} · {{ formatAmount(session.source_pay_amount) }}</div>
+                        <div class="mt-2 text-xs text-slate-500">
+                          {{ t('luckyWheel.historyDraws', { value: `${session.completed_draws}/${session.total_draws}` }) }}
+                        </div>
                       </div>
-                    </div>
-                    <div class="text-right">
-                      <div class="text-lg font-black text-emerald-500">{{ formatMultiplier(session.best_multiplier) }}</div>
-                      <div class="mt-1 text-xs text-slate-400">{{ formatAmount(session.settled_bonus_amount ?? 0) }}</div>
+                      <div class="text-right">
+                        <div class="text-lg font-black text-emerald-500">{{ formatMultiplier(session.best_multiplier) }}</div>
+                        <div class="mt-1 text-xs text-slate-400">{{ formatAmount(session.settled_bonus_amount ?? 0) }}</div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -260,6 +258,19 @@ const POINTER_TARGET_DEG = 0
 
 const activeSession = computed(() => summary.value?.active_session ?? null)
 const historySessions = computed(() => summary.value?.history_sessions ?? [])
+const introText = computed(() => summary.value?.config.intro_text?.trim() || t('luckyWheel.heroDescription'))
+const rulesTitle = computed(() => summary.value?.config.rules_title?.trim() || t('luckyWheel.rulesTitle'))
+const rulesItems = computed(() => {
+  const items = (summary.value?.config.rules_items ?? []).map((item) => item.trim()).filter(Boolean)
+  if (items.length > 0) return items
+  return [
+    t('luckyWheel.ruleTier20To50'),
+    t('luckyWheel.ruleTier51Plus'),
+    t('luckyWheel.ruleHighestWins'),
+    t('luckyWheel.ruleInviteBonus'),
+    t('luckyWheel.ruleGoldenWindow'),
+  ]
+})
 
 const wheelSegments = computed(() => {
   const session = activeSession.value

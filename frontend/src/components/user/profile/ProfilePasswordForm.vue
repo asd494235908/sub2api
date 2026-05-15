@@ -60,7 +60,7 @@
           />
         </div>
 
-        <div>
+        <div v-if="phoneVerifyEnabled">
           <label for="phone_verify_code" class="input-label">
             {{ t('profile.phoneBinding.codeLabel') }}
           </label>
@@ -109,8 +109,10 @@ const appStore = useAppStore()
 const authStore = useAuthStore()
 const props = withDefaults(defineProps<{
   embedded?: boolean
+  phoneVerifyEnabled?: boolean
 }>(), {
   embedded: false,
+  phoneVerifyEnabled: false,
 })
 
 const loading = ref(false)
@@ -188,6 +190,9 @@ function extractCooldownCountdown(error: unknown): number | null {
 }
 
 const sendPhoneCode = async () => {
+  if (!props.phoneVerifyEnabled) {
+    return
+  }
   if (!hasBoundPhone.value) {
     appStore.showError(t('profile.phoneBinding.unbound'))
     return

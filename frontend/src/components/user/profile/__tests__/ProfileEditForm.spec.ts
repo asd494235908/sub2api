@@ -116,6 +116,7 @@ describe('ProfileEditForm', () => {
       props: {
         initialUsername: 'alice',
         embedded: true,
+        phoneVerifyEnabled: true,
       },
     })
 
@@ -130,6 +131,7 @@ describe('ProfileEditForm', () => {
       props: {
         initialUsername: 'alice',
         embedded: true,
+        phoneVerifyEnabled: true,
       },
     })
 
@@ -147,6 +149,7 @@ describe('ProfileEditForm', () => {
       props: {
         initialUsername: 'alice',
         embedded: true,
+        phoneVerifyEnabled: true,
       },
     })
 
@@ -160,6 +163,7 @@ describe('ProfileEditForm', () => {
       props: {
         initialUsername: 'alice',
         embedded: true,
+        phoneVerifyEnabled: true,
       },
     })
 
@@ -181,6 +185,7 @@ describe('ProfileEditForm', () => {
       props: {
         initialUsername: 'alice',
         embedded: true,
+        phoneVerifyEnabled: true,
       },
     })
 
@@ -195,5 +200,33 @@ describe('ProfileEditForm', () => {
       phone_verify_code: '123456',
     })
     expect(authStoreState.user?.phone_number).toBe('+8613800138000')
+  })
+
+  it('hides phone binding controls and only updates username when phone verification is disabled', async () => {
+    const updated = createUser({ username: 'alice-new' })
+    updateProfileMock.mockResolvedValue(updated)
+
+    const wrapper = mount(ProfileEditForm, {
+      props: {
+        initialUsername: 'alice',
+        embedded: true,
+        phoneVerifyEnabled: false,
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.find('#phone_number').exists()).toBe(false)
+    expect(wrapper.find('#phone_verify_code').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="profile-phone-send-code"]').exists()).toBe(false)
+
+    await wrapper.get('#username').setValue('alice-new')
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(updateProfileMock).toHaveBeenCalledWith({ username: 'alice-new' })
+    expect(sendPhoneBindingCodeMock).not.toHaveBeenCalled()
+    expect(bindPhoneNumberMock).not.toHaveBeenCalled()
+    expect(authStoreState.user?.username).toBe('alice-new')
   })
 })

@@ -44,8 +44,9 @@ func ProvideSMSCache(cache EmailCache) SMSCache {
 }
 
 func ProvideSMSService(settingRepo SettingRepository, cache SMSCache) *SMSService {
-	ihuyiSMSSettings := ResolveIHuyiSMSProviderSettings(settingRepo)
-	return NewSMSService(cache, NewIHuyiSMSProvider(ihuyiSMSSettings, nil))
+	return NewSMSServiceWithProviderFactory(cache, settingRepo, func(settings SMSProviderSettings) SMSProvider {
+		return NewIHuyiSMSProvider(settings, nil)
+	})
 }
 
 // ProvideOAuthRefreshAPI creates OAuthRefreshAPI with the default lock TTL.

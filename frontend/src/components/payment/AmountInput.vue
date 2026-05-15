@@ -23,7 +23,7 @@
       </div>
     </div>
 
-    <!-- Custom Amount Input -->
+    <!-- Custom Amount Input
     <div>
       <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
         {{ t('payment.customAmount') }}
@@ -42,11 +42,12 @@
         />
       </div>
     </div>
+    -->
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const props = withDefaults(defineProps<{
@@ -66,13 +67,12 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const customText = ref('')
-
 // 0 = no limit
 const filteredAmounts = computed(() =>
   props.amounts.filter((a) => (props.min <= 0 || a >= props.min) && (props.max <= 0 || a <= props.max))
 )
 
+/*
 const placeholderText = computed(() => {
   if (props.min > 0 && props.max > 0) return `${props.min} - ${props.max}`
   if (props.min > 0) return `≥ ${props.min}`
@@ -81,12 +81,13 @@ const placeholderText = computed(() => {
 })
 
 const AMOUNT_PATTERN = /^\d*(\.\d{0,2})?$/
+*/
 
 function selectAmount(amt: number) {
-  customText.value = String(amt)
   emit('update:modelValue', amt)
 }
 
+/*
 function handleInput(e: Event) {
   const val = (e.target as HTMLInputElement).value
   if (!AMOUNT_PATTERN.test(val)) return
@@ -108,4 +109,5 @@ watch(() => props.modelValue, (v) => {
     customText.value = String(v)
   }
 }, { immediate: true })
+*/
 </script>

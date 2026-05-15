@@ -48,6 +48,9 @@ const configPayload = {
     eligible_order_types: ['balance', 'subscription'],
     multiplier_step: 0.1,
     global_max_multiplier: 3,
+    intro_text: '后台活动简介',
+    rules_title: '后台活动规则',
+    rules_items: ['后台规则 1', '后台规则 2'],
     amount_tiers: [
       { id: 'tier_20_50', name: '20-50', min_amount: 20, max_amount: 50, min_multiplier: 1.1, max_multiplier: 2, draw_count: 2 },
       { id: 'tier_51_plus', name: '51+', min_amount: 51, max_amount: null, min_multiplier: 1.2, max_multiplier: 3, draw_count: 3 },
@@ -120,6 +123,9 @@ describe('AdminLuckyWheelView', () => {
     await flushPromises()
 
     expect(wrapper.findAll('[data-test="tier-row"]')).toHaveLength(2)
+    expect((wrapper.get('textarea[data-test="intro-text"]').element as HTMLTextAreaElement).value).toBe('后台活动简介')
+    expect((wrapper.get('input[data-test="rules-title"]').element as HTMLInputElement).value).toBe('后台活动规则')
+    expect(wrapper.text()).toContain('luckyWheel.adminTiersHint')
     expect(wrapper.text()).toContain('20')
     expect(wrapper.text()).toContain('188.80')
   })
@@ -156,6 +162,34 @@ describe('AdminLuckyWheelView', () => {
     }))
   })
 
+  it('allows multipliers below one in amount tier config', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const firstTier = wrapper.findAll('[data-test="tier-row"]')[0]
+    const minMultiplierInput = firstTier.get('input[data-test="tier-min-multiplier"]')
+    const maxMultiplierInput = firstTier.get('input[data-test="tier-max-multiplier"]')
+
+    expect(minMultiplierInput.attributes('min')).toBe('0.01')
+    expect(maxMultiplierInput.attributes('min')).toBe('0.01')
+
+    await minMultiplierInput.setValue('0.5')
+    await maxMultiplierInput.setValue('0.8')
+    await wrapper.get('button[data-test="save-config"]').trigger('click')
+    await flushPromises()
+
+    expect(updateLuckyWheelConfig).toHaveBeenCalledWith(expect.objectContaining({
+      config: expect.objectContaining({
+        amount_tiers: expect.arrayContaining([
+          expect.objectContaining({
+            min_multiplier: 0.5,
+            max_multiplier: 0.8,
+          }),
+        ]),
+      }),
+    }))
+  })
+
   it('adds a new amount tier row', async () => {
     const wrapper = mountView()
     await flushPromises()
@@ -164,5 +198,70 @@ describe('AdminLuckyWheelView', () => {
     await flushPromises()
 
     expect(wrapper.findAll('[data-test="tier-row"]')).toHaveLength(3)
+  })
+
+  it('keeps settled history inside an internal scroll area', async () => {
+    getLuckyWheelStats.mockResolvedValueOnce({
+      data: {
+        enabled: true,
+        total_sessions: 20,
+        pending_sessions: 8,
+        settled_sessions: 12,
+        total_bonus_amount: 188.8,
+        recent_sessions: Array.from({ length: 12 }, (_, index) => ({
+          id: index + 1,
+          user_id: 1000 + index,
+          source_order_id: 2000 + index,
+          source_order_type: 'balance',
+          source_pay_amount: 20 + index,
+          matched_tier_id: 'tier_20_50',
+          matched_tier_name: '20-50',
+          min_multiplier: 1.1,
+          max_multiplier: 2,
+          total_draws: 2,
+          completed_draws: 2,
+          remaining_draws: 0,
+          best_multiplier: 1.5,
+          invite_bonus_multiplier: 0,
+          golden_window_extra_draws: 0,
+          settled: true,
+          settled_bonus_amount: 30,
+          settled_at: '2026-05-15T10:00:00Z',
+          created_at: '2026-05-15T10:00:00Z',
+          updated_at: '2026-05-15T10:00:00Z',
+        })),
+        multiplier_stats: [],
+        golden_window_used_today: 0,
+        golden_window_daily_quota: 5,
+      },
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    const historyList = wrapper.get('[data-test="settlement-history-list"]')
+
+    expect(historyList.classes()).toContain('max-h-[440px]')
+    expect(historyList.classes()).toContain('overflow-y-auto')
+    expect(wrapper.findAll('[data-test="settlement-history-item"]')).toHaveLength(12)
+  })
+
+  it('persists intro and rules fields in save payload', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('textarea[data-test="intro-text"]').setValue('新的活动简介')
+    await wrapper.get('input[data-test="rules-title"]').setValue('新的规则标题')
+    await wrapper.findAll('input[data-test="rules-item"]')[0].setValue('新的规则 1')
+    await wrapper.get('button[data-test="save-config"]').trigger('click')
+    await flushPromises()
+
+    expect(updateLuckyWheelConfig).toHaveBeenCalledWith(expect.objectContaining({
+      config: expect.objectContaining({
+        intro_text: '新的活动简介',
+        rules_title: '新的规则标题',
+        rules_items: expect.arrayContaining(['新的规则 1']),
+      }),
+    }))
   })
 })

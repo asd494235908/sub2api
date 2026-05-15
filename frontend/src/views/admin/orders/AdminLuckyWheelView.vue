@@ -85,6 +85,33 @@
             </div>
 
             <div class="rounded-3xl border border-slate-200 p-4">
+              <div class="mb-4">
+                <h3 class="text-base font-bold text-slate-900">{{ t('luckyWheel.adminCopyTitle') }}</h3>
+                <p class="text-sm text-slate-500">{{ t('luckyWheel.adminCopyHint') }}</p>
+              </div>
+              <div class="space-y-4">
+                <label class="space-y-2">
+                  <span class="text-sm font-semibold text-slate-700">{{ t('luckyWheel.adminIntroTextLabel') }}</span>
+                  <textarea v-model="config.intro_text" data-test="intro-text" rows="3" class="textarea textarea-bordered w-full" />
+                </label>
+                <label class="space-y-2">
+                  <span class="text-sm font-semibold text-slate-700">{{ t('luckyWheel.adminRulesTitleLabel') }}</span>
+                  <input v-model="config.rules_title" data-test="rules-title" class="input input-bordered w-full" />
+                </label>
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-semibold text-slate-700">{{ t('luckyWheel.adminRulesItemsLabel') }}</span>
+                    <button class="btn btn-secondary btn-sm" type="button" @click="addRuleItem">{{ t('luckyWheel.adminAddRuleItem') }}</button>
+                  </div>
+                  <div v-for="(_rule, index) in config.rules_items" :key="`rule-${index}`" class="flex items-center gap-3">
+                    <input v-model="config.rules_items[index]" data-test="rules-item" class="input input-bordered w-full" />
+                    <button class="btn btn-ghost btn-xs text-rose-500" type="button" @click="removeRuleItem(index)">{{ t('common.delete') }}</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-3xl border border-slate-200 p-4">
               <div class="mb-4 flex items-center justify-between">
                 <div>
                   <h3 class="text-base font-bold text-slate-900">{{ t('luckyWheel.adminTiersTitle') }}</h3>
@@ -128,11 +155,11 @@
                     <div class="grid grid-cols-2 gap-3">
                       <label class="space-y-2">
                         <span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{{ t('luckyWheel.adminTierMinMultiplierLabel') }}</span>
-                        <input v-model.number="tier.min_multiplier" type="number" min="1" step="0.1" class="input input-bordered w-full" />
+                        <input v-model.number="tier.min_multiplier" data-test="tier-min-multiplier" type="number" min="0.01" step="0.1" class="input input-bordered w-full" />
                       </label>
                       <label class="space-y-2">
                         <span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{{ t('luckyWheel.adminTierMaxMultiplierLabel') }}</span>
-                        <input v-model.number="tier.max_multiplier" type="number" min="1" step="0.1" class="input input-bordered w-full" />
+                        <input v-model.number="tier.max_multiplier" data-test="tier-max-multiplier" type="number" min="0.01" step="0.1" class="input input-bordered w-full" />
                       </label>
                     </div>
                   </div>
@@ -258,8 +285,13 @@
             <div class="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
               <h2 class="mb-4 text-lg font-bold text-slate-900">{{ t('luckyWheel.historyTitle') }}</h2>
               <div v-if="!stats?.recent_sessions?.length" class="py-8 text-center text-sm text-slate-500">{{ t('luckyWheel.adminNoData') }}</div>
-              <div v-else class="space-y-3">
-                <div v-for="session in stats.recent_sessions" :key="session.id" class="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+              <div v-else data-test="settlement-history-list" class="max-h-[440px] space-y-3 overflow-y-auto pr-2">
+                <div
+                  v-for="session in stats.recent_sessions"
+                  :key="session.id"
+                  data-test="settlement-history-item"
+                  class="rounded-2xl border border-slate-100 bg-slate-50/70 p-4"
+                >
                   <div class="flex items-center justify-between gap-3">
                     <div>
                       <div class="font-semibold text-slate-900">#{{ session.user_id }} · {{ session.matched_tier_name }}</div>
@@ -304,6 +336,9 @@ const config = reactive<LuckyWheelConfig>({
   eligible_order_types: ['balance', 'subscription'],
   multiplier_step: 0.1,
   global_max_multiplier: 3,
+  intro_text: '',
+  rules_title: '',
+  rules_items: [],
   prizes: [],
   tiers: [],
   amount_tiers: [],
@@ -382,6 +417,9 @@ function applyConfig(next: LuckyWheelConfig) {
   config.eligible_order_types = [...(next.eligible_order_types ?? [])]
   config.multiplier_step = next.multiplier_step
   config.global_max_multiplier = next.global_max_multiplier
+  config.intro_text = next.intro_text ?? ''
+  config.rules_title = next.rules_title ?? ''
+  config.rules_items = [...(next.rules_items ?? [])]
   config.amount_tiers = (next.amount_tiers ?? []).map((tier) => ({ ...tier }))
   config.invite_bonus = { ...next.invite_bonus }
   config.golden_window = { ...next.golden_window }
@@ -440,6 +478,14 @@ function addTier() {
 
 function removeTier(index: number) {
   config.amount_tiers.splice(index, 1)
+}
+
+function addRuleItem() {
+  config.rules_items.push('')
+}
+
+function removeRuleItem(index: number) {
+  config.rules_items.splice(index, 1)
 }
 
 function updateTierMax(index: number, value: string) {

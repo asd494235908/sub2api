@@ -42,7 +42,7 @@
         <!-- Identifier Input -->
         <div>
           <label for="identifier" class="input-label">
-            {{ t('auth.identifierLabel') }}
+            {{ phoneVerifyEnabled ? t('auth.identifierLabel') : t('auth.emailLabel') }}
           </label>
           <div class="relative">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
@@ -51,20 +51,20 @@
             <input
               id="identifier"
               v-model="formData.identifier"
-              type="text"
+              :type="phoneVerifyEnabled ? 'text' : 'email'"
               required
               autofocus
-              autocomplete="username"
+              :autocomplete="phoneVerifyEnabled ? 'username' : 'email'"
               :disabled="isLoading"
               class="input pl-11"
               :class="{ 'input-error': errors.identifier }"
-              :placeholder="t('auth.identifierPlaceholder')"
+              :placeholder="phoneVerifyEnabled ? t('auth.identifierPlaceholder') : t('auth.emailPlaceholder')"
             />
           </div>
         </div>
 
         <!-- Password Input -->
-        <div v-if="!isPhoneIdentifier">
+        <div v-if="!isPhoneLogin">
           <label for="password" class="input-label">
             {{ t('auth.passwordLabel') }}
           </label>
@@ -76,7 +76,7 @@
               id="password"
               v-model="formData.password"
               :type="showPassword ? 'text' : 'password'"
-              :required="!isPhoneIdentifier"
+              :required="!isPhoneLogin"
               autocomplete="current-password"
               :disabled="isLoading"
               class="input pl-11 pr-11"
@@ -104,7 +104,7 @@
           </div>
         </div>
 
-        <div v-if="phoneVerifyEnabled && isPhoneIdentifier">
+        <div v-if="isPhoneLogin">
           <label for="sms_code" class="input-label">
             {{ t('auth.smsCodeLabel') }}
           </label>
@@ -277,6 +277,7 @@ const isPhoneIdentifier = computed(() => {
   const raw = formData.identifier.trim()
   return raw.length > 0 && !isEmailIdentifier.value
 })
+const isPhoneLogin = computed(() => phoneVerifyEnabled.value && isPhoneIdentifier.value)
 
 watch(validationToastMessage, (value, previousValue) => {
   if (value && value !== previousValue) {
@@ -341,17 +342,21 @@ function validateForm(): boolean {
   let isValid = true
 
   // Phone validation
-  if (!formData.identifier.trim()) {
+  const identifier = formData.identifier.trim()
+  if (!identifier) {
     errors.identifier = t('auth.identifierRequired')
     isValid = false
+  } else if (!phoneVerifyEnabled.value && !validateEmail(identifier)) {
+    errors.identifier = t('auth.invalidEmail')
+    isValid = false
   }
-  if (phoneVerifyEnabled.value && isPhoneIdentifier.value && !formData.sms_code.trim()) {
+  if (isPhoneLogin.value && !formData.sms_code.trim()) {
     errors.sms_code = t('auth.smsCodeRequired')
     isValid = false
   }
 
   // Password validation
-  if (!isPhoneIdentifier.value) {
+  if (!isPhoneLogin.value) {
     if (!formData.password) {
       errors.password = t('auth.passwordRequired')
       isValid = false
@@ -368,6 +373,10 @@ function validateForm(): boolean {
   }
 
   return isValid
+}
+
+function validateEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
 // ==================== Form Handlers ====================
@@ -388,9 +397,9 @@ async function handleLogin(): Promise<void> {
     const response = await authStore.login({
       identifier: formData.identifier,
       email: isEmailIdentifier.value ? formData.identifier : undefined,
-      phone_number: isPhoneIdentifier.value ? formData.identifier : undefined,
-      sms_code: isPhoneIdentifier.value ? formData.sms_code : undefined,
-      password: isPhoneIdentifier.value ? undefined : formData.password,
+      phone_number: isPhoneLogin.value ? formData.identifier : undefined,
+      sms_code: isPhoneLogin.value ? formData.sms_code : undefined,
+      password: isPhoneLogin.value ? undefined : formData.password,
       turnstile_token: turnstileEnabled.value ? turnstileToken.value : undefined
     })
 
@@ -433,7 +442,7 @@ const smsCountdown = ref(0)
 let smsCountdownTimer: ReturnType<typeof setInterval> | null = null
 
 async function sendSMSCode(): Promise<void> {
-  if (!isPhoneIdentifier.value || sendingSMSCode.value || smsCountdown.value > 0) {
+  if (!isPhoneLogin.value || sendingSMSCode.value || smsCountdown.value > 0) {
     return
   }
   sendingSMSCode.value = true

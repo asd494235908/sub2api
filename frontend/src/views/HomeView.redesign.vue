@@ -175,7 +175,7 @@ import HomeProducts from '@/components/home/HomeProducts.vue'
 import HomeShowcase from '@/components/home/HomeShowcase.vue'
 import type { HomeLink } from '@/types'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 
@@ -183,19 +183,27 @@ const siteLogo = computed(() => appStore.cachedPublicSettings?.site_logo || appS
 const homeContent = computed(() => appStore.cachedPublicSettings?.home_content || '')
 const docUrl = TOKEN_DOC_URL
 const defaultHomeLinks: HomeLink[] = [
-  { id: 'gpshop', label: t('home.landing.nav.gpshop'), url: 'https://card.gepinkeji.com', enabled: true, sort_order: 0 },
-  { id: 'gpci', label: t('home.landing.nav.gpci'), url: 'https://chat.gepinkeji.com/', enabled: true, sort_order: 1 }
+  { id: 'gpshop', label: '格品购物', label_zh: '格品购物', label_en: 'Gepin Shop', url: 'https://card.gepinkeji.com', enabled: true, sort_order: 0 },
+  { id: 'gpci', label: '格品生图', label_zh: '格品生图', label_en: 'Gepin Image', url: 'https://chat.gepinkeji.com/', enabled: true, sort_order: 1 }
 ]
+
+function resolveHomeLinkLabel(item: HomeLink): string {
+  const isZh = String(locale.value || '').toLowerCase().startsWith('zh')
+  const label = item.label?.trim() || ''
+  const labelZh = item.label_zh?.trim() || ''
+  const labelEn = item.label_en?.trim() || ''
+  return isZh ? (labelZh || label || labelEn) : (labelEn || label || labelZh)
+}
 
 const configuredHomeLinks = computed(() => {
   const raw = appStore.cachedPublicSettings?.home_links
   const source = Array.isArray(raw) && raw.length > 0 ? raw : defaultHomeLinks
   return source
-    .filter((item) => item?.enabled !== false && item.label?.trim() && item.url?.trim())
+    .filter((item) => item?.enabled !== false && resolveHomeLinkLabel(item) && item.url?.trim())
     .slice()
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     .map((item) => ({
-      label: item.label.trim(),
+      label: resolveHomeLinkLabel(item),
       href: item.url.trim(),
       external: true
     }))

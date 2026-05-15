@@ -36,13 +36,15 @@ var (
 )
 
 const defaultHomeLinksJSON = `[
-{"id":"gpshop","label":"格品购物","url":"https://card.gepinkeji.com","enabled":true,"sort_order":0},
-{"id":"gpci","label":"格品生图","url":"https://chat.gepinkeji.com/","enabled":true,"sort_order":1}
+{"id":"gpshop","label":"格品购物","label_zh":"格品购物","label_en":"Gepin Shop","url":"https://card.gepinkeji.com","enabled":true,"sort_order":0},
+{"id":"gpci","label":"格品生图","label_zh":"格品生图","label_en":"Gepin Image","url":"https://chat.gepinkeji.com/","enabled":true,"sort_order":1}
 ]`
 
 type HomeLink struct {
 	ID        string `json:"id"`
 	Label     string `json:"label"`
+	LabelZH   string `json:"label_zh"`
+	LabelEN   string `json:"label_en"`
 	URL       string `json:"url"`
 	Enabled   bool   `json:"enabled"`
 	SortOrder int    `json:"sort_order"`
@@ -930,10 +932,24 @@ func normalizeHomeLinks(raw string) ([]HomeLink, error) {
 	seenIDs := make(map[string]struct{}, len(links))
 	for _, link := range links {
 		label := strings.TrimSpace(link.Label)
+		labelZH := strings.TrimSpace(link.LabelZH)
+		labelEN := strings.TrimSpace(link.LabelEN)
 		if label == "" {
+			label = firstNonEmpty(labelZH, labelEN)
+		}
+		if labelZH == "" {
+			labelZH = firstNonEmpty(label, labelEN)
+		}
+		if labelEN == "" {
+			labelEN = firstNonEmpty(label, labelZH)
+		}
+		if label == "" && labelZH == "" && labelEN == "" {
 			return nil, infraerrors.BadRequest("HOME_LINK_LABEL_REQUIRED", "home link label is required")
 		}
 		if len([]rune(label)) > 50 {
+			return nil, infraerrors.BadRequest("HOME_LINK_LABEL_TOO_LONG", "home link label is too long")
+		}
+		if len([]rune(labelZH)) > 50 || len([]rune(labelEN)) > 50 {
 			return nil, infraerrors.BadRequest("HOME_LINK_LABEL_TOO_LONG", "home link label is too long")
 		}
 
@@ -961,6 +977,8 @@ func normalizeHomeLinks(raw string) ([]HomeLink, error) {
 		normalized = append(normalized, HomeLink{
 			ID:        id,
 			Label:     label,
+			LabelZH:   labelZH,
+			LabelEN:   labelEN,
 			URL:       linkURL,
 			Enabled:   link.Enabled,
 			SortOrder: len(normalized),
@@ -1222,12 +1240,6 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeySMSIHuyiTemplateID] = firstNonEmpty(strings.TrimSpace(settings.SMSIHuyiTemplateID), defaultIHuyiTemplateID)
 	if strings.TrimSpace(settings.SMSIHuyiAPIKey) != "" {
 		updates[SettingKeySMSIHuyiAPIKey] = strings.TrimSpace(settings.SMSIHuyiAPIKey)
-	}
-	updates[SettingKeySMSIHuyiEnabled] = strconv.FormatBool(settings.SMSIHuyiEnabled)
-	updates[SettingKeySMSIHuyiAPIID] = settings.SMSIHuyiAPIID
-	updates[SettingKeySMSIHuyiTemplateID] = firstNonEmpty(settings.SMSIHuyiTemplateID, defaultIHuyiTemplateID)
-	if settings.SMSIHuyiAPIKey != "" {
-		updates[SettingKeySMSIHuyiAPIKey] = settings.SMSIHuyiAPIKey
 	}
 
 	// Cloudflare Turnstile 设置（只有非空才更新密钥）

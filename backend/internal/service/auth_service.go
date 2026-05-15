@@ -160,10 +160,8 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, phone
 	if err := s.validateRegistrationEmailPolicy(ctx, email); err != nil {
 		return "", nil, err
 	}
+	rawPhoneNumber := strings.TrimSpace(phoneNumber)
 	phoneNumber = NormalizePhoneNumber(phoneNumber, "86")
-	if phoneNumber == "" {
-		return "", nil, infraerrors.BadRequest("PHONE_REQUIRED", "phone number is required")
-	}
 
 	// 检查是否需要邀请码
 	var invitationRedeemCode *RedeemCode
@@ -202,6 +200,9 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, phone
 		}
 	}
 	if s.settingService != nil && s.settingService.IsPhoneVerifyEnabled(ctx) {
+		if rawPhoneNumber == "" || phoneNumber == "" {
+			return "", nil, infraerrors.BadRequest("PHONE_REQUIRED", "phone number is required")
+		}
 		if s.smsService == nil {
 			logger.LegacyPrintf("service.auth", "%s", "[Auth] Phone verification enabled but sms service not configured, rejecting registration")
 			return "", nil, ErrServiceUnavailable
@@ -223,10 +224,12 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, phone
 	if existsEmail {
 		return "", nil, ErrEmailExists
 	}
-	if existingUser, err := s.userRepo.GetByPhone(ctx, phoneNumber); err == nil && existingUser != nil {
-		return "", nil, ErrPhoneExists
-	} else if err != nil && !errors.Is(err, ErrUserNotFound) {
-		return "", nil, ErrServiceUnavailable
+	if phoneNumber != "" {
+		if existingUser, err := s.userRepo.GetByPhone(ctx, phoneNumber); err == nil && existingUser != nil {
+			return "", nil, ErrPhoneExists
+		} else if err != nil && !errors.Is(err, ErrUserNotFound) {
+			return "", nil, ErrServiceUnavailable
+		}
 	}
 
 	// 密码哈希
