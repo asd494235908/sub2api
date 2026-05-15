@@ -14,6 +14,7 @@ import (
 	"time"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
+	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/internal/payment"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 
@@ -348,10 +349,6 @@ func (s *PaymentService) DrawLuckyWheel(ctx context.Context, userID, sessionID i
 	if !enabled {
 		return nil, infraerrors.Forbidden("LUCKY_WHEEL_DISABLED", "lucky wheel is disabled")
 	}
-	balanceRechargeMultiplier, err := s.luckyWheelBalanceRechargeMultiplier(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	tx, err := s.entClient.Tx(ctx)
 	if err != nil {
@@ -400,8 +397,11 @@ func (s *PaymentService) DrawLuckyWheel(ctx context.Context, userID, sessionID i
 	settled := drawIndex >= session.TotalDraws
 	var settledBonus *float64
 	if settled {
-		rewardRMB := roundLuckyWheelAmount(session.SourcePayAmount * best)
-		bonus := calculateCreditedBalance(rewardRMB, balanceRechargeMultiplier)
+		rewardBase, err := luckyWheelRewardBaseAmount(txCtx, tx.Client(), session)
+		if err != nil {
+			return nil, err
+		}
+		bonus := roundLuckyWheelAmount(rewardBase * best)
 		settledBonus = &bonus
 		if bonus > 0 {
 			if err := s.userRepo.UpdateBalance(txCtx, userID, bonus); err != nil {
@@ -683,13 +683,13 @@ func cloneDefaultLuckyWheelConfig() *LuckyWheelConfig {
 	}
 }
 
-const defaultLuckyWheelIntroText = "按用户实付人民币进入不同倍率档位，多次抽奖取最高倍率；抽中奖励人民币会按配置中心比例转换为平台金额到账。"
+const defaultLuckyWheelIntroText = "按用户实付人民币进入不同倍率档位，多次抽奖取最高倍率；充值按到账平台金额结算奖励，订阅按有效天数 × 日额度结算奖励。"
 const defaultLuckyWheelRulesTitle = "活动规则"
 
 var defaultLuckyWheelRulesItems = []string{
 	"实付 20-50 元：1.1x-2.0x，保底 1.1x，最多 2 次。",
 	"实付 51 元及以上：1.2x-3.0x，保底 1.2x，最多 3 次，黄金窗口可额外 +1 次。",
-	"同一笔支付多次抽奖取最高倍率，人民币奖励按“实付金额 × 最高倍率”计算后统一结算。",
+	"同一笔支付多次抽奖取最高倍率；充值奖励按到账平台金额计算，订阅奖励按有效天数 × 日额度计算。",
 	"每邀请 1 位新用户完成满 20 元实付订单，下次会话倍率加成 +0.2x，累计上限 +1.0x。",
 	"北京时间 20:00-22:00 的 51 元以上实付订单，前 5 名可额外获得 1 次机会。",
 }
@@ -734,6 +734,48 @@ func matchLuckyWheelAmountTier(tiers []LuckyWheelAmountTier, amount float64) (Lu
 		return tier, true
 	}
 	return LuckyWheelAmountTier{}, false
+}
+
+func luckyWheelRewardBaseAmount(ctx context.Context, client *dbent.Client, session *LuckyWheelSession) (float64, error) {
+	if session == nil {
+		return 0, nil
+	}
+	order, err := client.PaymentOrder.Get(ctx, session.SourceOrderID)
+	if err != nil {
+		if dbent.IsNotFound(err) {
+			return session.SourcePayAmount, nil
+		}
+		return 0, fmt.Errorf("load lucky wheel source order: %w", err)
+	}
+	switch order.OrderType {
+	case payment.OrderTypeBalance:
+		if order.Amount <= 0 {
+			return 0, nil
+		}
+		return order.Amount, nil
+	case payment.OrderTypeSubscription:
+		if order.SubscriptionDays == nil || *order.SubscriptionDays <= 0 || order.SubscriptionGroupID == nil || *order.SubscriptionGroupID <= 0 {
+			return 0, nil
+		}
+		g, err := client.Group.Query().
+			Where(group.IDEQ(*order.SubscriptionGroupID)).
+			Only(ctx)
+		if err != nil {
+			if dbent.IsNotFound(err) {
+				return 0, nil
+			}
+			return 0, fmt.Errorf("load lucky wheel subscription group: %w", err)
+		}
+		if g.DailyLimitUsd == nil || *g.DailyLimitUsd <= 0 {
+			return 0, nil
+		}
+		return float64(*order.SubscriptionDays) * *g.DailyLimitUsd, nil
+	default:
+		if order.Amount <= 0 {
+			return 0, nil
+		}
+		return order.Amount, nil
+	}
 }
 
 func drawLuckyWheelMultiplier(minMultiplier, maxMultiplier, step float64) float64 {

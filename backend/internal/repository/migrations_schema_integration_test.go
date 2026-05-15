@@ -22,6 +22,7 @@ func TestMigrationsRunner_IsIdempotent_AndSchemaIsUpToDate(t *testing.T) {
 	require.GreaterOrEqual(t, applied, 7, "expected schema_migrations to contain applied migrations")
 
 	// users: columns required by repository queries
+	requireColumn(t, tx, "users", "phone_number", "character varying", 32, false)
 	requireColumn(t, tx, "users", "username", "character varying", 100, false)
 	requireColumn(t, tx, "users", "notes", "text", 0, false)
 

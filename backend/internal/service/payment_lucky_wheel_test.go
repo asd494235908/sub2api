@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -139,6 +140,75 @@ func defaultLuckyWheelConfig() *LuckyWheelConfig {
 
 func luckyWheelPtrFloat64(v float64) *float64 {
 	return &v
+}
+
+func createLuckyWheelTestUser(t *testing.T, ctx context.Context, svc *PaymentService, email string) *dbent.User {
+	t.Helper()
+	user, err := svc.entClient.User.Create().
+		SetEmail(email).
+		SetPasswordHash("hash").
+		SetUsername(email).
+		Save(ctx)
+	require.NoError(t, err)
+	return user
+}
+
+func createLuckyWheelBalanceOrder(t *testing.T, ctx context.Context, svc *PaymentService, user *dbent.User, id int64, creditedAmount, payAmount float64) *dbent.PaymentOrder {
+	t.Helper()
+	order, err := svc.entClient.PaymentOrder.Create().
+		SetUserID(user.ID).
+		SetUserEmail(user.Email).
+		SetUserName(user.Username).
+		SetAmount(creditedAmount).
+		SetPayAmount(payAmount).
+		SetFeeRate(0).
+		SetRechargeCode(fmt.Sprintf("LUCKY-BALANCE-%d", id)).
+		SetOutTradeNo(fmt.Sprintf("sub2_lucky_balance_%d", id)).
+		SetPaymentType(payment.TypeAlipay).
+		SetPaymentTradeNo("trade-balance").
+		SetOrderType(payment.OrderTypeBalance).
+		SetStatus(OrderStatusCompleted).
+		SetExpiresAt(time.Now().Add(time.Hour)).
+		SetClientIP("127.0.0.1").
+		SetSrcHost("api.example.com").
+		Save(ctx)
+	require.NoError(t, err)
+	return order
+}
+
+func createLuckyWheelSubscriptionOrder(t *testing.T, ctx context.Context, svc *PaymentService, user *dbent.User, id, groupID int64, subscriptionDays int, dailyLimitUSD *float64, amount, payAmount float64) *dbent.PaymentOrder {
+	t.Helper()
+	groupCreate := svc.entClient.Group.Create().
+		SetName(fmt.Sprintf("lucky-wheel-group-%d", groupID))
+	if dailyLimitUSD != nil {
+		groupCreate.SetDailyLimitUsd(*dailyLimitUSD)
+	}
+	group, err := groupCreate.Save(ctx)
+	require.NoError(t, err)
+
+	orderCreate := svc.entClient.PaymentOrder.Create().
+		SetUserID(user.ID).
+		SetUserEmail(user.Email).
+		SetUserName(user.Username).
+		SetAmount(amount).
+		SetPayAmount(payAmount).
+		SetFeeRate(0).
+		SetRechargeCode(fmt.Sprintf("LUCKY-SUBSCRIPTION-%d", id)).
+		SetOutTradeNo(fmt.Sprintf("sub2_lucky_subscription_%d", id)).
+		SetPaymentType(payment.TypeAlipay).
+		SetPaymentTradeNo("trade-subscription").
+		SetOrderType(payment.OrderTypeSubscription).
+		SetStatus(OrderStatusCompleted).
+		SetExpiresAt(time.Now().Add(time.Hour)).
+		SetClientIP("127.0.0.1").
+		SetSrcHost("api.example.com").
+		SetSubscriptionGroupID(group.ID)
+	if subscriptionDays > 0 {
+		orderCreate.SetSubscriptionDays(subscriptionDays)
+	}
+	order, err := orderCreate.Save(ctx)
+	require.NoError(t, err)
+	return order
 }
 
 func TestNormalizeLuckyWheelConfig_RejectsInvalidTierCoverage(t *testing.T) {
@@ -297,10 +367,50 @@ func TestDrawLuckyWheel_SettlesOnLastDrawAndCreditsRewardAmount(t *testing.T) {
 	require.Equal(t, 0, second.RemainingDraws)
 }
 
-func TestDrawLuckyWheel_ConvertsRewardRMBToPlatformBalance(t *testing.T) {
+func TestDrawLuckyWheel_CreditsBalanceRewardFromCreditedOrderAmount(t *testing.T) {
 	ctx := context.Background()
 	svc, repo, userRepo := newLuckyWheelPaymentService(t)
-	repo.values[SettingBalanceRechargeMult] = "2"
+	repo.values[SettingBalanceRechargeMult] = "18"
+	cfg := defaultLuckyWheelConfig()
+	cfg.AmountTiers[0].MinMultiplier = 0.5
+	cfg.AmountTiers[0].MaxMultiplier = 0.5
+	cfg.AmountTiers[0].MaxAmount = luckyWheelPtrFloat64(120)
+	cfg.AmountTiers[1].MinAmount = 121
+	saveLuckyWheelConfig(t, repo, cfg)
+	setLuckyWheelTestNow(t, time.Date(2026, 5, 13, 8, 0, 0, 0, time.UTC))
+	setLuckyWheelTestDrawSequence(t, 0)
+
+	user := createLuckyWheelTestUser(t, ctx, svc, "lucky-balance@example.com")
+	userRepo.getByIDUser = &User{ID: user.ID, Balance: 100}
+	userRepo.updateBalanceFn = func(ctx context.Context, id int64, amount float64) error {
+		require.Equal(t, user.ID, id)
+		userRepo.getByIDUser.Balance += amount
+		return nil
+	}
+
+	order := createLuckyWheelBalanceOrder(t, ctx, svc, user, 302, 1800, 120)
+
+	require.NoError(t, svc.GrantLuckyWheelChanceForOrder(ctx, order))
+
+	summary, err := svc.GetLuckyWheelSummary(ctx, user.ID)
+	require.NoError(t, err)
+	require.NotNil(t, summary.ActiveSession)
+	require.Equal(t, "tier_20_50", summary.ActiveSession.MatchedTierID)
+
+	_, err = svc.DrawLuckyWheel(ctx, user.ID, summary.ActiveSession.ID)
+	require.NoError(t, err)
+	result, err := svc.DrawLuckyWheel(ctx, user.ID, summary.ActiveSession.ID)
+	require.NoError(t, err)
+	require.True(t, result.Settled)
+	require.NotNil(t, result.SettledBonusAmount)
+	require.InDelta(t, 0.5, result.BestMultiplier, 1e-9)
+	require.InDelta(t, 900.0, *result.SettledBonusAmount, 1e-9)
+	require.InDelta(t, 1000.0, userRepo.getByIDUser.Balance, 1e-9)
+}
+
+func TestDrawLuckyWheel_CreditsSubscriptionRewardFromDaysAndDailyLimit(t *testing.T) {
+	ctx := context.Background()
+	svc, repo, userRepo := newLuckyWheelPaymentService(t)
 	cfg := defaultLuckyWheelConfig()
 	cfg.AmountTiers[0].MinMultiplier = 0.5
 	cfg.AmountTiers[0].MaxMultiplier = 0.5
@@ -308,78 +418,69 @@ func TestDrawLuckyWheel_ConvertsRewardRMBToPlatformBalance(t *testing.T) {
 	setLuckyWheelTestNow(t, time.Date(2026, 5, 13, 8, 0, 0, 0, time.UTC))
 	setLuckyWheelTestDrawSequence(t, 0)
 
-	userRepo.getByIDUser = &User{ID: 1, Balance: 100}
+	user := createLuckyWheelTestUser(t, ctx, svc, "lucky-subscription@example.com")
+	userRepo.getByIDUser = &User{ID: user.ID, Balance: 100}
 	userRepo.updateBalanceFn = func(ctx context.Context, id int64, amount float64) error {
-		require.Equal(t, int64(1), id)
+		require.Equal(t, user.ID, id)
 		userRepo.getByIDUser.Balance += amount
 		return nil
 	}
 
-	order := &dbent.PaymentOrder{
-		ID:        302,
-		UserID:    1,
-		OrderType: payment.OrderTypeBalance,
-		Amount:    100,
-		PayAmount: 50,
-	}
+	dailyLimit := 10.0
+	order := createLuckyWheelSubscriptionOrder(t, ctx, svc, user, 303, 9901, 30, &dailyLimit, 80, 50)
 
 	require.NoError(t, svc.GrantLuckyWheelChanceForOrder(ctx, order))
 
-	summary, err := svc.GetLuckyWheelSummary(ctx, 1)
-	require.NoError(t, err)
-	require.NotNil(t, summary.ActiveSession)
-	require.Equal(t, "tier_20_50", summary.ActiveSession.MatchedTierID)
-
-	_, err = svc.DrawLuckyWheel(ctx, 1, summary.ActiveSession.ID)
-	require.NoError(t, err)
-	result, err := svc.DrawLuckyWheel(ctx, 1, summary.ActiveSession.ID)
-	require.NoError(t, err)
-	require.True(t, result.Settled)
-	require.NotNil(t, result.SettledBonusAmount)
-	require.InDelta(t, 0.5, result.BestMultiplier, 1e-9)
-	require.InDelta(t, 50.0, *result.SettledBonusAmount, 1e-9)
-	require.InDelta(t, 150.0, userRepo.getByIDUser.Balance, 1e-9)
-}
-
-func TestDrawLuckyWheel_ConvertsSubscriptionBonusToPlatformBalanceWhenEligible(t *testing.T) {
-	ctx := context.Background()
-	svc, repo, userRepo := newLuckyWheelPaymentService(t)
-	repo.values[SettingBalanceRechargeMult] = "2"
-	saveLuckyWheelConfig(t, repo, defaultLuckyWheelConfig())
-	setLuckyWheelTestNow(t, time.Date(2026, 5, 13, 8, 0, 0, 0, time.UTC))
-	setLuckyWheelTestDrawSequence(t, 0.999)
-
-	userRepo.getByIDUser = &User{ID: 1, Balance: 100}
-	userRepo.updateBalanceFn = func(ctx context.Context, id int64, amount float64) error {
-		require.Equal(t, int64(1), id)
-		userRepo.getByIDUser.Balance += amount
-		return nil
-	}
-
-	order := &dbent.PaymentOrder{
-		ID:        303,
-		UserID:    1,
-		OrderType: payment.OrderTypeSubscription,
-		Amount:    80,
-		PayAmount: 50,
-	}
-
-	require.NoError(t, svc.GrantLuckyWheelChanceForOrder(ctx, order))
-
-	summary, err := svc.GetLuckyWheelSummary(ctx, 1)
+	summary, err := svc.GetLuckyWheelSummary(ctx, user.ID)
 	require.NoError(t, err)
 	require.NotNil(t, summary.ActiveSession)
 	require.Equal(t, payment.OrderTypeSubscription, summary.ActiveSession.SourceOrderType)
 	require.Equal(t, "tier_20_50", summary.ActiveSession.MatchedTierID)
 
-	_, err = svc.DrawLuckyWheel(ctx, 1, summary.ActiveSession.ID)
+	_, err = svc.DrawLuckyWheel(ctx, user.ID, summary.ActiveSession.ID)
 	require.NoError(t, err)
-	result, err := svc.DrawLuckyWheel(ctx, 1, summary.ActiveSession.ID)
+	result, err := svc.DrawLuckyWheel(ctx, user.ID, summary.ActiveSession.ID)
 	require.NoError(t, err)
 	require.True(t, result.Settled)
 	require.NotNil(t, result.SettledBonusAmount)
-	require.InDelta(t, 200.0, *result.SettledBonusAmount, 1e-9)
-	require.InDelta(t, 300.0, userRepo.getByIDUser.Balance, 1e-9)
+	require.InDelta(t, 150.0, *result.SettledBonusAmount, 1e-9)
+	require.InDelta(t, 250.0, userRepo.getByIDUser.Balance, 1e-9)
+}
+
+func TestDrawLuckyWheel_CreditsZeroForSubscriptionWithoutDailyLimit(t *testing.T) {
+	ctx := context.Background()
+	svc, repo, userRepo := newLuckyWheelPaymentService(t)
+	cfg := defaultLuckyWheelConfig()
+	cfg.AmountTiers[0].MinMultiplier = 0.5
+	cfg.AmountTiers[0].MaxMultiplier = 0.5
+	saveLuckyWheelConfig(t, repo, cfg)
+	setLuckyWheelTestNow(t, time.Date(2026, 5, 13, 8, 0, 0, 0, time.UTC))
+	setLuckyWheelTestDrawSequence(t, 0)
+
+	user := createLuckyWheelTestUser(t, ctx, svc, "lucky-subscription-zero@example.com")
+	userRepo.getByIDUser = &User{ID: user.ID, Balance: 100}
+	userRepo.updateBalanceFn = func(ctx context.Context, id int64, amount float64) error {
+		require.Equal(t, user.ID, id)
+		userRepo.getByIDUser.Balance += amount
+		return nil
+	}
+
+	order := createLuckyWheelSubscriptionOrder(t, ctx, svc, user, 305, 9902, 30, nil, 80, 50)
+
+	require.NoError(t, svc.GrantLuckyWheelChanceForOrder(ctx, order))
+
+	summary, err := svc.GetLuckyWheelSummary(ctx, user.ID)
+	require.NoError(t, err)
+	require.NotNil(t, summary.ActiveSession)
+
+	_, err = svc.DrawLuckyWheel(ctx, user.ID, summary.ActiveSession.ID)
+	require.NoError(t, err)
+	result, err := svc.DrawLuckyWheel(ctx, user.ID, summary.ActiveSession.ID)
+	require.NoError(t, err)
+	require.True(t, result.Settled)
+	require.NotNil(t, result.SettledBonusAmount)
+	require.InDelta(t, 0.0, *result.SettledBonusAmount, 1e-9)
+	require.InDelta(t, 100.0, userRepo.getByIDUser.Balance, 1e-9)
 }
 
 func TestGrantLuckyWheelChanceForOrder_SkipsWhenPayAmountDoesNotMatchAnyTier(t *testing.T) {
