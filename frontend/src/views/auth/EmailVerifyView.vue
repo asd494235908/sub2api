@@ -280,7 +280,7 @@ onMounted(async () => {
             adoptAvatar: registerData.pending_adoption_decision.adopt_avatar === true
           }
         : null
-      hasRegisterData.value = !!(email.value && phoneNumber.value && password.value)
+      hasRegisterData.value = !!(email.value && password.value)
     } catch {
       hasRegisterData.value = false
     }
@@ -533,13 +533,19 @@ async function handleVerify(): Promise<void> {
       await authStore.setToken(data.access_token)
       authStore.clearPendingAuthSession?.()
     } else {
+      const phoneFields = phoneNumber.value.trim()
+        ? {
+            phone_number: phoneNumber.value.trim(),
+            phone_verify_code: phoneVerifyCode.value.trim() || undefined
+          }
+        : {}
+
       // Register with verification code
       await authStore.register({
         email: email.value,
-        phone_number: phoneNumber.value,
+        ...phoneFields,
         password: password.value,
         verify_code: verifyCode.value.trim(),
-        phone_verify_code: phoneVerifyCode.value.trim() || undefined,
         turnstile_token: initialTurnstileToken.value || undefined,
         promo_code: promoCode.value || undefined,
         invitation_code: invitationCode.value || undefined,

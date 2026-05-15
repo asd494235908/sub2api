@@ -922,6 +922,7 @@ func (s *SettingService) SetVersion(version string) {
 type PublicSettingsInjectionPayload struct {
 	RegistrationEnabled              bool                     `json:"registration_enabled"`
 	EmailVerifyEnabled               bool                     `json:"email_verify_enabled"`
+	PhoneVerifyEnabled               bool                     `json:"phone_verify_enabled"`
 	RegistrationEmailSuffixWhitelist []string                 `json:"registration_email_suffix_whitelist"`
 	PromoCodeEnabled                 bool                     `json:"promo_code_enabled"`
 	PasswordResetEnabled             bool                     `json:"password_reset_enabled"`
@@ -939,7 +940,10 @@ type PublicSettingsInjectionPayload struct {
 	SiteSubtitle                     string                   `json:"site_subtitle"`
 	APIBaseURL                       string                   `json:"api_base_url"`
 	ContactInfo                      string                   `json:"contact_info"`
+	QQGroup                          string                   `json:"qq_group"`
+	WeChatContact                    string                   `json:"wechat_contact"`
 	DocURL                           string                   `json:"doc_url"`
+	HomeLinks                        json.RawMessage          `json:"home_links"`
 	HomeContent                      string                   `json:"home_content"`
 	HideCcsImportButton              bool                     `json:"hide_ccs_import_button"`
 	PurchaseSubscriptionEnabled      bool                     `json:"purchase_subscription_enabled"`
@@ -1552,6 +1556,14 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	settings.GoogleOAuthFrontendRedirectURL = strings.TrimSpace(settings.GoogleOAuthFrontendRedirectURL)
 	if settings.GoogleOAuthFrontendRedirectURL == "" {
 		settings.GoogleOAuthFrontendRedirectURL = defaultGoogleOAuthFrontend
+	}
+	homeLinks, err := normalizeHomeLinks(settings.HomeLinks)
+	if err != nil {
+		return nil, err
+	}
+	homeLinksJSON, err := json.Marshal(homeLinks)
+	if err != nil {
+		return nil, fmt.Errorf("marshal home links: %w", err)
 	}
 
 	updates := make(map[string]string)

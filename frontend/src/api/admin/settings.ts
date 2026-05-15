@@ -7,6 +7,7 @@ import { apiClient } from "../client";
 import type {
   CustomEndpoint,
   CustomMenuItem,
+  HomeLink,
   LoginAgreementDocument,
   NotifyEmailEntry,
 } from "@/types";
@@ -203,7 +204,9 @@ export function appendAuthSourceDefaultsToUpdateRequest(
   const target = payload as Record<string, unknown>;
 
   for (const source of AUTH_SOURCE_TYPES) {
-    const current = authSourceDefaults[source];
+    const current =
+      authSourceDefaults[source] ??
+      buildAuthSourceDefaultsState({})[source];
     target[`auth_source_default_${source}_balance`] =
       Number(current.balance) || 0;
     target[`auth_source_default_${source}_concurrency`] = Math.max(

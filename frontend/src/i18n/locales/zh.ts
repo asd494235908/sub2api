@@ -5454,6 +5454,15 @@ export default {
           enabled: '启用风控中心',
           enabledHint: '关闭后管理员侧边栏入口隐藏，网关内容审计不会执行。',
         },
+        weeklyQuota: {
+          title: '周额度领取',
+          description: '允许用户按注册时间滚动的 7 天窗口领取固定额度。',
+          enabled: '启用周额度领取',
+          enabledHint: '关闭后用户端周额度入口隐藏，用户无法领取新的周额度。',
+          amount: '每周领取额度',
+          amountHint: '每个 7 天窗口可领取的余额金额。',
+          amountRequired: '启用周额度领取时，请填写大于 0 的领取额度。',
+        },
         affiliate: {
           title: '邀请返利',
           description: '老用户邀请新用户注册，新用户充值后老用户按比例获得返利额度。默认关闭。',

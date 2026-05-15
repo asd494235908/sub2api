@@ -125,6 +125,10 @@ func (r *contentModerationTestUserRepo) GetByEmail(ctx context.Context, email st
 	panic("unexpected GetByEmail call")
 }
 
+func (r *contentModerationTestUserRepo) GetByPhone(ctx context.Context, phone string) (*User, error) {
+	panic("unexpected GetByPhone call")
+}
+
 func (r *contentModerationTestUserRepo) GetFirstAdmin(ctx context.Context) (*User, error) {
 	panic("unexpected GetFirstAdmin call")
 }

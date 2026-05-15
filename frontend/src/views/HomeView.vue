@@ -153,6 +153,7 @@
       :social-dots="socialDots"
       :columns="footerColumns"
       :follow-label="t('home.landing.footer.follow')"
+      :contact-items="footerContactItems"
       :qr-items="communityQrItems"
       :copyright-owner="t('home.landing.footer.copyrightOwner')"
       :filing-label="t('home.landing.footer.filing')"
@@ -185,6 +186,13 @@ const communityQrItems = computed(() => [
   { src: '/qq.jpg', alt: t('home.landing.community.qrAlt.qq'), label: t('home.landing.community.qrLabels.qq') },
   { src: '/wechat.jpg', alt: t('home.landing.community.qrAlt.wechat'), label: t('home.landing.community.qrLabels.wechat') }
 ])
+const footerContactItems = computed(() =>
+  [
+    { label: 'QQ', value: appStore.cachedPublicSettings?.qq_group || '' },
+    { label: t('common.wechat'), value: appStore.cachedPublicSettings?.wechat_contact || '' },
+    { label: t('common.contact'), value: appStore.cachedPublicSettings?.contact_info || '' }
+  ].filter((item) => item.value.trim())
+)
 
 const headerRef = ref<HTMLElement | null>(null)
 const headerOffset = ref(120)

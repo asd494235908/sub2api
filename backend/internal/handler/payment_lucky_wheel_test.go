@@ -43,7 +43,9 @@ func (s *luckyWheelHandlerSettingRepoStub) GetValue(_ context.Context, key strin
 	}
 	return "", service.ErrSettingNotFound
 }
-func (s *luckyWheelHandlerSettingRepoStub) Set(context.Context, string, string) error { panic("unexpected Set") }
+func (s *luckyWheelHandlerSettingRepoStub) Set(context.Context, string, string) error {
+	panic("unexpected Set")
+}
 func (s *luckyWheelHandlerSettingRepoStub) GetMultiple(_ context.Context, keys []string) (map[string]string, error) {
 	out := make(map[string]string, len(keys))
 	for _, key := range keys {
@@ -62,10 +64,16 @@ func (s *luckyWheelHandlerSettingRepoStub) SetMultiple(_ context.Context, settin
 	}
 	return nil
 }
-func (s *luckyWheelHandlerSettingRepoStub) GetAll(context.Context) (map[string]string, error) { panic("unexpected GetAll") }
-func (s *luckyWheelHandlerSettingRepoStub) Delete(context.Context, string) error { panic("unexpected Delete") }
+func (s *luckyWheelHandlerSettingRepoStub) GetAll(context.Context) (map[string]string, error) {
+	panic("unexpected GetAll")
+}
+func (s *luckyWheelHandlerSettingRepoStub) Delete(context.Context, string) error {
+	panic("unexpected Delete")
+}
 
-func (s *luckyWheelHandlerUserRepoStub) Create(context.Context, *service.User) error { panic("unexpected Create") }
+func (s *luckyWheelHandlerUserRepoStub) Create(context.Context, *service.User) error {
+	panic("unexpected Create")
+}
 func (s *luckyWheelHandlerUserRepoStub) GetByID(context.Context, int64) (*service.User, error) {
 	return &service.User{ID: 1, Balance: s.balance}, nil
 }
@@ -78,15 +86,21 @@ func (s *luckyWheelHandlerUserRepoStub) GetByPhone(context.Context, string) (*se
 func (s *luckyWheelHandlerUserRepoStub) GetFirstAdmin(context.Context) (*service.User, error) {
 	panic("unexpected GetFirstAdmin")
 }
-func (s *luckyWheelHandlerUserRepoStub) Update(context.Context, *service.User) error { panic("unexpected Update") }
-func (s *luckyWheelHandlerUserRepoStub) Delete(context.Context, int64) error { panic("unexpected Delete") }
+func (s *luckyWheelHandlerUserRepoStub) Update(context.Context, *service.User) error {
+	panic("unexpected Update")
+}
+func (s *luckyWheelHandlerUserRepoStub) Delete(context.Context, int64) error {
+	panic("unexpected Delete")
+}
 func (s *luckyWheelHandlerUserRepoStub) GetUserAvatar(context.Context, int64) (*service.UserAvatar, error) {
 	panic("unexpected GetUserAvatar")
 }
 func (s *luckyWheelHandlerUserRepoStub) UpsertUserAvatar(context.Context, int64, service.UpsertUserAvatarInput) (*service.UserAvatar, error) {
 	panic("unexpected UpsertUserAvatar")
 }
-func (s *luckyWheelHandlerUserRepoStub) DeleteUserAvatar(context.Context, int64) error { panic("unexpected DeleteUserAvatar") }
+func (s *luckyWheelHandlerUserRepoStub) DeleteUserAvatar(context.Context, int64) error {
+	panic("unexpected DeleteUserAvatar")
+}
 func (s *luckyWheelHandlerUserRepoStub) List(context.Context, pagination.PaginationParams) ([]service.User, *pagination.PaginationResult, error) {
 	panic("unexpected List")
 }
@@ -112,7 +126,9 @@ func (s *luckyWheelHandlerUserRepoStub) DeductBalance(context.Context, int64, fl
 func (s *luckyWheelHandlerUserRepoStub) UpdateConcurrency(context.Context, int64, int) error {
 	panic("unexpected UpdateConcurrency")
 }
-func (s *luckyWheelHandlerUserRepoStub) ExistsByEmail(context.Context, string) (bool, error) { panic("unexpected ExistsByEmail") }
+func (s *luckyWheelHandlerUserRepoStub) ExistsByEmail(context.Context, string) (bool, error) {
+	panic("unexpected ExistsByEmail")
+}
 func (s *luckyWheelHandlerUserRepoStub) RemoveGroupFromAllowedGroups(context.Context, int64) (int64, error) {
 	panic("unexpected RemoveGroupFromAllowedGroups")
 }
@@ -321,9 +337,9 @@ func TestAdminPaymentHandler_UpdateLuckyWheelConfig(t *testing.T) {
 	body := map[string]any{
 		"enabled": true,
 		"config": map[string]any{
-			"eligible_order_types":   []string{payment.OrderTypeBalance, payment.OrderTypeSubscription},
-			"multiplier_step":        0.1,
-			"global_max_multiplier":  3.0,
+			"eligible_order_types":  []string{payment.OrderTypeBalance, payment.OrderTypeSubscription},
+			"multiplier_step":       0.1,
+			"global_max_multiplier": 3.0,
 			"amount_tiers": []map[string]any{
 				{"id": "tier_20_50", "name": "20-50", "min_amount": 20, "max_amount": 50, "min_multiplier": 1.1, "max_multiplier": 2.0, "draw_count": 2},
 				{"id": "tier_51_plus", "name": "51+", "min_amount": 51, "min_multiplier": 1.2, "max_multiplier": 3.0, "draw_count": 3},
@@ -375,10 +391,10 @@ func TestAdminPaymentHandler_GetLuckyWheelStats(t *testing.T) {
 	var resp struct {
 		Code int `json:"code"`
 		Data struct {
-			TotalSessions    int `json:"total_sessions"`
-			SettledSessions  int `json:"settled_sessions"`
-			RecentSessions   []any `json:"recent_sessions"`
-			MultiplierStats  []any `json:"multiplier_stats"`
+			TotalSessions   int   `json:"total_sessions"`
+			SettledSessions int   `json:"settled_sessions"`
+			RecentSessions  []any `json:"recent_sessions"`
+			MultiplierStats []any `json:"multiplier_stats"`
 		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))

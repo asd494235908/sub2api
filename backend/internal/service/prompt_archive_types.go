@@ -14,9 +14,9 @@ const (
 	PromptArchiveAttachmentKindImage PromptArchiveAttachmentKind = "image"
 	PromptArchiveAttachmentKindVideo PromptArchiveAttachmentKind = "video"
 
-	PromptArchiveAttachmentSourceURL      PromptArchiveAttachmentSourceType = "url"
-	PromptArchiveAttachmentSourceDataURI  PromptArchiveAttachmentSourceType = "data_uri"
-	PromptArchiveAttachmentSourceInline   PromptArchiveAttachmentSourceType = "inline_data"
+	PromptArchiveAttachmentSourceURL     PromptArchiveAttachmentSourceType = "url"
+	PromptArchiveAttachmentSourceDataURI PromptArchiveAttachmentSourceType = "data_uri"
+	PromptArchiveAttachmentSourceInline  PromptArchiveAttachmentSourceType = "inline_data"
 
 	PromptArchiveRecordStatusPending PromptArchiveRecordStatus = "pending"
 	PromptArchiveRecordStatusStored  PromptArchiveRecordStatus = "stored"
@@ -89,20 +89,20 @@ type PromptArchivePersistedRecord struct {
 }
 
 type PromptArchiveRecordFilter struct {
-	Page            int
-	PageSize        int
-	Query           string
-	Username        string
-	Email           string
-	SessionID       string
-	Model           string
-	Protocol        string
-	GroupID         *int64
-	UserID          *int64
-	APIKeyID        *int64
-	Status          string
-	StartTime       *time.Time
-	EndTime         *time.Time
+	Page      int
+	PageSize  int
+	Query     string
+	Username  string
+	Email     string
+	SessionID string
+	Model     string
+	Protocol  string
+	GroupID   *int64
+	UserID    *int64
+	APIKeyID  *int64
+	Status    string
+	StartTime *time.Time
+	EndTime   *time.Time
 }
 
 type PromptArchiveRecordList struct {
@@ -150,10 +150,10 @@ type PromptArchiveObjectStore interface {
 }
 
 type PromptArchiveObjectStoreConfig struct {
-	Endpoint       string
-	Bucket         string
-	Region         string
-	AccessKeyID    string
+	Endpoint        string
+	Bucket          string
+	Region          string
+	AccessKeyID     string
 	SecretAccessKey string
-	ForcePathStyle bool
+	ForcePathStyle  bool
 }

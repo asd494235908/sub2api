@@ -121,7 +121,7 @@ export interface LoginRequest {
 
 export interface RegisterRequest {
   email: string
-  phone_number: string
+  phone_number?: string
   password: string
   verify_code?: string
   phone_verify_code?: string
@@ -185,6 +185,16 @@ export interface CustomEndpoint {
   name: string
   endpoint: string
   description: string
+}
+
+export interface HomeLink {
+  id: string
+  label: string
+  label_zh?: string
+  label_en?: string
+  url: string
+  enabled: boolean
+  sort_order: number
 }
 
 export interface LoginAgreementDocument {

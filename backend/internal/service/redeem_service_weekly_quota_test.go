@@ -212,6 +212,7 @@ func TestRedeemService_GetWeeklyQuotaInfo_Disabled(t *testing.T) {
 		nil,
 		client,
 		nil,
+		nil,
 		&weeklyQuotaSettingsProviderStub{settings: &SystemSettings{WeeklyQuotaEnabled: false, WeeklyQuotaAmount: 10}},
 	)
 
@@ -258,6 +259,7 @@ func TestRedeemService_ClaimWeeklyQuota_SucceedsAndWritesRedeemRecord(t *testing
 		nil,
 		nil,
 		client,
+		nil,
 		nil,
 		&weeklyQuotaSettingsProviderStub{settings: &SystemSettings{WeeklyQuotaEnabled: true, WeeklyQuotaAmount: 12.5}},
 	)
@@ -311,6 +313,7 @@ func TestRedeemService_ClaimWeeklyQuota_RejectsSecondClaimInSameWindow(t *testin
 		nil,
 		nil,
 		client,
+		nil,
 		nil,
 		&weeklyQuotaSettingsProviderStub{settings: &SystemSettings{WeeklyQuotaEnabled: true, WeeklyQuotaAmount: 9}},
 	)

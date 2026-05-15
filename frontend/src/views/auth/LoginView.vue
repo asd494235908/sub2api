@@ -15,7 +15,7 @@
         <!-- Identifier Input -->
         <div>
           <label for="identifier" class="input-label">
-            {{ t('auth.identifierLabel') }}
+            {{ phoneVerifyEnabled ? t('auth.identifierLabel') : t('auth.emailLabel') }}
           </label>
           <div class="relative">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
@@ -24,14 +24,14 @@
             <input
               id="identifier"
               v-model="formData.identifier"
-              type="text"
+              :type="phoneVerifyEnabled ? 'text' : 'email'"
               required
               autofocus
-              autocomplete="email"
+              :autocomplete="phoneVerifyEnabled ? 'username' : 'email'"
               :disabled="authActionDisabled"
               class="input pl-11"
               :class="{ 'input-error': errors.identifier }"
-              :placeholder="t('auth.identifierPlaceholder')"
+              :placeholder="phoneVerifyEnabled ? t('auth.identifierPlaceholder') : t('auth.emailPlaceholder')"
             />
           </div>
         </div>
@@ -266,6 +266,7 @@ const oidcOAuthProviderName = ref<string>('OIDC')
 const githubOAuthEnabled = ref<boolean>(false)
 const googleOAuthEnabled = ref<boolean>(false)
 const passwordResetEnabled = ref<boolean>(false)
+const phoneVerifyEnabled = ref<boolean>(false)
 const loginAgreementEnabled = ref<boolean>(false)
 const loginAgreementMode = ref<'modal' | 'checkbox' | string>('modal')
 const loginAgreementUpdatedAt = ref<string>('')
@@ -309,6 +310,16 @@ const authActionDisabled = computed(
   () => isLoading.value || !publicSettingsLoaded.value || agreementGateActive.value
 )
 
+const hasAlphabetIdentifier = computed(() => /[a-zA-Z]/.test(formData.identifier))
+const isEmailIdentifier = computed(() => {
+  const raw = formData.identifier.trim()
+  return raw.includes('@') || hasAlphabetIdentifier.value
+})
+const isPhoneIdentifier = computed(() => {
+  const raw = formData.identifier.trim()
+  return raw.length > 0 && phoneVerifyEnabled.value && !isEmailIdentifier.value
+})
+
 const showOAuthLogin = computed(
   () =>
     !backendModeEnabled.value &&
@@ -349,6 +360,7 @@ onMounted(async () => {
     googleOAuthEnabled.value = settings.google_oauth_enabled
     backendModeEnabled.value = settings.backend_mode_enabled
     passwordResetEnabled.value = settings.password_reset_enabled
+    phoneVerifyEnabled.value = settings.phone_verify_enabled === true
     applyLoginAgreementSettings(settings)
   } catch (error) {
     console.error('Failed to load public settings:', error)
@@ -457,9 +469,12 @@ function validateForm(): boolean {
     return false
   }
 
-  // Email validation
-  if (!formData.email.trim()) {
-    errors.email = t('auth.emailRequired')
+  const identifier = formData.identifier.trim()
+  if (!identifier) {
+    errors.identifier = t('auth.identifierRequired')
+    isValid = false
+  } else if (!phoneVerifyEnabled.value && !validateEmail(identifier)) {
+    errors.identifier = t('auth.invalidEmail')
     isValid = false
   }
   if (phoneVerifyEnabled.value && isPhoneIdentifier.value && !formData.sms_code.trim()) {
@@ -485,6 +500,11 @@ function validateForm(): boolean {
   }
 
   return isValid
+}
+
+function validateEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
 }
 
 // ==================== Form Handlers ====================

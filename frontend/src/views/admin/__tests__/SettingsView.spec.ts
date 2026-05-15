@@ -409,6 +409,8 @@ const baseSettingsResponse = {
   balance_low_notify_recharge_url: "",
   account_quota_notify_enabled: false,
   account_quota_notify_emails: [],
+  weekly_quota_enabled: true,
+  weekly_quota_amount: 18.8,
 };
 
 function mountView() {
@@ -459,6 +461,16 @@ async function openUsersTab(wrapper: ReturnType<typeof mountView>) {
 
   expect(usersTabButton).toBeDefined();
   await usersTabButton?.trigger("click");
+  await flushPromises();
+}
+
+async function openFeaturesTab(wrapper: ReturnType<typeof mountView>) {
+  const featuresTabButton = wrapper
+    .findAll("button")
+    .find((node) => node.text().includes("admin.settings.tabs.features"));
+
+  expect(featuresTabButton).toBeDefined();
+  await featuresTabButton?.trigger("click");
   await flushPromises();
 }
 

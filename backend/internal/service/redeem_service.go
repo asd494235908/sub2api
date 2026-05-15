@@ -33,6 +33,12 @@ const (
 	weeklyQuotaWindow       = 7 * 24 * time.Hour
 )
 
+const (
+	WeeklyQuotaStatusDisabled  = "disabled"
+	WeeklyQuotaStatusClaimable = "claimable"
+	WeeklyQuotaStatusClaimed   = "claimed"
+)
+
 type ctxKeySkipRedeemAffiliate struct{}
 
 // ContextSkipRedeemAffiliate returns a context that suppresses the redeem-level
@@ -40,6 +46,29 @@ type ctxKeySkipRedeemAffiliate struct{}
 // via applyAffiliateRebateForOrder (with audit-log deduplication).
 func ContextSkipRedeemAffiliate(ctx context.Context) context.Context {
 	return context.WithValue(ctx, ctxKeySkipRedeemAffiliate{}, true)
+}
+
+type WeeklyQuotaInfo struct {
+	Enabled          bool
+	Amount           float64
+	Status           string
+	WindowStartedAt  time.Time
+	WindowEndsAt     time.Time
+	ClaimedAt        *time.Time
+	NextClaimAt      *time.Time
+	TotalClaimCount  int64
+	TotalClaimAmount float64
+}
+
+type WeeklyQuotaClaimResult struct {
+	Message         string
+	Type            string
+	Value           float64
+	NewBalance      float64
+	ClaimedAt       time.Time
+	WindowStartedAt time.Time
+	WindowEndsAt    time.Time
+	NextClaimAt     time.Time
 }
 
 // RedeemCache defines cache operations for redeem service
@@ -103,6 +132,7 @@ type RedeemService struct {
 	entClient            *dbent.Client
 	authCacheInvalidator APIKeyAuthCacheInvalidator
 	affiliateService     *AffiliateService
+	settingsProvider     WeeklyQuotaSettingsProvider
 }
 
 // NewRedeemService 创建兑换码服务实例
@@ -115,6 +145,7 @@ func NewRedeemService(
 	entClient *dbent.Client,
 	authCacheInvalidator APIKeyAuthCacheInvalidator,
 	affiliateService *AffiliateService,
+	settingsProvider WeeklyQuotaSettingsProvider,
 ) *RedeemService {
 	return &RedeemService{
 		redeemRepo:           redeemRepo,
@@ -125,6 +156,7 @@ func NewRedeemService(
 		entClient:            entClient,
 		authCacheInvalidator: authCacheInvalidator,
 		affiliateService:     affiliateService,
+		settingsProvider:     settingsProvider,
 	}
 }
 

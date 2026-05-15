@@ -5291,6 +5291,15 @@ export default {
           enabled: 'Enable Risk Control',
           enabledHint: 'When off, the admin sidebar entry is hidden and gateway moderation is skipped.',
         },
+        weeklyQuota: {
+          title: 'Weekly Quota Claim',
+          description: 'Allow users to claim a fixed balance once per rolling 7-day window based on signup time.',
+          enabled: 'Enable Weekly Quota',
+          enabledHint: 'When off, the user entry is hidden and no new weekly quota can be claimed.',
+          amount: 'Weekly Amount',
+          amountHint: 'Balance amount users can claim in each 7-day window.',
+          amountRequired: 'Enter a weekly amount greater than 0 when weekly quota is enabled.',
+        },
         affiliate: {
           title: 'Affiliate (Invite Rebate)',
           description: 'Existing users invite new ones; the inviter earns a percentage rebate on the invitee’s recharges. Disabled by default.',

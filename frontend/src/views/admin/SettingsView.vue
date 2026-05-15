@@ -5070,6 +5070,48 @@
           </div>
         </div>
 
+        <!-- Weekly quota (周额度领取) feature card -->
+        <div class="card">
+          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ t('admin.settings.features.weeklyQuota.title') }}
+            </h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {{ t('admin.settings.features.weeklyQuota.description') }}
+            </p>
+          </div>
+          <div class="space-y-5 p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t('admin.settings.features.weeklyQuota.enabled') }}
+                </label>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t('admin.settings.features.weeklyQuota.enabledHint') }}
+                </p>
+              </div>
+              <Toggle v-model="form.weekly_quota_enabled" />
+            </div>
+
+            <div v-if="form.weekly_quota_enabled">
+              <label class="input-label">
+                {{ t('admin.settings.features.weeklyQuota.amount') }}
+                <span class="text-red-500">*</span>
+              </label>
+              <input
+                v-model.number="form.weekly_quota_amount"
+                type="number"
+                step="0.01"
+                min="0"
+                class="input"
+              />
+              <p class="mt-1 text-xs text-gray-400">
+                {{ t('admin.settings.features.weeklyQuota.amountHint') }}
+              </p>
+            </div>
+          </div>
+        </div>
+
         <!-- Affiliate (邀请返利) feature card -->
         <div class="card">
           <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">

@@ -56,6 +56,7 @@ const (
 	RedeemTypeConcurrency      = domain.RedeemTypeConcurrency
 	RedeemTypeSubscription     = domain.RedeemTypeSubscription
 	RedeemTypeInvitation       = domain.RedeemTypeInvitation
+	RedeemTypeWeeklyBalance    = domain.RedeemTypeWeeklyBalance
 	RedeemTypeAffiliateBalance = "affiliate_balance"
 )
 
@@ -111,6 +112,9 @@ const (
 	SettingKeyAffiliateRebatePerInviteeCap     = "affiliate_rebate_per_invitee_cap"    // 单人返利上限（0=无上限）
 	SettingKeyAffiliateSignupRewardEnabled     = "affiliate_signup_reward_enabled"     // 是否启用注册成功奖励
 	SettingKeyAffiliateSignupRewardAmount      = "affiliate_signup_reward_amount"      // 注册成功奖励金额
+	SettingKeyWeeklyQuotaEnabled               = "weekly_quota_enabled"                // 是否启用每周额度领取
+	SettingKeyWeeklyQuotaAmount                = "weekly_quota_amount"                 // 每周可领取额度
+	SettingKeyLuckyWheelEnabled                = "lucky_wheel_enabled"                 // 是否启用幸运转盘
 	SettingKeyRiskControlEnabled               = "risk_control_enabled"                // 是否启用风控中心入口与审计链路
 	SettingKeyContentModerationConfig          = "content_moderation_config"           // 内容审计配置（JSON）
 	SettingKeyLoginAgreementEnabled            = "login_agreement_enabled"             // 登录前是否要求同意条款

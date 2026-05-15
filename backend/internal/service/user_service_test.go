@@ -160,7 +160,7 @@ func (m *mockUserRepo) GetByPhone(context.Context, string) (*User, error) {
 	}
 	return nil, ErrUserNotFound
 }
-func (m *mockUserRepo) GetFirstAdmin(context.Context) (*User, error)      { return &User{}, nil }
+func (m *mockUserRepo) GetFirstAdmin(context.Context) (*User, error) { return &User{}, nil }
 func (m *mockUserRepo) Update(ctx context.Context, user *User) error {
 	m.updateCalls++
 	if m.updateFn != nil {
@@ -257,7 +257,7 @@ func (m *mockUserRepo) RemoveGroupFromAllowedGroups(context.Context, int64) (int
 
 func (m *mockUserRepo) BatchSetConcurrency(context.Context, []int64, int) (int, error) { return 0, nil }
 func (m *mockUserRepo) BatchAddConcurrency(context.Context, []int64, int) (int, error) { return 0, nil }
-func (m *mockUserRepo) AddGroupToAllowedGroups(context.Context, int64, int64) error { return nil }
+func (m *mockUserRepo) AddGroupToAllowedGroups(context.Context, int64, int64) error    { return nil }
 func (m *mockUserRepo) ListUserAuthIdentities(context.Context, int64) ([]UserAuthIdentityRecord, error) {
 	out := make([]UserAuthIdentityRecord, len(m.identities))
 	copy(out, m.identities)
@@ -870,7 +870,7 @@ func TestUserService_BindPhoneRejectsWhenPhoneVerifyDisabled(t *testing.T) {
 	svc.SetSMSService(NewSMSService(&mockUserSMSCache{}, &mockUserSMSProvider{}))
 
 	_, err := svc.BindPhone(context.Background(), 1, BindPhoneRequest{
-		PhoneNumber:      "13800138000",
+		PhoneNumber:     "13800138000",
 		PhoneVerifyCode: "123456",
 	})
 
@@ -892,7 +892,7 @@ func TestUserService_BindPhoneAllowsWhenPhoneVerifyEnabled(t *testing.T) {
 	svc.SetSMSService(NewSMSService(cache, &mockUserSMSProvider{}))
 
 	user, err := svc.BindPhone(context.Background(), 1, BindPhoneRequest{
-		PhoneNumber:      "13800138000",
+		PhoneNumber:     "13800138000",
 		PhoneVerifyCode: "123456",
 	})
 

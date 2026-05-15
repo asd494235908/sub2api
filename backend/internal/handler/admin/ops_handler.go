@@ -90,15 +90,15 @@ func (h *OpsHandler) ListPromptArchiveRecords(c *gin.Context) {
 	}
 	page, pageSize := response.ParsePagination(c)
 	filter := &service.PromptArchiveRecordFilter{
-		Page:     page,
-		PageSize: pageSize,
-		Query:    strings.TrimSpace(c.Query("q")),
-		Username: strings.TrimSpace(c.Query("username")),
-		Email:    strings.TrimSpace(c.Query("email")),
+		Page:      page,
+		PageSize:  pageSize,
+		Query:     strings.TrimSpace(c.Query("q")),
+		Username:  strings.TrimSpace(c.Query("username")),
+		Email:     strings.TrimSpace(c.Query("email")),
 		SessionID: strings.TrimSpace(c.Query("session_id")),
-		Model:    strings.TrimSpace(c.Query("model")),
-		Protocol: strings.TrimSpace(c.Query("protocol")),
-		Status:   strings.TrimSpace(c.Query("status")),
+		Model:     strings.TrimSpace(c.Query("model")),
+		Protocol:  strings.TrimSpace(c.Query("protocol")),
+		Status:    strings.TrimSpace(c.Query("status")),
 	}
 	if v := strings.TrimSpace(c.Query("group_id")); v != "" {
 		id, err := strconv.ParseInt(v, 10, 64)

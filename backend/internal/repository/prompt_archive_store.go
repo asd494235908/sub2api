@@ -19,12 +19,12 @@ func ProvidePromptArchiveObjectStore(cfg *config.Config, factory service.BackupO
 		return nil, nil
 	}
 	return NewPromptArchiveObjectStoreFactory(factory, &service.PromptArchiveObjectStoreConfig{
-		Endpoint:         cfg.Archive.MinIO.Endpoint,
-		Bucket:           cfg.Archive.MinIO.Bucket,
-		Region:           cfg.Archive.MinIO.Region,
-		AccessKeyID:      cfg.Archive.MinIO.AccessKey,
-		SecretAccessKey:  cfg.Archive.MinIO.SecretKey,
-		ForcePathStyle:   cfg.Archive.MinIO.ForcePathStyle,
+		Endpoint:        cfg.Archive.MinIO.Endpoint,
+		Bucket:          cfg.Archive.MinIO.Bucket,
+		Region:          cfg.Archive.MinIO.Region,
+		AccessKeyID:     cfg.Archive.MinIO.AccessKey,
+		SecretAccessKey: cfg.Archive.MinIO.SecretKey,
+		ForcePathStyle:  cfg.Archive.MinIO.ForcePathStyle,
 	})
 }
 
@@ -36,12 +36,12 @@ func NewPromptArchiveObjectStoreFactory(factory service.BackupObjectStoreFactory
 		return nil, fmt.Errorf("nil prompt archive object store config")
 	}
 	store, err := factory(context.Background(), &service.BackupS3Config{
-		Endpoint:       cfg.Endpoint,
-		Bucket:         cfg.Bucket,
-		Region:         cfg.Region,
-		AccessKeyID:    cfg.AccessKeyID,
+		Endpoint:        cfg.Endpoint,
+		Bucket:          cfg.Bucket,
+		Region:          cfg.Region,
+		AccessKeyID:     cfg.AccessKeyID,
 		SecretAccessKey: cfg.SecretAccessKey,
-		ForcePathStyle: cfg.ForcePathStyle,
+		ForcePathStyle:  cfg.ForcePathStyle,
 	})
 	if err != nil {
 		return nil, err

@@ -352,6 +352,10 @@ func (r *oauthEmailAffiliateRepoStub) AccrueQuota(context.Context, int64, int64,
 	panic("unexpected AccrueQuota call")
 }
 
+func (r *oauthEmailAffiliateRepoStub) AwardSignupBonus(context.Context, int64, int64, float64) (bool, float64, error) {
+	panic("unexpected AwardSignupBonus call")
+}
+
 func (r *oauthEmailAffiliateRepoStub) GetAccruedRebateFromInvitee(context.Context, int64, int64) (float64, error) {
 	panic("unexpected GetAccruedRebateFromInvitee call")
 }
@@ -366,6 +370,10 @@ func (r *oauthEmailAffiliateRepoStub) TransferQuotaToBalance(context.Context, in
 
 func (r *oauthEmailAffiliateRepoStub) ListInvitees(context.Context, int64, int) ([]service.AffiliateInvitee, error) {
 	panic("unexpected ListInvitees call")
+}
+
+func (r *oauthEmailAffiliateRepoStub) ListInviteesByInviter(context.Context, int64, int) ([]service.AffiliateInvitee, error) {
+	panic("unexpected ListInviteesByInviter call")
 }
 
 func (r *oauthEmailAffiliateRepoStub) UpdateUserAffCode(context.Context, int64, string) error {
@@ -386,6 +394,10 @@ func (r *oauthEmailAffiliateRepoStub) BatchSetUserRebateRate(context.Context, []
 
 func (r *oauthEmailAffiliateRepoStub) ListUsersWithCustomSettings(context.Context, service.AffiliateAdminFilter) ([]service.AffiliateAdminEntry, int64, error) {
 	panic("unexpected ListUsersWithCustomSettings call")
+}
+
+func (r *oauthEmailAffiliateRepoStub) ListInvitersWithInvitees(context.Context, service.AffiliateAdminFilter) ([]service.AffiliateInviterEntry, int64, error) {
+	panic("unexpected ListInvitersWithInvitees call")
 }
 
 func (r *oauthEmailAffiliateRepoStub) ListAffiliateInviteRecords(context.Context, service.AffiliateRecordFilter) ([]service.AffiliateInviteRecord, int64, error) {
