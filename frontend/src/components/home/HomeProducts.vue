@@ -67,25 +67,17 @@
         <h3 class="mb-4 font-serif text-4xl font-bold leading-tight text-zinc-900 dark:text-white md:text-5xl">{{ sideTitle }}</h3>
         <p class="mb-12 text-xl font-medium text-zinc-600 dark:text-slate-300">{{ sideSubtitle }}</p>
 
-        <div class="grid w-full max-w-4xl gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <article
-            v-for="item in items"
+        <div class="flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <div
+            v-for="(item, index) in items"
             :key="item.name"
-            class="rounded-[1.6rem] border-2 border-zinc-200 bg-white px-6 py-5 text-left shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-zinc-300 dark:border-slate-700 dark:bg-slate-950"
+            class="rounded-full px-8 py-4 font-semibold"
+            :class="index === 0
+              ? 'bg-black text-white shadow-lg dark:bg-cyan-300 dark:text-slate-950'
+              : 'border-2 border-zinc-200 bg-white text-black dark:border-slate-700 dark:bg-slate-950 dark:text-white'"
           >
-            <div class="flex items-start justify-between gap-3">
-              <p class="text-lg font-bold text-zinc-900 dark:text-white">{{ item.name }}</p>
-              <span
-                v-if="item.badge"
-                class="rounded-full bg-black px-2.5 py-1 text-[11px] font-semibold text-white dark:bg-cyan-300 dark:text-slate-950"
-              >
-                {{ item.badge }}
-              </span>
-            </div>
-            <p class="mt-3 text-sm leading-6 text-zinc-600 dark:text-slate-300">
-              {{ item.description }}
-            </p>
-          </article>
+            {{ item.name }}
+          </div>
         </div>
       </div>
     </div>

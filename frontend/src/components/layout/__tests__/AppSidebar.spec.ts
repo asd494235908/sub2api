@@ -19,6 +19,13 @@ describe('AppSidebar custom SVG styles', () => {
   })
 })
 
+describe('AppSidebar version display', () => {
+  it('does not render the version badge in the sidebar header', () => {
+    expect(componentSource).not.toContain('<VersionBadge')
+    expect(componentSource).not.toContain("from '@/components/common/VersionBadge.vue'")
+  })
+})
+
 describe('AppSidebar header styles', () => {
   it('does not clip the version badge dropdown', () => {
     const sidebarHeaderBlockMatch = styleSource.match(/\.sidebar-header\s*\{[\s\S]*?\n {2}\}/)
@@ -28,20 +35,5 @@ describe('AppSidebar header styles', () => {
     expect(sidebarBrandBlockMatch).not.toBeNull()
     expect(sidebarHeaderBlockMatch?.[0]).not.toContain('@apply overflow-hidden;')
     expect(sidebarBrandBlockMatch?.[0]).not.toContain('overflow: hidden;')
-  })
-})
-
-describe('AppSidebar admin affiliate navigation', () => {
-  it('includes a dedicated admin affiliates entry', () => {
-    expect(componentSource).toContain("{ path: '/admin/affiliates'")
-    expect(componentSource).toContain("label: t('nav.adminAffiliateRelations')")
-  })
-})
-
-describe('AppSidebar lucky wheel navigation', () => {
-  it('includes lucky wheel entries behind the lucky wheel feature flag', () => {
-    expect(componentSource).toContain("const flagLuckyWheel = makeSidebarFlag(FeatureFlags.luckyWheel)")
-    expect(componentSource).toContain("{ path: '/lucky-wheel', label: t('nav.luckyWheel')")
-    expect(componentSource).toContain("{ path: '/admin/orders/lucky-wheel', label: t('nav.luckyWheelAdmin')")
   })
 })

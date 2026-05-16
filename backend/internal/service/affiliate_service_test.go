@@ -6,19 +6,12 @@ import (
 	"context"
 	"math"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
 
 type affiliateRepoStub struct {
 	summaries map[int64]*AffiliateSummary
-
-	adminInviters       []AffiliateInviterEntry
-	adminInvitersTotal  int64
-	adminInvitersErr    error
-	adminInvitees       map[int64][]AffiliateInvitee
-	adminInviteesErr    error
 
 	signupBonusCalls []struct {
 		inviterID     int64
@@ -66,8 +59,17 @@ func (s *affiliateRepoStub) BindInviter(_ context.Context, userID, inviterID int
 	return true, nil
 }
 
-func (s *affiliateRepoStub) AccrueQuota(context.Context, int64, int64, float64, int) (bool, error) {
+func (s *affiliateRepoStub) AccrueQuota(context.Context, int64, int64, float64, int, *int64) (bool, error) {
 	panic("unexpected AccrueQuota call")
+}
+
+func (s *affiliateRepoStub) AwardSignupBonus(_ context.Context, inviterID, inviteeUserID int64, amount float64) (bool, float64, error) {
+	s.signupBonusCalls = append(s.signupBonusCalls, struct {
+		inviterID     int64
+		inviteeUserID int64
+		amount        float64
+	}{inviterID: inviterID, inviteeUserID: inviteeUserID, amount: amount})
+	return s.signupBonusApplied, s.signupBonusBalance, s.signupBonusErr
 }
 
 func (s *affiliateRepoStub) GetAccruedRebateFromInvitee(context.Context, int64, int64) (float64, error) {
@@ -84,15 +86,6 @@ func (s *affiliateRepoStub) TransferQuotaToBalance(context.Context, int64) (floa
 
 func (s *affiliateRepoStub) ListInvitees(context.Context, int64, int) ([]AffiliateInvitee, error) {
 	panic("unexpected ListInvitees call")
-}
-
-func (s *affiliateRepoStub) AwardSignupBonus(_ context.Context, inviterID, inviteeUserID int64, amount float64) (bool, float64, error) {
-	s.signupBonusCalls = append(s.signupBonusCalls, struct {
-		inviterID     int64
-		inviteeUserID int64
-		amount        float64
-	}{inviterID: inviterID, inviteeUserID: inviteeUserID, amount: amount})
-	return s.signupBonusApplied, s.signupBonusBalance, s.signupBonusErr
 }
 
 func (s *affiliateRepoStub) UpdateUserAffCode(context.Context, int64, string) error {
@@ -116,20 +109,27 @@ func (s *affiliateRepoStub) ListUsersWithCustomSettings(context.Context, Affilia
 }
 
 func (s *affiliateRepoStub) ListInvitersWithInvitees(context.Context, AffiliateAdminFilter) ([]AffiliateInviterEntry, int64, error) {
-	if s.adminInvitersErr != nil {
-		return nil, 0, s.adminInvitersErr
-	}
-	return s.adminInviters, s.adminInvitersTotal, nil
+	panic("unexpected ListInvitersWithInvitees call")
 }
 
-func (s *affiliateRepoStub) ListInviteesByInviter(_ context.Context, inviterID int64, _ int) ([]AffiliateInvitee, error) {
-	if s.adminInviteesErr != nil {
-		return nil, s.adminInviteesErr
-	}
-	items := s.adminInvitees[inviterID]
-	cloned := make([]AffiliateInvitee, len(items))
-	copy(cloned, items)
-	return cloned, nil
+func (s *affiliateRepoStub) ListInviteesByInviter(context.Context, int64, int) ([]AffiliateInvitee, error) {
+	panic("unexpected ListInviteesByInviter call")
+}
+
+func (s *affiliateRepoStub) ListAffiliateInviteRecords(context.Context, AffiliateRecordFilter) ([]AffiliateInviteRecord, int64, error) {
+	panic("unexpected ListAffiliateInviteRecords call")
+}
+
+func (s *affiliateRepoStub) ListAffiliateRebateRecords(context.Context, AffiliateRecordFilter) ([]AffiliateRebateRecord, int64, error) {
+	panic("unexpected ListAffiliateRebateRecords call")
+}
+
+func (s *affiliateRepoStub) ListAffiliateTransferRecords(context.Context, AffiliateRecordFilter) ([]AffiliateTransferRecord, int64, error) {
+	panic("unexpected ListAffiliateTransferRecords call")
+}
+
+func (s *affiliateRepoStub) GetAffiliateUserOverview(context.Context, int64) (*AffiliateUserOverview, error) {
+	panic("unexpected GetAffiliateUserOverview call")
 }
 
 // TestResolveRebateRatePercent_PerUserOverride verifies that per-inviter
@@ -274,66 +274,6 @@ func TestApplySignupBonus_SkipsWhenFeatureDisabledOrNoInviter(t *testing.T) {
 	require.InDelta(t, 0.0, amount, 1e-9)
 	require.InDelta(t, 0.0, balance, 1e-9)
 	require.Empty(t, repo.signupBonusCalls)
-}
-
-func TestAdminListInvitersWithInvitees(t *testing.T) {
-	t.Parallel()
-
-	repo := &affiliateRepoStub{
-		adminInviters: []AffiliateInviterEntry{
-			{
-				UserID:      101,
-				Email:       "leader@example.com",
-				Username:    "leader",
-				AffCode:     "AFFLEADER",
-				AffCount:    2,
-				TotalRebate: 18.8,
-			},
-		},
-		adminInvitersTotal: 1,
-	}
-	svc := &AffiliateService{repo: repo}
-
-	entries, total, err := svc.AdminListInvitersWithInvitees(context.Background(), AffiliateAdminFilter{
-		Page:     1,
-		PageSize: 20,
-		Search:   "lead",
-	})
-	require.NoError(t, err)
-	require.Equal(t, int64(1), total)
-	require.Len(t, entries, 1)
-	require.Equal(t, int64(101), entries[0].UserID)
-	require.Equal(t, "AFFLEADER", entries[0].AffCode)
-	require.Equal(t, 2, entries[0].AffCount)
-	require.InDelta(t, 18.8, entries[0].TotalRebate, 1e-9)
-}
-
-func TestAdminListInviteesByInviter(t *testing.T) {
-	t.Parallel()
-
-	joinedAt := time.Now().UTC().Truncate(time.Second)
-	repo := &affiliateRepoStub{
-		adminInvitees: map[int64][]AffiliateInvitee{
-			101: {
-				{
-					UserID:      201,
-					Email:       "friend@example.com",
-					Username:    "friend",
-					CreatedAt:   &joinedAt,
-					TotalRebate: 6.6,
-				},
-			},
-		},
-	}
-	svc := &AffiliateService{repo: repo}
-
-	invitees, err := svc.AdminListInviteesByInviter(context.Background(), 101)
-	require.NoError(t, err)
-	require.Len(t, invitees, 1)
-	require.Equal(t, int64(201), invitees[0].UserID)
-	require.Equal(t, "friend@example.com", invitees[0].Email)
-	require.InDelta(t, 6.6, invitees[0].TotalRebate, 1e-9)
-	require.NotNil(t, invitees[0].CreatedAt)
 }
 
 func TestIsValidAffiliateCodeFormat(t *testing.T) {

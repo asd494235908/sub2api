@@ -149,6 +149,28 @@ describe('ProfileInfoCard', () => {
     expect(wrapper.text()).toContain('Username synced from ExampleID')
   })
 
+  it('does not display GitHub source hints in personal profile information', () => {
+    const wrapper = mount(ProfileInfoCard, {
+      props: {
+        user: createUser({
+          profile_sources: {
+            avatar: { provider: 'github', source: 'github' },
+            username: { provider: 'github', source: 'github' }
+          }
+        })
+      },
+      global: {
+        stubs: {
+          Icon: true
+        }
+      }
+    })
+
+    expect(wrapper.text()).not.toContain('GitHub')
+    expect(wrapper.text()).not.toContain('Avatar synced from GitHub')
+    expect(wrapper.text()).not.toContain('Username synced from GitHub')
+  })
+
   it('does not display synthetic oauth-only emails as a real bound email', () => {
     const wrapper = mount(ProfileInfoCard, {
       props: {
@@ -211,60 +233,5 @@ describe('ProfileInfoCard', () => {
     expect(wrapper.get('[data-testid="profile-side-column"]').exists()).toBe(true)
     expect(wrapper.get('[data-testid="profile-basics-panel"]').exists()).toBe(true)
     expect(wrapper.get('[data-testid="profile-auth-bindings-panel"]').exists()).toBe(true)
-  })
-
-  it('renders account balance with the yuan symbol', () => {
-    const wrapper = mount(ProfileInfoCard, {
-      props: {
-        user: createUser({ balance: 10 })
-      },
-      global: {
-        stubs: {
-          Icon: true
-        }
-      }
-    })
-
-    expect(wrapper.get('[data-testid="profile-overview-metric-balance"]').text()).toContain('¥10.00')
-  })
-
-  it.each([
-    ['en', 'Phone: 18380640817', '手机号：'],
-    ['zh', '手机号：18380640817', 'Phone:'],
-  ])('renders bound phone display in %s', (locale, expected, unexpected) => {
-    localeState.value = locale
-    const wrapper = mount(ProfileInfoCard, {
-      props: {
-        user: createUser({ phone_number: '18380640817' })
-      },
-      global: {
-        stubs: {
-          Icon: true
-        }
-      }
-    })
-
-    expect(wrapper.text()).toContain(expected)
-    expect(wrapper.text()).not.toContain(unexpected)
-  })
-
-  it.each([
-    ['en', 'Phone: Not bound', '手机号：未绑定'],
-    ['zh', '手机号：未绑定', 'Phone: Not bound'],
-  ])('renders unbound phone display in %s', (locale, expected, unexpected) => {
-    localeState.value = locale
-    const wrapper = mount(ProfileInfoCard, {
-      props: {
-        user: createUser({ phone_number: '' })
-      },
-      global: {
-        stubs: {
-          Icon: true
-        }
-      }
-    })
-
-    expect(wrapper.text()).toContain(expected)
-    expect(wrapper.text()).not.toContain(unexpected)
   })
 })

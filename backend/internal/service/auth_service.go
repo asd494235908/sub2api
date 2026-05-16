@@ -863,14 +863,17 @@ func authSourceSignupSettings(defaults *AuthSourceDefaultSettings, signupSource 
 		return defaults.OIDC, true
 	case "wechat":
 		return defaults.WeChat, true
+	case "github":
+		return defaults.GitHub, true
+	case "google":
+		return defaults.Google, true
 	default:
 		return ProviderDefaultGrantSettings{}, false
 	}
 }
 
-// bindAffiliateAndApplySignupBonus initializes affiliate state, binds inviter,
-// and applies the one-time signup reward. All failures are logged but never
-// block the registration success path.
+// bindAffiliateAndApplySignupBonus initializes affiliate state, binds the inviter,
+// and applies the one-time signup reward. Failures are logged but never block registration.
 func (s *AuthService) bindAffiliateAndApplySignupBonus(ctx context.Context, userID int64, affiliateCode string, signupKind string) {
 	if s.affiliateService == nil || userID <= 0 {
 		return
@@ -886,6 +889,10 @@ func (s *AuthService) bindAffiliateAndApplySignupBonus(ctx context.Context, user
 	if _, _, err := s.affiliateService.ApplySignupBonus(ctx, userID); err != nil {
 		logger.LegacyPrintf("service.auth", "[Auth] Failed to apply affiliate signup bonus for %s user %d: %v", signupKind, userID, err)
 	}
+}
+
+func (s *AuthService) bindOAuthAffiliate(ctx context.Context, userID int64, affiliateCode string) {
+	s.bindAffiliateAndApplySignupBonus(ctx, userID, affiliateCode, "oauth")
 }
 
 func (s *AuthService) postAuthUserBootstrap(ctx context.Context, user *User, signupSource string, touchLogin bool) {

@@ -1,5 +1,5 @@
 <template>
-  <footer id="footer" class="relative z-10 mt-10 bg-[#0a1020] px-4 pb-8 pt-8 text-white sm:px-6">
+  <footer class="relative z-10 mt-10 bg-[#0a1020] px-4 pb-8 pt-8 text-white sm:px-6">
     <div class="mx-auto max-w-7xl rounded-[28px] border border-white/8 bg-slate-950/45 px-6 py-8 backdrop-blur-xl sm:px-8">
       <div class="grid gap-8 lg:grid-cols-[1.1fr_1.4fr_0.55fr]">
         <div>
@@ -66,7 +66,7 @@
             rel="noopener noreferrer"
             class="transition-colors hover:text-white hover:underline"
           >
-            蜀ICP备17044249号-1
+            {{ filingLabel }}
           </a>
         </p>
         <a
@@ -92,6 +92,7 @@ defineProps<{
   followLabel: string
   contactItems: Array<{ label: string; value: string }>
   copyrightOwner: string
+  filingLabel: string
   docUrl: string
   docsLabel: string
 }>()

@@ -201,14 +201,14 @@ async function loadInviters() {
 function onInviterSearchInput() {
   debounceTimer(inviterState, 300, () => {
     inviterState.page = 1
-    loadInviters()
+    void loadInviters()
   })
 }
 
 function changeInviterPage(page: number) {
   if (page < 1) return
   inviterState.page = page
-  loadInviters()
+  void loadInviters()
 }
 
 async function loadInvitees(entry: AffiliateInviterEntry) {

@@ -45,15 +45,15 @@ func NewAuthHandler(cfg *config.Config, authService *service.AuthService, userSe
 
 // RegisterRequest represents the registration request payload
 type RegisterRequest struct {
-	Email          string `json:"email" binding:"required,email"`
-	PhoneNumber    string `json:"phone_number"`
-	Password       string `json:"password" binding:"required,min=6"`
-	VerifyCode     string `json:"verify_code"`
+	Email           string `json:"email" binding:"required,email"`
+	PhoneNumber     string `json:"phone_number"`
+	Password        string `json:"password" binding:"required,min=6"`
+	VerifyCode      string `json:"verify_code"`
 	PhoneVerifyCode string `json:"phone_verify_code"`
-	TurnstileToken string `json:"turnstile_token"`
-	PromoCode      string `json:"promo_code"`      // 注册优惠码
-	InvitationCode string `json:"invitation_code"` // 邀请码
-	AffCode        string `json:"aff_code"`        // 邀请返利码
+	TurnstileToken  string `json:"turnstile_token"`
+	PromoCode       string `json:"promo_code"`      // 注册优惠码
+	InvitationCode  string `json:"invitation_code"` // 邀请码
+	AffCode         string `json:"aff_code"`        // 邀请返利码
 }
 
 // SendVerifyCodeRequest 发送验证码请求

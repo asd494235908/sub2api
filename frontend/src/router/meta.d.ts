@@ -50,6 +50,12 @@ declare module 'vue-router' {
     requiresPayment?: boolean
 
     /**
+     * 是否要求风控中心功能开关已启用
+     * @default false
+     */
+    requiresRiskControl?: boolean
+
+    /**
      * i18n key for the page title
      */
     titleKey?: string
@@ -58,10 +64,5 @@ declare module 'vue-router' {
      * i18n key for the page description
      */
     descriptionKey?: string
-
-    /**
-     * Whether the resolved title should be treated as absolute and not append site name again
-     */
-    titleAbsolute?: boolean
   }
 }

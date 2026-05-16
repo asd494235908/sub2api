@@ -267,24 +267,24 @@ func (s *PromptArchiveService) Enqueue(env *PromptArchiveEnvelope) PromptArchive
 	select {
 	case s.queue <- env:
 		logger.WriteSinkEvent("info", "service.prompt_archive", "prompt_archive_enqueued", map[string]any{
-			"request_id":       env.RequestID,
+			"request_id":        env.RequestID,
 			"client_request_id": env.ClientRequestID,
-			"user_id":          env.UserID,
-			"group_id":         env.GroupID,
-			"model":            env.Model,
-			"protocol":         env.Protocol,
+			"user_id":           env.UserID,
+			"group_id":          env.GroupID,
+			"model":             env.Model,
+			"protocol":          env.Protocol,
 		})
 		return PromptArchiveSubmitModeEnqueued
 	default:
 		s.dropped.Add(1)
 		logger.WriteSinkEvent("warn", "service.prompt_archive", "prompt_archive_dropped", map[string]any{
-			"request_id":       env.RequestID,
+			"request_id":        env.RequestID,
 			"client_request_id": env.ClientRequestID,
-			"user_id":          env.UserID,
-			"group_id":         env.GroupID,
-			"model":            env.Model,
-			"protocol":         env.Protocol,
-			"queue_len":        len(s.queue),
+			"user_id":           env.UserID,
+			"group_id":          env.GroupID,
+			"model":             env.Model,
+			"protocol":          env.Protocol,
+			"queue_len":         len(s.queue),
 		})
 		return PromptArchiveSubmitModeDropped
 	}

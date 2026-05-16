@@ -243,7 +243,7 @@ describe('ProfileIdentityBindingsSection', () => {
       invitation_code_enabled: false,
       turnstile_enabled: false,
       turnstile_site_key: '',
-      site_name: 'GPTK',
+      site_name: 'Sub2API',
       site_logo: '',
       site_subtitle: '',
       api_base_url: '',
@@ -627,5 +627,35 @@ describe('ProfileIdentityBindingsSection', () => {
 
     expect(wrapper.find('[data-testid="profile-binding-linuxdo-action"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="profile-binding-oidc-action"]').exists()).toBe(false)
+  })
+
+  it('does not render GitHub binding information in the profile section', () => {
+    const wrapper = mount(ProfileIdentityBindingsSection, {
+      global: {
+        plugins: [pinia],
+      },
+      props: {
+        user: createUser({
+          email_bound: true,
+          github_bound: true,
+          auth_bindings: {
+            email: { bound: true },
+            github: {
+              bound: true,
+              display_name: 'octocat',
+              subject_hint: 'github-user-123',
+              can_unbind: true,
+            } as any,
+          },
+        }),
+        linuxdoEnabled: true,
+        oidcEnabled: false,
+        wechatEnabled: false,
+      },
+    })
+
+    expect(wrapper.text()).not.toContain('GitHub')
+    expect(wrapper.text()).not.toContain('octocat')
+    expect(wrapper.find('[data-testid="profile-binding-github-status"]').exists()).toBe(false)
   })
 })

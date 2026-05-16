@@ -155,6 +155,7 @@
       :follow-label="t('home.landing.footer.follow')"
       :contact-items="communityContactItems"
       :copyright-owner="t('home.landing.footer.copyrightOwner')"
+      :filing-label="t('home.landing.footer.filing')"
       :doc-url="docUrl"
       :docs-label="t('home.landing.nav.docs')"
     />

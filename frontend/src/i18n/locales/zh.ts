@@ -10,396 +10,103 @@ export default {
     login: '登录',
     getStarted: '立即开始',
     goToDashboard: '进入控制台',
-    companySlogan: '自营私有代理网络 · 国内快速接入 · 零代码 3 分钟接入',
-    nav: {
-      overview: '概览',
-      compatibility: '兼容说明',
-      integration: '接入演示'
+    // 新增：面向用户的价值主张
+    heroSubtitle: '一个密钥，畅用多个 AI 模型',
+    heroDescription: '无需管理多个订阅账号，一站式接入 Claude、GPT、Gemini 等主流 AI 服务',
+    tags: {
+      subscriptionToApi: '订阅转 API',
+      stickySession: '会话保持',
+      realtimeBilling: '按量计费'
     },
-    hero: {
-      badge: 'OpenAI 企业中转服务',
-      title: '{brand} - 企业级 OpenAI 官方接口中转服务',
-      subtitle: '自营私有代理网络 · 国内快速接入 · 零代码 3 分钟接入',
-      description: '面向企业开发团队提供稳定、合规、可持续的 OpenAI 官方接口中转能力，帮助业务快速进入生产环境。',
-      secondaryCta: '查看接入文档',
-      summaryTitle: '概览',
-      summaryItems: {
-        relay: '企业运营的私有中转服务，适合生产环境长期使用',
-        compatibility: '兼容 OpenAI 官方请求格式，保留原有开发习惯',
-        integration: '替换 Base URL 即可接入，现有 SDK 调用流程基本无需修改'
-      },
-      codeTitle: '快速接入示例',
-      endpointTitle: '服务入口',
-      endpointValue: 'https://token.gepinapi.com/v1',
-      noticeTitle: '生产说明',
-      noticeItems: {
-        sla: '提供 99.9% SLA 在线承诺',
-        privacy: '请求链路加密传输，不记录 Prompt 明文内容',
-        procurement: '支持企业发票与服务合同流程'
-      }
-    },
-    overview: {
-      kicker: '概览',
-      title: '为什么企业开发者选择 GPTK',
-      painPoint: '还在为 NAT 网络波动掉线发愁？担心公共代理密钥泄露导致封号？',
-      cards: {
-        company: {
-          title: '公司正规运营，服务长久稳定',
-          description:
-            '{companyName} 为正规技术业务，支持企业增值税发票与服务合同，提供 99.9% SLA 在线承诺。',
-          points: {
-            invoice: '支持企业增值税发票与对公流程',
-            contract: '支持签订服务合同，便于采购合规',
-            sla: 'API 供应稳定，面向长期业务持续运营'
-          }
+    // 用户痛点区块
+    painPoints: {
+      title: '你是否也遇到这些问题？',
+      items: {
+        expensive: {
+          title: '订阅费用高',
+          desc: '每个 AI 服务都要单独订阅，每月支出越来越多'
         },
-        network: {
-          title: '私有代理网络，快且安全',
-          description:
-            '采用企业级私有代理网络与稳定国际线路，兼顾访问速度、可用性与数据安全。',
-          points: {
-            speed: '国内快速接入，流式响应更加顺滑',
-            privacy: '请求数据加密过境，不记录 Prompt 明文内容',
-            stability: '降低共享代理带来的抖动、泄露与封禁风险'
-          }
+        complex: {
+          title: '多账号难管理',
+          desc: '不同平台的账号、密钥分散各处，管理起来很麻烦'
         },
-        compatibility: {
-          title: '原生 OpenAI 体验，无缝迁移',
-          description:
-            '只需将代码中的 api.openai.com 替换为 GPTK 地址，SDK 基本无需改动即可上线。',
-          points: {
-            baseUrl: '替换 Base URL 即可接入，不改调用方式',
-            sdk: '兼容 OpenAI 官方请求结构与主流 SDK',
-            models: '支持 GPT-4o、o1、DALL·E、Whisper 与 Assistants API 等能力'
-          }
+        unstable: {
+          title: '服务不稳定',
+          desc: '单一账号容易触发限制，影响正常使用'
+        },
+        noControl: {
+          title: '用量无法控制',
+          desc: '不知道钱花在哪了，也无法限制团队成员的使用'
         }
       }
     },
-    compatibility: {
-      kicker: '兼容说明',
-      title: '接入兼容矩阵',
-      description: '以生产环境迁移为目标整理的兼容能力说明，帮助团队快速完成联调与上线。',
-      rows: {
-        baseUrl: {
-          label: 'Base URL 迁移',
-          value: '替换为 GPTK 服务入口即可'
-        },
-        sdk: {
-          label: 'SDK 改动',
-          value: '大多数场景下无需修改调用逻辑'
-        },
-        auth: {
-          label: '认证方式',
-          value: 'Bearer API Key'
-        },
-        format: {
-          label: '请求格式',
-          value: '兼容 OpenAI 官方请求结构'
+    // 解决方案区块
+    solutions: {
+      title: '我们帮你解决',
+      subtitle: '简单三步，开始省心使用 AI'
+    },
+    features: {
+      unifiedGateway: '一键接入',
+      unifiedGatewayDesc: '获取一个 API 密钥，即可调用所有已接入的 AI 模型，无需分别申请。',
+      multiAccount: '稳定可靠',
+      multiAccountDesc: '智能调度多个上游账号，自动切换和负载均衡，告别频繁报错。',
+      balanceQuota: '用多少付多少',
+      balanceQuotaDesc: '按实际使用量计费，支持设置配额上限，团队用量一目了然。'
+    },
+    // 优势对比
+    comparison: {
+      title: '为什么选择我们？',
+      headers: {
+        feature: '对比项',
+        official: '官方订阅',
+        us: '本平台'
+      },
+      items: {
+        pricing: {
+          feature: '付费方式',
+          official: '固定月费，用不完也付',
+          us: '按量付费，用多少付多少'
         },
         models: {
-          label: '支持能力',
-          value: 'GPT-4o、o1、DALL·E、Whisper、Assistants API'
+          feature: '模型选择',
+          official: '单一服务商',
+          us: '多模型随意切换'
+        },
+        management: {
+          feature: '账号管理',
+          official: '每个服务单独管理',
+          us: '统一密钥，一站管理'
+        },
+        stability: {
+          feature: '服务稳定性',
+          official: '单账号易触发限制',
+          us: '多账号池，自动切换'
+        },
+        control: {
+          feature: '用量控制',
+          official: '无法限制',
+          us: '可设配额、查明细'
         }
       }
     },
-    integration: {
-      kicker: '极简接入演示',
-      title: '三步开启 AI 生产力',
-      subtitle: '原汁原味的 OpenAI 接口体验，几分钟即可完成迁移和联调。',
-      demoTitle: '接入示例',
-      demoHint: '将生产代码中的 Base URL 替换为 GPTK 地址即可。',
-      demoComment: '保持官方 OpenAI 请求格式不变，直接发起调用。',
-      steps: {
-        register: {
-          title: '注册获取密钥',
-          description: '填写手机号完成企业或个人认证，快速开通专属访问密钥。'
-        },
-        baseUrl: {
-          title: '修改 Base URL',
-          description: '将请求地址替换为 https://token.gepinapi.com/v1，原有 SDK 调用逻辑保持不变。'
-        },
-        request: {
-          title: '发起请求',
-          description: '继续使用熟悉的 Chat Completions 等接口，原汁原味的体验瞬间抵达。'
-        }
-      }
+    providers: {
+      title: '已支持的 AI 模型',
+      description: '一个 API，多种选择',
+      supported: '已支持',
+      soon: '即将推出',
+      claude: 'Claude',
+      gemini: 'Gemini',
+      antigravity: 'Antigravity',
+      more: '更多'
+    },
+    // CTA 区块
+    cta: {
+      title: '准备好开始了吗？',
+      description: '注册即可获得免费试用额度，体验一站式 AI 服务',
+      button: '免费注册'
     },
     footer: {
       allRightsReserved: '保留所有权利。'
-    },
-    landing: {
-      brand: 'GPTK',
-      logoTagline: '企业级 OpenAI 中转',
-      nav: {
-        home: '首页',
-        pricing: '定价',
-        gpshop: '格品购物',
-        gpci: '格品生图',
-        docs: 'API文档',
-        community: '技术社群'
-      },
-      console: {
-        login: '立即使用',
-        enter: '控制台'
-      },
-      hero: {
-        badge: '稳定 · 安全 · 高效的 OpenAI 中转服务',
-        titlePrefix: 'GPTK',
-        titleLead: '让 ',
-        titleHighlight: 'AI',
-        titleSuffix: ' 开发更简单',
-        subtitle: 'AI API接口服务 | 企业级安全接入 | 国内稳定快速响应',
-        primaryCtaGuest: '立即开始接入',
-        primaryCtaAuthed: '进入控制台',
-        secondaryCta: '查看文档',
-        promoTitle: '开始构建你的 AI 应用',
-        promoSubtitle: '简单几步，快速接入强大的 AI 能力',
-        placeholder: {
-          badge: '主视觉占位',
-          title: '官网主视觉图片预留',
-          description: '这里预留首页大图、产品演示图或关键视觉素材区域，当前先用统一高级占位样式承接整体版面节奏。',
-          footer: '等待替换正式图片'
-        },
-        checks: {
-          availability: '99.9% 可用性',
-          latency: '极速响应 < 200ms',
-          security: '企业级安全防护'
-        },
-        stats: {
-          calls: 'API 调用次数',
-          developers: '开发者信赖',
-          sla: '可用性保障',
-          support: '技术支持'
-        }
-      },
-      seo: {
-        title: 'AI API接口服务平台 - 企业级安全接入 | {siteName}',
-        description:
-          'GPTK 提供面向开发者与企业的 AI API 接口服务，支持企业级安全接入、国内稳定快速响应与便捷集成，适合 AI 应用开发、测试与生产环境落地。'
-      },
-      overview: {
-        kicker: '为什么选择 GPTK',
-        title: '快速、稳定、安全的 AI 接入体验',
-        subtitle: '我们提供稳定、快速、安全的 OpenAI API 中转服务，让业务专注于产品创新。',
-        benefits: {
-          stability: {
-            title: '高速稳定',
-            description: '全链路加速与弹性调度，保障高峰期也能稳定返回。'
-          },
-          security: {
-            title: '企业级安全',
-            description: '全程 TLS 加密与独立通道设计，兼顾安全与合规。'
-          },
-          value: {
-            title: '高性价比',
-            description: '按量与套餐并存，覆盖从试用到生产的大部分场景。'
-          },
-          easy: {
-            title: '简单易用',
-            description: '兼容 OpenAI 接口规范，替换 Base URL 即可接入。'
-          },
-          support: {
-            title: '专业支持',
-            description: '7x24 小时技术支持与维护通知，协助快速排障。'
-          },
-          updates: {
-            title: '持续更新',
-            description: '紧跟 OpenAI 当前最新模型与能力，快速同步可用模型。'
-          }
-        }
-      },
-      products: {
-        kicker: '核心能力矩阵',
-        title: '一套入口，承接你的 AI 业务增长',
-        subtitle: '从接入、路由到交付与安全，围绕真实生产环境设计，适合个人开发者、创业团队与企业项目逐步扩展。',
-        cards: {
-          infrastructure: {
-            title: '统一模型接入',
-            description: '集中承接多模型能力，让团队用一致方式访问推理、图像与扩展能力。'
-          },
-          integration: {
-            title: '低成本迁移上线',
-            description: '沿用熟悉的 OpenAI 请求方式，把改造成本降到更低，快速完成联调与交付。'
-          },
-          delivery: {
-            title: '国内快速交付',
-            description: '面向国内开发环境优化访问体验，减少因网络抖动带来的调试与交付成本。'
-          },
-          security: {
-            title: '安全与可控',
-            description: '通过独立通道、加密链路和稳定服务策略，支撑更可控的生产运行。'
-          }
-        }
-      },
-      platforms: {
-        kicker: '支持的平台',
-        title: '支持的操作系统与设备',
-        subtitle: '支持主流平台，随时随地接入 API',
-        mobile: '移动端',
-        devices: '开发设备'
-      },
-      models: {
-        kicker: '丰富的模型选择',
-        cardTitle: '接入 OpenAI 前沿模型',
-        cardSubtitle: '覆盖当前 API 可用的主流推理、轻量与图像场景。',
-        apiNotice: '最新支持 GPT-5.5，适合复杂推理、编码与专业工作流。',
-        viewAll: '查看所有模型',
-        badges: {
-          latest: '当前最新'
-        },
-        items: {
-          gpt55: 'OpenAI 最新支持模型，适合复杂推理、编码与专业工作流。',
-          gpt54: '稳定均衡的前沿模型版本，适合编码、工具调用与通用生产任务。',
-          gpt54Nano: '面向高频与基础任务的超低成本版本。',
-          gptImage2: 'OpenAI 当前图像生成模型，适合图片生成与编辑场景。'
-        }
-      },
-      showcase: {
-        kicker: '信任与案例展示',
-        title: '从接入效率到稳定运行，都更贴近生产需求',
-        subtitle: '新版官网保留真实业务表达，用更现代的展示方式承接你的平台优势、客户感知与后续案例内容。',
-        stats: {
-          developers: '开发者信赖',
-          sla: '服务可用性',
-          support: '支持响应'
-        },
-        quotes: {
-          team: {
-            quote: '接入方式几乎不用重写，团队把更多时间放在产品功能上，而不是处理兼容和网络问题。',
-            author: '产品团队反馈',
-            role: '企业接入场景'
-          },
-          engineer: {
-            quote: '从测试到上线节奏更顺，接口稳定之后，前后端协作成本明显下降。',
-            author: '研发视角',
-            role: '工程实践体验'
-          },
-          ops: {
-            quote: '对我们来说，更重要的是稳定与支持响应速度，这也是长期使用的基础。',
-            author: '运维协作反馈',
-            role: '生产可用性关注'
-          }
-        }
-      },
-      cta: {
-        badge: '立即开始，快速接入',
-        title: '准备好把你的 AI 应用更快推向生产了吗？',
-        subtitle: '沿用熟悉的调用方式，保留现有开发习惯，用更稳定的链路支撑接入、测试、上线和长期维护。',
-        trust: {
-          freeTrial: '支持试用与快速体验',
-          noCard: '无需复杂迁移流程',
-          fastSupport: '技术支持响应更直接'
-        }
-      },
-      pricing: {
-        kicker: '灵活的计费方案',
-        title: '灵活套餐，按需选择',
-        subtitle: '按量计费、轻量订阅与企业级方案都能覆盖。',
-        viewDetails: '查看详细价格',
-        plans: {
-          standard: {
-            plan: '标准套餐',
-            description: '适合个人开发者的轻度项目',
-            badge: '轻量版'
-          },
-          pro: {
-            plan: '专业套餐',
-            description: '适合中型团队和稳定项目',
-            badge: '推荐'
-          },
-          enterprise: {
-            plan: '企业套餐',
-            description: '适合大型企业和定制化需求',
-            badge: '企业版',
-            price: '定制价格'
-          }
-        }
-      },
-      setup: {
-        kicker: '三步快速接入',
-        title: '轻松完成模型接入',
-        subtitle: '简单几步，就能开始使用。',
-        steps: {
-          register: {
-            title: '注册账号',
-            description: '创建账户并获取专属 API Key。'
-          },
-          integrate: {
-            title: '接入 API',
-            description: '替换文档中的接入地址，配置应用即可。'
-          },
-          start: {
-            title: '开始调用',
-            description: '快速调用 API，构建你的 AI 应用。'
-          }
-        }
-      },
-      community: {
-        kicker: '加入开发者社区',
-        title: '社群二维码',
-        lead: '扫码加入 QQ 群或微信',
-        body: '获取接入支持、模型上新通知与问题答疑。',
-        qrLabels: {
-          qq: 'QQ 群',
-          wechat: '微信'
-        },
-        qrAlt: {
-          qq: 'QQ群二维码',
-          wechat: '微信二维码'
-        }
-      },
-      placeholders: {
-        visual: {
-          badge: '视觉展示区',
-          title: '平台演示、架构图或关键产品截图预留',
-          description: '该区域将用于承接官网大图、产品演示、客户案例图或关键卖点视觉化内容，当前以统一占位样式保持整体版面完整。',
-          footer: '图片资源待替换'
-        },
-        caseStudy: {
-          badge: '案例展示区',
-          title: '客户案例、产品演示或合作展示预留',
-          description: '这里可在后续替换为平台截图、典型场景演示、客户墙或合作伙伴展示模块。',
-          footer: '预留后续内容扩展'
-        }
-      },
-      footer: {
-        about: '企业级 OpenAI API 中转服务，让 AI 开发更简单。',
-        follow: '关注我们',
-        copyrightOwner: '成都格品科技有限公司版权所有',
-        columns: {
-          product: {
-            title: '产品',
-            pricing: '定价',
-            docs: 'API 文档',
-            platforms: '支持的平台',
-            changelog: '更新日志'
-          },
-          developer: {
-            title: '开发者',
-            quickstart: '快速开始',
-            sdk: 'SDK & 工具',
-            bestPractices: '最佳实践',
-            status: 'API 状态'
-          },
-          links: {
-            title: '链接',
-            gpshop: '格品购物',
-            gpci: '格品生图'
-          },
-          company: {
-            title: '公司',
-            about: '关于我们',
-            contact: '联系我们',
-            terms: '服务条款',
-            privacy: '隐私政策'
-          },
-          support: {
-            title: '支持',
-            help: '帮助中心',
-            community: '技术社群'
-          }
-        }
-      }
     }
   },
 
@@ -476,7 +183,7 @@ export default {
   // Setup Wizard
   setup: {
     title: 'GPTK 安装向导',
-    description: '配置您的GPTK实例',
+    description: '配置您的 GPTK 实例',
     database: {
       title: '数据库配置',
       description: '连接到您的 PostgreSQL 数据库',
@@ -640,6 +347,10 @@ export default {
     usage: '使用记录',
     redeem: '兑换',
     affiliate: '邀请返利',
+    affiliateManagement: '邀请返利',
+    affiliateInviteRecords: '邀请记录',
+    affiliateRebateRecords: '返利记录',
+    affiliateTransferRecords: '提取记录',
     profile: '个人资料',
     users: '用户管理',
     groups: '分组管理',
@@ -648,7 +359,6 @@ export default {
     subscriptions: '订阅管理',
     accounts: '账号管理',
     proxies: 'IP管理',
-    adminAffiliateRelations: '邀请关系',
     redeemCodes: '兑换码',
     ops: '运维监控',
     promoCodes: '优惠码',
@@ -674,11 +384,12 @@ export default {
     channelPricing: '渠道定价',
     channelMonitor: '渠道监控',
     channelStatus: '渠道状态',
+    riskControl: '风控中心',
   },
 
   luckyWheel: {
     heroTag: '幸运转盘',
-    heroDescription: '按用户实付人民币进入不同倍率档位，多次抽奖取最高倍率；抽中奖励人民币会按配置中心比例转换为平台金额到账。',
+    heroDescription: '按充值金额进入不同倍率档位，多次抽奖取最高倍率，全部抽完后一次性结算膨胀奖金。',
     chances: '剩余机会',
     drawNow: '立即抽奖',
     disabled: '活动暂未开启',
@@ -690,8 +401,8 @@ export default {
     noRecords: '暂无抽奖记录',
     noActiveSession: '当前没有待完成的转盘会话，完成充值后再来试试。',
     currentSession: '当前会话',
-    currentSessionHint: '每次转动都会记录结果，抽完后按最高倍率把人民币奖励转换为平台金额到账。',
-    rechargeAmount: '实付人民币',
+    currentSessionHint: '每次转动都会记录结果，抽完后按最高倍率统一结算。',
+    rechargeAmount: '充值金额',
     tierName: '命中档位',
     inviteBonus: '邀请加成',
     goldenBonus: '黄金加送',
@@ -705,18 +416,18 @@ export default {
     noDrawHistory: '还没有抽奖记录',
     drawIndexLabel: '第 {value} 抽',
     rulesTitle: '活动规则',
-    ruleTier20To50: '实付 20-50 元：1.1x-2.0x，保底 1.1x，最多 2 次。',
-    ruleTier51Plus: '实付 51 元及以上：1.2x-3.0x，保底 1.2x，最多 3 次，黄金窗口可额外 +1 次。',
-    ruleHighestWins: '同一笔支付多次抽奖取最高倍率，人民币奖励按“实付金额 × 最高倍率”计算后统一结算。',
-    ruleInviteBonus: '每邀请 1 位新用户完成满 20 元实付订单，下次会话倍率加成 +0.2x，累计上限 +1.0x。',
-    ruleGoldenWindow: '北京时间 20:00-22:00 的 51 元以上实付订单，前 5 名可额外获得 1 次机会。',
+    ruleTier20To50: '充值 20-50 元：1.1x-2.0x，保底 1.1x，最多 2 次。',
+    ruleTier51Plus: '充值 51 元及以上：1.2x-3.0x，保底 1.2x，最多 3 次，黄金窗口可额外 +1 次。',
+    ruleHighestWins: '同一笔充值多次抽奖取最高倍率，全部抽完后统一结算。',
+    ruleInviteBonus: '每邀请 1 位新用户完成满 20 元充值，下次会话倍率加成 +0.2x，累计上限 +1.0x。',
+    ruleGoldenWindow: '北京时间 20:00-22:00 的 51 元以上订单，前 5 名可额外获得 1 次机会。',
     historyTitle: '历史结算',
     historyDraws: '抽奖进度 {value}',
     subscriptionOrder: '订阅订单',
     balanceOrder: '充值订单',
     paidAmount: '支付',
     resultTitle: '最终结算',
-    resultHint: '本次会话已完成，抽中奖励人民币已按配置中心比例转换为平台金额到账。',
+    resultHint: '本次会话已完成，奖金按最高倍率一次性到账。',
     resultConfirm: '我知道了',
     toastWin: '恭喜获得 {name}，余额 +{amount}',
     toastDrawn: '本次抽到 {amount}x，继续冲击更高倍率。',
@@ -727,16 +438,10 @@ export default {
     adminValidationTitle: '保存前请先修正这些问题',
     adminOrderTypesTitle: '参与订单类型',
     adminOrderTypesHint: '决定哪些已支付订单会生成转盘会话。',
-    adminCopyTitle: '活动介绍',
-    adminCopyHint: '配置 `/lucky-wheel` 页面顶部简介和规则说明。',
-    adminIntroTextLabel: '顶部简介',
-    adminRulesTitleLabel: '规则标题',
-    adminRulesItemsLabel: '规则列表',
-    adminAddRuleItem: '新增规则',
     adminMultiplierStep: '倍率步长',
     adminGlobalMaxMultiplier: '全局最高倍率',
     adminTiersTitle: '金额档位',
-    adminTiersHint: '按用户实付金额配置倍率范围和抽奖次数。',
+    adminTiersHint: '按充值金额配置倍率范围和抽奖次数。',
     adminAddTier: '新增区间',
     adminTierLabel: '档位 #{value}',
     adminTierIdLabel: '档位 ID',
@@ -748,7 +453,7 @@ export default {
     adminTierMaxMultiplierLabel: '最大倍率',
     adminInviteBonusTitle: '邀请加成',
     adminInviteBonusHint: '下一次转盘会话一次性消耗邀请加成。',
-    adminInviteQualifyingAmountLabel: '达标实付金额',
+    adminInviteQualifyingAmountLabel: '达标充值金额',
     adminInviteBonusPerInviteeLabel: '每邀请加成',
     adminInviteMaxBonusLabel: '加成上限',
     adminInviteConsumePolicyLabel: '消耗策略',
@@ -757,7 +462,7 @@ export default {
     adminGoldenTimezoneLabel: '时区',
     adminGoldenStartTimeLabel: '开始时间',
     adminGoldenEndTimeLabel: '结束时间',
-    adminGoldenMinAmountLabel: '最低实付金额',
+    adminGoldenMinAmountLabel: '最低金额',
     adminGoldenExtraDrawsLabel: '额外次数',
     adminGoldenDailyQuotaLabel: '每日名额',
     adminTotalSessions: '总会话数',
@@ -818,6 +523,9 @@ export default {
     passwordRequired: '请输入密码',
     passwordMinLength: '密码至少需要 6 个字符',
     loginFailed: '登录失败，请检查您的凭据后重试。',
+    errors: {
+      USER_NOT_ACTIVE: '账号已被禁用',
+    },
     registrationFailed: '注册失败，请重试。',
     emailSuffixNotAllowed: '该邮箱域名不在允许注册范围内。',
     emailSuffixNotAllowedWithAllowed: '该邮箱域名不被允许。可用域名：{suffixes}',
@@ -879,6 +587,9 @@ export default {
       completing: '正在完成注册...',
       completeRegistrationFailed: '注册失败，请检查邀请码后重试。'
     },
+    emailOAuth: {
+      signIn: '使用 {providerName} 登录'
+    },
     oidc: {
       signIn: '使用 {providerName} 登录',
       callbackTitle: '正在完成 {providerName} 登录',
@@ -937,6 +648,8 @@ export default {
     oauth: {
       callbackTitle: 'OAuth 回调',
       callbackHint: '按需将授权码和状态值复制回后台授权流程。',
+      invalidCallbackTitle: '无效的登录回调',
+      invalidCallbackHint: '当前页面缺少有效的授权结果，请返回登录页重新发起快捷登录。',
       code: '授权码',
       state: '状态',
       fullUrl: '完整URL'
@@ -1152,22 +865,22 @@ export default {
     },
     // 配额和有效期
     quotaLimit: '额度限制',
-    quotaAmount: '额度金额 (USD)',
-    quotaAmountPlaceholder: '输入 USD 额度限制',
+    quotaAmount: '额度金额 (CNY)',
+    quotaAmountPlaceholder: '输入 CNY 额度限制',
     quotaAmountHint: '设置此密钥可消费的最大金额。0 = 无限制。',
     quotaUsed: '已用额度',
     reset: '重置',
     resetQuotaUsed: '将已用额度重置为 0',
     resetQuotaTitle: '确认重置额度',
-    resetQuotaConfirmMessage: '确定要将密钥 "{name}" 的已用额度（${used}）重置为 0 吗？此操作不可撤销。',
+    resetQuotaConfirmMessage: '确定要将密钥 "{name}" 的已用额度（¥{used}）重置为 0 吗？此操作不可撤销。',
     quotaResetSuccess: '额度重置成功',
     failedToResetQuota: '重置额度失败',
     rateLimitColumn: '速率限制',
     rateLimitSection: '速率限制',
     resetUsage: '重置',
-    rateLimit5h: '5小时限额 (USD)',
-    rateLimit1d: '日限额 (USD)',
-    rateLimit7d: '7天限额 (USD)',
+    rateLimit5h: '5小时限额 (CNY)',
+    rateLimit1d: '日限额 (CNY)',
+    rateLimit7d: '7天限额 (CNY)',
     rateLimitHint: '设置此密钥在指定时间窗口内的最大消费额。0 = 无限制。',
     rateLimitUsage: '速率限制用量',
     resetRateLimitUsage: '重置速率限制用量',
@@ -1256,6 +969,8 @@ export default {
     perMillionTokens: '/ 1M Token',
     unitPrice: '单次价格',
     imageUnitPrice: '单张价格',
+    imageTotalPrice: '图片总价',
+    imageCount: '图片张数',
     cacheRead: '读取',
     cacheWrite: '写入',
     serviceTier: '服务档位',
@@ -1462,10 +1177,7 @@ export default {
     recentActivity: '最近活动',
     historyWillAppear: '您的兑换历史将显示在这里',
     balanceAddedRedeem: '余额充值（兑换）',
-    balanceAddedPayment: '余额充值（支付）',
-    balanceAddedWxpay: '余额充值（微信支付）',
-    balanceAddedAlipay: '余额充值（支付宝）',
-    balanceAddedStripe: '余额充值（Stripe）',
+    balanceAddedAffiliate: '余额充值（返利转入）',
     balanceAddedAdmin: '余额充值（管理员）',
     balanceDeductedAdmin: '余额扣除（管理员）',
     concurrencyAddedRedeem: '并发增加（兑换）',
@@ -2108,6 +1820,72 @@ export default {
       }
     },
 
+    affiliates: {
+      title: '邀请关系',
+      description: '查看邀请人列表以及他们邀请的用户。',
+      searchPlaceholder: '搜索邀请人邮箱或用户名',
+      empty: '暂无邀请关系数据',
+      viewInvitees: '查看邀请用户',
+      totalLabel: '共 {total} 条',
+      inviteesTitle: '{email} 邀请的用户',
+      inviteesDescription: '展示该邀请人当前关联的被邀请用户明细。',
+      inviteesEmpty: '该邀请人暂无可展示的邀请用户',
+      col: {
+        email: '邀请人邮箱',
+        username: '邀请人用户名',
+        code: '邀请码',
+        invitedCount: '邀请人数',
+        totalRebate: '累计返利',
+        actions: '操作',
+      },
+      inviteesCol: {
+        email: '被邀请用户邮箱',
+        username: '被邀请用户名',
+        joinedAt: '加入时间',
+        totalRebate: '累计返利',
+      },
+      invitesDescription: '查看全站邀请关系和被邀请用户累计返利',
+      rebatesDescription: '查看每一笔产生返利的充值订单',
+      transfersDescription: '查看返利额度转入账户余额的提取流水',
+      errors: {
+        loadFailed: '加载邀请返利记录失败'
+      },
+      records: {
+        search: '搜索',
+        searchPlaceholder: '邮箱、用户名、用户 ID、订单号',
+        startAt: '开始日期',
+        endAt: '结束日期',
+        inviter: '邀请人',
+        invitee: '被邀请人',
+        user: '用户',
+        affCode: '邀请码',
+        order: '订单',
+        totalRebate: '累计返利',
+        orderAmount: '充值金额',
+        payAmount: '支付金额',
+        rebateAmount: '返利金额',
+        paymentType: '支付方式',
+        orderStatus: '订单状态',
+        transferAmount: '提取金额',
+        balanceAfter: '提取后余额',
+        availableQuotaAfter: '提取后可提',
+        frozenQuotaAfter: '提取后冻结',
+        historyQuotaAfter: '提取后历史返利',
+        invitedAt: '邀请时间',
+        rebatedAt: '返利时间',
+        transferredAt: '提取时间'
+      },
+      overview: {
+        title: '用户返利概览',
+        affCode: '邀请码',
+        rebateRate: '返利比例',
+        invitedCount: '邀请人数',
+        rebatedInviteeCount: '已产生返利人数',
+        availableQuota: '可提余额',
+        historyQuota: '历史返利'
+      }
+    },
+
     // Users Management
     users: {
       title: '用户管理',
@@ -2297,6 +2075,7 @@ export default {
       noBalanceHistory: '暂无变动记录',
       allTypes: '全部类型',
       typeBalance: '余额（兑换码）',
+      typeAffiliateBalance: '余额（返利转入）',
       typeAdminBalance: '余额（管理员调整）',
       typeConcurrency: '并发（兑换码）',
       typeAdminConcurrency: '并发（管理员调整）',
@@ -2528,16 +2307,22 @@ export default {
         typeNotEditable: '分组创建后无法修改计费类型。',
         standard: '标准（余额）',
         subscription: '订阅（配额）',
-        dailyLimit: '每日限额（USD）',
-        weeklyLimit: '每周限额（USD）',
-        monthlyLimit: '每月限额（USD）',
+        dailyLimit: '每日限额（CNY）',
+        weeklyLimit: '每周限额（CNY）',
+        monthlyLimit: '每月限额（CNY）',
         defaultValidityDays: '默认有效期（天）',
         validityHint: '分配给用户时订阅的有效天数',
         noLimit: '无限制'
       },
       imagePricing: {
         title: '图片生成计费',
-        description: '配置图片生成模型的图片生成价格，留空则使用默认价格'
+        description: '配置图片生成能力和图片基础单价，留空则使用默认价格',
+        allowImageGeneration: '允许当前分组生图',
+        independentMultiplier: '生图倍率独立',
+        imageMultiplier: '生图独立倍率',
+        modeHint: '默认关闭独立倍率时，图片费用 = 图片价格 × 当前分组有效倍率；开启独立倍率后，图片费用 = 图片价格 × 生图独立倍率。',
+        finalPricePreview: '最终单张价格预览',
+        notConfigured: '未配置'
       },
       claudeCode: {
         title: 'Claude Code 客户端限制',
@@ -2756,6 +2541,8 @@ export default {
         webSearchEmulation: 'Web Search 模拟',
         webSearchEmulationHint: '⚠️ 开启后该渠道下所有 Anthropic 分组的账号将自动拦截 web_search 请求，请谨慎操作',
         webSearchEmulationGlobalDisabled: '请先在系统设置 → 网关 → Web Search 模拟中启用全局开关',
+        codexImageGenerationBridge: 'Codex 图片生成桥接',
+        codexImageGenerationBridgeHint: '开启后，OpenAI 分组的 Codex /responses 文本请求可能会被自动注入 image_generation 工具。仅在路由账号支持图片生成时开启。',
         basicSettings: '基础设置',
         addPlatform: '添加平台',
         noPlatforms: '点击"添加平台"开始配置渠道',
@@ -2776,6 +2563,216 @@ export default {
         noGroupsInChannel: '上方平台标签页中未选择分组',
         unnamed: '未命名'
       }
+    },
+
+    riskControl: {
+      title: '风控中心',
+      description: '配置内容审计策略并查看审核记录',
+      loadFailed: '加载风控中心失败',
+      saveFailed: '保存内容审计配置失败',
+      logsFailed: '加载审核记录失败',
+      saved: '内容审计配置已保存',
+      refresh: '刷新',
+      config: '内容审计配置',
+      configHint: '调用 OpenAI Moderations 进行请求内容评分，命中阈值后按模式处理。',
+      openSettings: '内容审计设置',
+      settingsTitle: '内容审计设置',
+      refreshStatus: '刷新状态',
+      records: '审核记录',
+      recordsHint: '展示命中、拦截、异常和已采样记录。',
+      saveConfig: '保存内容审计配置',
+      statusFailed: '加载运行状态失败',
+      enabled: '开启内容审计',
+      enabledHint: '关闭后即使风控中心菜单启用，也不会审核网关请求。',
+      mode: '全局模式',
+      modePreBlock: '前置拦截',
+      modePreBlockDesc: '每次请求先同步审核最新用户输入，命中后立即拒绝请求。',
+      modeObserve: '仅观察',
+      modeObserveDesc: '请求直接放行，最新用户输入进入异步审核队列；命中后只记录、通知和按规则累计。',
+      modeOff: '关闭',
+      modeOffDesc: '不执行内容审计，也不会写入审核记录。',
+      baseUrl: 'OpenAI Base URL',
+      model: '模型名',
+      apiKey: 'OpenAI API Key',
+      apiKeys: 'OpenAI API Keys',
+      apiKeyCount: '{count} 个 Key',
+      apiKeyPlaceholder: '请输入 API Key',
+      apiKeysPlaceholder: '新增 API Key，每行一个；保存后会追加到已保存 Key',
+      apiKeysPlaceholderReplace: '覆盖保存 API Key，每行一个；保存后会替换全部已保存 Key',
+      apiKeysPlaceholderKeep: '新增 API Key，每行一个；保存后会追加到已保存 Key',
+      apiKeysHint: '当前已保存 {count} 个 Key；输入区只用于新增，保存时会增量追加并自动去重。',
+      apiKeysWriteMode: '写入方式',
+      apiKeysModeAppend: '增量添加',
+      apiKeysModeReplace: '覆盖保存',
+      apiKeysModeAppendHint: '默认模式：保存时追加输入区 Key，并保留已保存 Key。',
+      apiKeysModeReplaceHint: '覆盖模式：保存时用输入区 Key 替换全部已保存 Key。',
+      apiKeysReplaceWarning: '覆盖模式',
+      apiKeysReplaceNoInput: '覆盖保存至少需要输入 1 个 API Key',
+      apiKeyPlaceholderKeep: '留空保持不变',
+      apiKeyWillClear: '保存后清除已配置 Key',
+      apiKeyConfigured: '已配置',
+      apiKeyTemporary: '待保存',
+      apiKeyPendingDelete: '待删除',
+      apiKeyPendingDeleteCount: '待删除 {count} 个 Key',
+      deleteApiKey: '删除这个 Key',
+      undoDeleteApiKey: '撤销删除',
+      inputApiKeyCount: '输入区 {count} 个 Key',
+      storedApiKeyCount: '已保存 {count} 个 Key',
+      testInputApiKeys: '测试输入区 Key',
+      testStoredApiKeys: '测试已保存 Key',
+      testContentWithStoredApiKey: '用已保存 Key 试跑内容',
+      testingApiKeys: '测试中',
+      apiKeyTestNoInput: '请先输入需要测试的 OpenAI API Key',
+      apiKeyTestDone: 'Key 测试完成，共 {count} 个',
+      apiKeyTestFailed: '测试 OpenAI API Key 失败',
+      apiKeyHealth: 'Key 可用状态',
+      apiKeyFreezeRule: '400 不冻结；401/403 冻结 10 分钟；429/529 冻结 1 分钟；其他 HTTP 错误冻结 10 秒。',
+      apiKeyRows: '{count} 个 Key',
+      apiKeyRowsCollapsed: '已隐藏 {count} 个 Key',
+      apiKeyRowsExpanded: '正在显示全部 {count} 个 Key',
+      expandApiKeyRows: '展开',
+      collapseApiKeyRows: '收起',
+      apiKeyHealthEmpty: '暂无 Key 状态',
+      apiKeyHealthEmptyHint: '保存 Key 或测试输入区 Key 后会显示可用性。',
+      apiKeyStatusOk: '可用',
+      apiKeyStatusError: '异常',
+      apiKeyStatusFrozen: '冻结',
+      apiKeyStatusUnknown: '未测试',
+      apiKeyFailureCount: '失败 {count} 次',
+      apiKeyLatency: '{ms} ms',
+      apiKeyHTTPStatus: 'HTTP {status}',
+      apiKeyFrozenUntil: '冻结至 {time}',
+      apiKeyLastChecked: '检查于 {time}',
+      apiKeyNotTested: '尚未测试',
+      auditTestInput: '审计试跑输入',
+      auditTestInputHint: '可填写提示词并上传或粘贴图片；图片以 base64 发送，不会保存文件。',
+      auditTestPromptPlaceholder: '输入要测试的用户提示词；留空时仅测试 Key 可用性。',
+      auditTestImages: '测试图片',
+      auditTestImagesHint: '支持上传、拖拽或粘贴图片，最多 1 张，每张不超过 8MB。',
+      addAuditTestImage: '添加图片',
+      clearAuditTest: '清空试跑',
+      auditTestImageLimit: '最多只能添加 {count} 张测试图片',
+      auditTestImageTooLarge: '单张测试图片不能超过 8MB',
+      auditTestImageReadFailed: '读取测试图片失败',
+      auditTestResult: '审计试跑结果',
+      auditTestHighest: '最高分类 {category}，分数 {score}',
+      auditTestComposite: '综合评分',
+      auditTestFlagged: '命中阈值',
+      auditTestPassed: '未命中',
+      notConfigured: '未配置',
+      clearApiKey: '清除已保存 Key',
+      keepApiKey: '保留已保存 Key',
+      timeoutMs: 'HTTP 超时 (ms)',
+      retryCount: '失败重试次数',
+      sampleRate: '采样率',
+      recordNonHits: '记录未命中输入',
+      recordNonHitsHint: '开启后会记录抽样但未命中的请求摘要，摘要会先脱敏再入库。',
+      preHashCheck: '启用前置哈希比对',
+      preHashCheckHint: '异步审核命中过的输入哈希会被前置拦截；该拦截不发送邮件，也不累计封禁次数。',
+      flaggedHashCount: '当前哈希集合数量：{count} 个',
+      flaggedHashHint: '哈希永久保存在 Redis 集合中；可粘贴完整 64 位哈希删除误拦截项，或一键清空全部风险哈希。',
+      flaggedHashPlaceholder: '粘贴完整 64 位输入哈希',
+      deleteFlaggedHash: '删除指定哈希',
+      clearFlaggedHashes: '一键清空',
+      clearFlaggedHashesConfirm: '确定要清空全部风险输入哈希吗？此操作不会删除审核记录，但会取消所有历史哈希拦截。',
+      flaggedHashDeleted: '风险哈希已删除',
+      flaggedHashNotFound: '该风险哈希不存在',
+      flaggedHashDeleteFailed: '删除风险哈希失败',
+      flaggedHashesCleared: '已清空 {count} 个风险哈希',
+      flaggedHashesClearFailed: '清空风险哈希失败',
+      workerCount: 'Worker 数',
+      queueSize: '异步队列大小',
+      blockStatus: '拦截 HTTP 状态码',
+      blockMessage: '自定义拦截提示',
+      emailOnHit: '命中后发送邮件',
+      emailOnHitHint: '开启后每次达到阈值都会向用户发送风控提醒邮件；自动封禁通知始终发送。',
+      autoBan: '自动封禁用户',
+      autoBanHint: '命中次数达到阈值后将禁用用户账号、刷新认证缓存并发送封禁通知邮件。',
+      banThreshold: '封禁触发次数',
+      violationWindowHours: '累计窗口（小时）',
+      hitRetentionDays: '命中记录保留（天）',
+      nonHitRetentionDays: '未命中记录保留（天，最多 3 天）',
+      violationCount: '{count} 次',
+      emailSent: '已发邮件',
+      emailNotSent: '未发邮件',
+      autoBanned: '已封禁',
+      unbanUser: '解封',
+      unbanSuccess: '用户已解封',
+      unbanFailed: '解封用户失败',
+      inputDetailTitle: '输入摘要详情',
+      inputDetailContent: '完整内容',
+      queueDelay: '排队 {ms} ms',
+      allGroups: '全部分组',
+      allGroupsHint: '当前审计全部分组',
+      selectedGroupsHint: '当前审计指定分组',
+      groupScope: '审计分组',
+      groupScopeHint: '开启右侧开关表示全部分组，关闭后选择指定分组。',
+      selectedGroups: '指定分组',
+      searchGroups: '搜索分组名称或平台',
+      noGroups: '暂无可用分组',
+      emptyLogs: '暂无审核记录',
+      workerStatus: 'Worker 运行状态',
+      workerStatusHint: '异步观察任务的队列和 worker 池状态。',
+      workerPool: 'Worker 池',
+      workerPoolMeta: '{active} 个处理中，{idle} 个空闲可用，共 {total} 个',
+      queueUsage: '队列占用',
+      activeWorkers: '处理中',
+      idleWorkers: '空闲可用',
+      workerActive: '正在处理异步审计任务',
+      workerIdle: '已启动，当前空闲可用',
+      workerDisabled: '风控或内容审计未启用',
+      processed: '已处理',
+      droppedErrors: '丢弃/异常',
+      autoRefresh: '每 15 秒自动刷新',
+      lastCleanup: '上次清理：{time}',
+      cleanupStats: '上次清理删除命中 {hit} 条，未命中 {nonHit} 条',
+      riskSwitchOff: '系统开关关闭',
+      tabs: {
+        basic: '基础',
+        scope: '审计范围',
+        runtime: '运行队列',
+        response: '命中通知',
+        retention: '日志保留',
+      },
+      overview: {
+        status: '运行状态',
+        enabled: '已启用',
+        disabled: '未启用',
+        apiKey: 'API Key',
+        groupScope: '审计范围',
+        logs: '审核记录',
+        currentFilter: '当前筛选结果',
+      },
+      filters: {
+        search: '按用户/Key/摘要搜索',
+        from: '开始时间',
+        to: '结束时间',
+        allGroups: '全部分组',
+        allEndpoints: '全部端点',
+      },
+      table: {
+        time: '时间',
+        group: '分组',
+        user: '用户',
+        apiKey: 'API Key',
+        endpoint: '端点',
+        result: '结果',
+        highest: '最高分',
+        actionMeta: '处置',
+        latency: '上游耗时',
+        input: '输入摘要',
+      },
+      result: {
+        all: '全部结果',
+        hit: '命中',
+        blocked: '已拦截',
+        pass: '未命中',
+        error: '异常',
+      },
+      action: {
+        block: '拦截',
+        error: '异常',
+      },
     },
 
     // Channel Monitor
@@ -3028,6 +3025,11 @@ export default {
       dataExportSelected: '导出选中',
       dataExportIncludeProxies: '导出代理（导出账号关联的代理）',
       dataImport: '导入',
+      moreActions: '更多操作',
+      dataActions: '数据操作',
+      toolActions: '工具',
+      viewColumns: '列显示',
+      selectedCount: '已选 {count}',
       dataExportConfirmMessage: '导出的数据包含账号与代理的敏感信息，请妥善保存。',
       dataExportConfirm: '确认导出',
       dataExported: '数据导出成功',
@@ -3472,6 +3474,18 @@ export default {
         responsesWebsocketsV2PassthroughHint: '当前已开启自动透传：仅影响 HTTP 透传链路，不影响 WS mode。',
         codexCLIOnly: '仅允许 Codex 官方客户端',
         codexCLIOnlyDesc: '仅对 OpenAI OAuth 生效。开启后仅允许 Codex 官方客户端家族访问；关闭后完全绕过并保持原逻辑。',
+        codexImageGenerationBridge: 'Codex 图片生成桥接',
+        codexImageGenerationBridgeDesc:
+          '账号级策略优先于渠道和全局配置。仅控制 Codex 走 /responses 文本端点时是否注入 image_generation 工具；不影响独立图片生成接口。',
+        codexImageGenerationBridgeInherit: '跟随渠道',
+        codexImageGenerationBridgeInheritDesc: '不写入账号覆盖，继续使用渠道或全局策略。',
+        codexImageGenerationBridgeEnabled: '强制开启',
+        codexImageGenerationBridgeEnabledDesc: '允许 Codex /responses 请求获得图片工具注入。',
+        codexImageGenerationBridgeDisabled: '强制关闭',
+        codexImageGenerationBridgeDisabledDesc: '阻断 Codex /responses 的图片工具注入。',
+        codexImageGenerationBridgeBadgeInherit: '渠道策略',
+        codexImageGenerationBridgeBadgeEnabled: '账号开启',
+        codexImageGenerationBridgeBadgeDisabled: '账号关闭',
         compactMode: 'Compact 模式',
         compactModeDesc:
           '控制本账号在 /responses/compact 调度中的参与方式。Auto 跟随探测结果，Force On 强制允许，Force Off 强制排除。',
@@ -3483,7 +3497,8 @@ export default {
           '仅在 /responses/compact 请求中生效。当上游 compact 端点需要特殊 compact 模型时使用。',
         compactSupported: '支持 Compact',
         compactUnsupported: '不支持 Compact',
-        compactUnknown: 'Compact 未知',
+        compactAuto: 'Compact Auto',
+        compactUnknown: 'Compact Auto',
         compactLastChecked: '最近探测',
         testMode: '测试模式',
         testModeDefault: '常规请求',
@@ -3516,7 +3531,7 @@ export default {
       targetNoWildcard: '目标模型不能包含通配符 *',
       searchModels: '搜索模型...',
       noMatchingModels: '没有匹配的模型',
-      fillRelatedModels: '填入相关模型',
+      fillRelatedModels: '同步最新支持模型',
       clearAllModels: '清除所有模型',
       customModelName: '自定义模型名称',
       enterCustomModelName: '输入自定义模型名称',
@@ -3767,6 +3782,16 @@ export default {
           refreshTokenAuth: '手动输入 RT',
           refreshTokenDesc: '输入您已有的 OpenAI Refresh Token，支持批量输入（每行一个），系统将自动验证并创建账号。',
           refreshTokenPlaceholder: '粘贴您的 OpenAI Refresh Token...\n支持多个，每行一个',
+          codexSessionAuth: 'Codex JSON / AT 批量输入',
+          codexSessionDesc: '粘贴 Codex JSON 或 accessToken，按第一步配置创建账号。',
+          codexSessionInputLabel: 'Codex JSON 或 accessToken',
+          codexSessionPlaceholder: '支持多行，每行一个 token 或 JSON',
+          codexSessionHint: 'sessionToken 不会作为 refresh_token 保存；未包含 refresh_token 时会按 accessToken 过期时间设置账号过期，无法解析且第一步未设置过期时间时会拒绝导入。',
+          codexSessionImportAndCreate: '导入并创建账号',
+          codexSessionEmpty: '请输入 Codex JSON 或 accessToken',
+          codexSessionImportFailed: 'Codex 账号导入失败',
+          codexSessionImportSuccess: '导入完成：新增 {created}，更新 {updated}，跳过 {skipped}',
+          codexSessionImportPartial: '部分成功：新增 {created}，更新 {updated}，跳过 {skipped}，失败 {failed}',
           sessionTokenAuth: '手动输入 ST',
           sessionTokenDesc: '输入您已有的 Session Token，支持批量输入（每行一个），系统将自动验证并创建账号。',
           sessionTokenPlaceholder: '粘贴您的 Session Token...\n支持多个，每行一个',
@@ -4328,7 +4353,7 @@ export default {
       generatedSuccessfully: '生成成功',
       codesCreated: '已创建 {count} 个兑换码',
       codeType: '类型',
-      amount: '金额 ($)',
+      amount: '金额 (¥)',
       value: '面值',
       count: '数量',
       generate: '生成',
@@ -4491,7 +4516,7 @@ export default {
       code: '优惠码',
       autoGenerate: '留空自动生成',
       codePlaceholder: '输入优惠码或留空',
-      bonusAmount: '赠送金额 ($)',
+      bonusAmount: '赠送金额 (¥)',
       maxUses: '最大使用次数',
       zeroUnlimited: '0 = 无限制',
       expiresAt: '过期时间',
@@ -4524,32 +4549,6 @@ export default {
       failedToUpdate: '更新优惠码失败',
       failedToDelete: '删除优惠码失败',
       failedToLoadUsages: '加载使用记录失败'
-    },
-
-    affiliates: {
-      title: '邀请关系',
-      description: '查看所有邀请人的邀请关系与返利明细',
-      searchPlaceholder: '搜索邀请人邮箱或用户名',
-      empty: '暂无邀请关系数据',
-      viewInvitees: '查看邀请用户',
-      totalLabel: '共 {total} 条',
-      inviteesTitle: '{email} 邀请的用户',
-      inviteesDescription: '展示该邀请人当前关联的被邀请用户明细。',
-      inviteesEmpty: '该邀请人暂无可展示的邀请用户',
-      col: {
-        email: '邀请人邮箱',
-        username: '邀请人用户名',
-        code: '邀请码',
-        invitedCount: '邀请人数',
-        totalRebate: '累计返利',
-        actions: '操作',
-      },
-      inviteesCol: {
-        email: '被邀请用户邮箱',
-        username: '被邀请用户名',
-        joinedAt: '加入时间',
-        totalRebate: '累计返利',
-      },
     },
 
     // Usage Records
@@ -5422,6 +5421,7 @@ export default {
       description: '管理注册、邮箱验证、默认值和 SMTP 设置',
       tabs: {
         general: '通用设置',
+        agreement: '登录条款',
         features: '功能开关',
         security: '安全与认证',
         users: '用户默认值',
@@ -5447,14 +5447,21 @@ export default {
           enabled: '启用可用渠道',
           enabledHint: '关闭后用户端侧边栏入口隐藏，接口返回空数组。',
         },
+        riskControl: {
+          title: '风控中心',
+          description: '启用内容审计菜单和全端点请求审核入口。默认关闭。',
+          configureLink: '前往 风控中心 配置内容审计',
+          enabled: '启用风控中心',
+          enabledHint: '关闭后管理员侧边栏入口隐藏，网关内容审计不会执行。',
+        },
         weeklyQuota: {
           title: '周额度领取',
-          description: '允许用户在兑换页按注册时间对应的 7 天窗口领取固定余额额度。默认关闭。',
+          description: '允许用户按注册时间滚动的 7 天窗口领取固定额度。',
           enabled: '启用周额度领取',
-          enabledHint: '关闭后用户端周额度模块隐藏，领取接口返回功能关闭。',
-          amount: '每周可领取额度',
-          amountHint: '请输入大于 0 的金额，作为每个窗口可领取的余额。',
-          amountRequired: '启用周额度领取时，领取额度必须大于 0。',
+          enabledHint: '关闭后用户端周额度入口隐藏，用户无法领取新的周额度。',
+          amount: '每周领取额度',
+          amountHint: '每个 7 天窗口可领取的余额金额。',
+          amountRequired: '启用周额度领取时，请填写大于 0 的领取额度。',
         },
         affiliate: {
           title: '邀请返利',
@@ -5470,34 +5477,9 @@ export default {
           perInviteeCap: '单人返利上限',
           perInviteeCapDesc: '每个被邀请用户最多产生的返利总额。0 = 无上限。',
           signupRewardEnabled: '启用注册成功奖励',
-          signupRewardEnabledHint: '被邀请用户首次注册成功后，直接给邀请人账户余额增加一笔固定奖励。',
-          signupRewardAmount: '注册奖励金额',
-          signupRewardAmountDesc: '奖励会直接进入邀请人余额，并计入历史返利；0 = 不发放。',
-          inviterRelations: {
-            title: '邀请关系查看',
-            description: '查看所有有邀请记录的用户，以及他们邀请了哪些人。',
-            searchPlaceholder: '搜索邀请人邮箱或用户名',
-            empty: '暂无邀请关系数据',
-            viewInvitees: '查看邀请用户',
-            totalLabel: '共 {total} 条',
-            inviteesTitle: '{email} 邀请的用户',
-            inviteesDescription: '展示该邀请人当前关联的被邀请用户明细。',
-            inviteesEmpty: '该邀请人暂无可展示的邀请用户',
-            col: {
-              email: '邀请人邮箱',
-              username: '邀请人用户名',
-              code: '邀请码',
-              invitedCount: '邀请人数',
-              totalRebate: '累计返利',
-              actions: '操作',
-            },
-            inviteesCol: {
-              email: '被邀请用户邮箱',
-              username: '被邀请用户名',
-              joinedAt: '加入时间',
-              totalRebate: '累计返利',
-            },
-          },
+          signupRewardEnabledHint: '当新用户通过邀请关系完成注册时，给邀请人发放一次性奖励。',
+          signupRewardAmount: '注册成功奖励金额',
+          signupRewardAmountDesc: '邀请人获得的一次性奖励金额。0 = 不发放奖励。',
           customUsers: {
             title: '专属用户配置',
             description: '为指定用户设置专属邀请码或专属返利比例。仅展示已设置过专属配置的用户。',
@@ -5583,7 +5565,7 @@ export default {
       },
       linuxdo: {
         title: 'LinuxDo Connect 登录',
-        description: '配置 LinuxDo Connect OAuth，用于GPTK用户登录',
+        description: '配置 LinuxDo Connect OAuth，用于 GPTK 用户登录',
         enable: '启用 LinuxDo 登录',
         enableHint: '在登录/注册页面显示 LinuxDo 登录入口',
         clientId: 'Client ID',
@@ -5695,6 +5677,13 @@ export default {
         metadataPassthroughHint: '透传客户端原始 metadata.user_id，不进行重写。可能提高上游缓存命中率。',
         cchSigning: 'CCH 签名',
         cchSigningHint: '对转发请求的 billing header 进行 CCH 哈希签名。关闭时保留原始占位符。',
+        anthropicCacheTTL1hInjection: 'Anthropic 缓存 TTL 注入',
+        anthropicCacheTTL1hInjectionHint: '开启后，对 Anthropic OAuth/Setup Token 请求体中已有的 ephemeral 缓存块强制写入 1h；响应 usage 默认按 5m 回写计费，账号级 TTL 计费设置优先。',
+        rewriteMessageCacheControl: '改写消息缓存断点',
+        rewriteMessageCacheControlHint: '默认关闭，保留客户端在 messages 内容块中的 cache_control。开启后会清除客户端断点并注入代理断点，适合不自行管理缓存策略的客户端。',
+        antigravityUserAgentVersion: 'Antigravity UA 版本',
+        antigravityUserAgentVersionPlaceholder: '1.23.2',
+        antigravityUserAgentVersionHint: '留空时使用 ANTIGRAVITY_USER_AGENT_VERSION 或内置默认值 1.23.2；填写后后台设置优先。',
       },
       webSearchEmulation: {
         title: 'Web Search 模拟',
@@ -5782,10 +5771,6 @@ export default {
           remove: '移除链接',
           label: '名称',
           labelPlaceholder: '例如：格品购物',
-          labelZh: '中文名称',
-          labelZhPlaceholder: '例如：格品购物',
-          labelEn: 'English Name',
-          labelEnPlaceholder: 'e.g., Gepin Shop',
           url: '链接地址',
           urlPlaceholder: 'https://example.com',
           labelRequired: '首页链接名称不能为空',
@@ -5864,8 +5849,8 @@ export default {
         maxAmount: '最高金额',
         dailyLimit: '每日限额',
         balanceRechargeMultiplier: '余额充值倍率',
-        balanceRechargeMultiplierHint: '用户每支付 1 CNY 可获得多少 USD 余额',
-        balanceRechargePreview: '预览：1 CNY = {usd} USD',
+        balanceRechargeMultiplierHint: '用户每支付 1 CNY 可获得多少 CNY 余额',
+        balanceRechargePreview: '预览：1 CNY = {usd} CNY',
         rechargeFeeRate: '充值手续费率',
         rechargeFeeRateHint: '用户充值时额外收取的手续费百分比，0 表示不收取手续费',
         rechargeFeePreview: '预览：充值 100 元，手续费 {fee} 元',
@@ -5898,6 +5883,7 @@ export default {
         providerAlipay: '支付宝官方',
         providerWxpay: '微信官方',
         providerStripe: 'Stripe',
+        providerAirwallex: 'Airwallex',
         typeDisabled: '类型已禁用',
         enableTypesFirst: '请先在上方启用至少一种服务商',
         easypayRedirect: '跳转',
@@ -5924,12 +5910,24 @@ export default {
         wxpayConfigHint: '微信支付通常只需要填写 App ID。公众号 App ID、H5 应用名称、H5 应用地址仅在公众号支付或 H5 场景有特殊要求时再填写。',
         wxpayAdvancedOptions: '微信支付高级可选项',
         field_secretKey: '密钥',
+        field_clientId: 'Client ID',
+        field_apiKey: 'API Key',
         field_publishableKey: '公开密钥',
         field_webhookSecret: 'Webhook 密钥',
+        field_countryCode: '国家/地区代码',
+        field_currency: '支付币种',
+        field_accountId: 'Airwallex 账户 ID',
+        field_airwallexApiBaseHint: '必须和 API Key 所属环境一致：沙箱/测试密钥使用 https://api-demo.airwallex.com/api/v1，生产密钥使用 https://api.airwallex.com/api/v1。环境混用会返回 credentials_invalid / Access Denied。',
+        field_paymentCurrencyHint: '默认 CNY。Stripe 和 Airwallex 可按账户支持从下拉项选择 HKD、USD 等币种；微信、支付宝、易支付仍按 CNY。',
+        field_accountIdHint: '不涉及多账户、组织级密钥或连接账户收款时可以不填；单账户 Scoped API Key 会默认使用所选账户。',
         field_cid: '支付渠道 ID',
         field_cidAlipay: '支付宝渠道 ID',
         field_cidWxpay: '微信渠道 ID',
         stripeWebhookHint: '请在 Stripe Dashboard 中将以下地址配置为 Webhook 端点：',
+        stripeWebhookApiVersionHint: 'Webhook 端点的 API 版本请与当前集成的 Stripe SDK 对齐，建议选择 {version}；版本不一致可能导致回调事件解析失败。',
+        airwallexWebhookHint: '请在 Airwallex 后台将以下地址配置为 Webhook 端点；事件至少选择 Payment Intent -> Succeeded（payment_intent.succeeded），建议同时选择 Payment Intent -> Cancelled（payment_intent.cancelled）；API version 选择账户默认或最新稳定版本。',
+        airwallexGuideSummary: '创建 Airwallex Scoped API 密钥时，建议只在账户级权限中为 Payment Acceptance 勾选读取和写入。',
+        airwallexGuideNote: '不需要勾选 Spend、Payouts、Transfers、Funds Splits、POS 终端等与在线收款无关的权限。Webhook 事件至少选择 payment_intent.succeeded，建议同时选择 payment_intent.cancelled；API version 选择账户默认或最新稳定版本。',
         limitsTitle: '限额配置',
         limitSingleMin: '单笔最低',
         limitSingleMax: '单笔最高',
@@ -6182,6 +6180,16 @@ export default {
         cooldownMinutesHint: '账号暂停调度的持续时间（1-120 分钟）',
         saved: '过载冷却设置保存成功',
         saveFailed: '保存过载冷却设置失败'
+      },
+      rateLimit429Cooldown: {
+        title: '429 默认回避',
+        description: '配置上游返回 429 且没有明确重置时间时的默认账号回避策略',
+        enabled: '启用 429 默认回避',
+        enabledHint: '收到无重置时间的 429 时暂停该账号调度，冷却后自动恢复',
+        cooldownSeconds: '回避时长（秒）',
+        cooldownSecondsHint: '默认回避持续时间（1-7200 秒）；上游返回明确 reset 时仍优先使用上游时间',
+        saved: '429 默认回避设置保存成功',
+        saveFailed: '保存 429 默认回避设置失败'
       },
       streamTimeout: {
         title: '流超时处理',
@@ -6625,7 +6633,7 @@ export default {
     // Admin tour steps
     admin: {
       welcome: {
-        title: '👋 欢迎使用GPTK',
+        title: '👋 欢迎使用 GPTK',
         description:
           '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">GPTK 是一个强大的 AI 服务中转平台，让您轻松管理和分发 AI 服务。</p><p style="margin-bottom: 12px;"><b>🎯 核心功能：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>分组管理</b> - 创建不同的服务套餐（VIP、免费试用等）</li><li>🔗 <b>账号池</b> - 连接多个上游 AI 服务商账号</li><li>🔑 <b>密钥分发</b> - 为用户生成独立的 API Key</li><li>💰 <b>计费管理</b> - 灵活的费率和配额控制</li></ul><p style="color: #10b981; font-weight: 600;">接下来，我们将用 3 分钟带您完成首次配置 →</p></div>',
         nextBtn: '开始配置 🚀',
@@ -6634,7 +6642,7 @@ export default {
       groupManage: {
         title: '📦 第一步：分组管理',
         description:
-          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>什么是分组？</b></p><p style="margin-bottom: 12px;">分组是GPTK的核心概念，它就像一个"服务套餐"：</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 每个分组可以包含多个上游账号</li><li>💰 每个分组有独立的计费倍率</li><li>👥 可以设置为公开或专属分组</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 示例：</b>您可以创建"VIP专线"（高倍率）和"免费试用"（低倍率）两个分组</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 点击左侧的"分组管理"开始</p></div>'
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>什么是分组？</b></p><p style="margin-bottom: 12px;">分组是 GPTK 的核心概念，它就像一个"服务套餐"：</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 每个分组可以包含多个上游账号</li><li>💰 每个分组有独立的计费倍率</li><li>👥 可以设置为公开或专属分组</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 示例：</b>您可以创建"VIP专线"（高倍率）和"免费试用"（低倍率）两个分组</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 点击左侧的"分组管理"开始</p></div>'
       },
       createGroup: {
         title: '➕ 创建新分组',
@@ -6656,7 +6664,7 @@ export default {
       groupMultiplier: {
         title: '💰 3. 费率倍数',
         description:
-          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">设置该分组的计费倍率，控制用户的实际扣费。</p><div style="padding: 8px 12px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>⚙️ 计费规则：</b><ul style="margin: 8px 0 0 16px;"><li><b>1.0</b> - 原价计费（成本价）</li><li><b>1.5</b> - 用户消耗 $1，扣除 $1.5</li><li><b>2.0</b> - 用户消耗 $1，扣除 $2</li><li><b>0.8</b> - 补贴模式（亏本运营）</li></ul></div><p style="font-size: 13px; color: #6b7280;">建议测试分组设置为 1.0</p></div>',
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">设置该分组的计费倍率，控制用户的实际扣费。</p><div style="padding: 8px 12px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>⚙️ 计费规则：</b><ul style="margin: 8px 0 0 16px;"><li><b>1.0</b> - 原价计费（成本价）</li><li><b>1.5</b> - 用户消耗 ¥1，扣除 ¥1.5</li><li><b>2.0</b> - 用户消耗 ¥1，扣除 ¥2</li><li><b>0.8</b> - 补贴模式（亏本运营）</li></ul></div><p style="font-size: 13px; color: #6b7280;">建议测试分组设置为 1.0</p></div>',
         nextBtn: '下一步'
       },
       groupExclusive: {
@@ -6746,9 +6754,9 @@ export default {
     // User tour steps
     user: {
       welcome: {
-        title: '👋 欢迎使用GPTK',
+        title: '👋 欢迎使用 GPTK',
         description:
-          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">您好！欢迎来到GPTK AI 服务平台。</p><p style="margin-bottom: 12px;"><b>🎯 快速开始：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 创建 API 密钥</li><li>📋 复制密钥到您的应用</li><li>🚀 开始使用 AI 服务</li></ul><p style="color: #10b981; font-weight: 600;">只需 1 分钟，让我们开始吧 →</p></div>',
+          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">您好！欢迎来到 GPTK AI 服务平台。</p><p style="margin-bottom: 12px;"><b>🎯 快速开始：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 创建 API 密钥</li><li>📋 复制密钥到您的应用</li><li>🚀 开始使用 AI 服务</li></ul><p style="color: #10b981; font-weight: 600;">只需 1 分钟，让我们开始吧 →</p></div>',
         nextBtn: '开始 🚀',
         prevBtn: '跳过'
       },
@@ -6800,6 +6808,7 @@ export default {
       alipay: '支付宝',
       wxpay: '微信支付',
       stripe: 'Stripe',
+      airwallex: 'Airwallex',
       card: '银行卡',
       link: 'Link',
       alipay_direct: '支付宝（直连）',
@@ -6879,12 +6888,14 @@ export default {
     amountTooLow: '最低金额为 {min}',
     amountTooHigh: '最高金额为 {max}',
     amountNoMethod: '该金额没有可用的支付方式',
-    rechargeRatePreview: '当前倍率：1 CNY = {usd} USD',
+    rechargeRatePreview: '当前倍率：1 CNY = {usd} CNY',
     refundReason: '退款原因',
     refundReasonPlaceholder: '请描述您的退款原因',
     stripeLoadFailed: '支付组件加载失败，请刷新页面重试',
     stripeMissingParams: '缺少订单ID或支付密钥',
     stripeNotConfigured: 'Stripe 未配置',
+    airwallexLoadFailed: 'Airwallex 支付组件加载失败，请刷新页面重试',
+    airwallexMissingParams: '缺少 Airwallex 支付参数',
     errors: {
       tooManyPending: '待支付订单过多（最多 {max} 个），请先完成或取消现有订单',
       cancelRateLimited: '取消订单过于频繁，请稍后再试',
@@ -6930,6 +6941,7 @@ export default {
       REFUND_AMOUNT_EXCEEDED: '退款金额超过充值金额',
       REFUND_FAILED: '退款失败',
     },
+    airwallexPay: 'Airwallex 支付',
     stripePay: '立即支付',
     stripeSuccessProcessing: '支付成功，正在处理订单...',
     stripePopup: {
@@ -7007,7 +7019,7 @@ export default {
       deductBalanceHint: '从用户余额中扣回充值金额',
       userBalance: '用户余额',
       orderAmount: '订单金额',
-      insufficientBalance: '余额不足，将扣至 $0',
+      insufficientBalance: '余额不足，将扣至 ¥0',
       noDeduction: '将不扣除用户余额',
       forceRefund: '强制退款（忽略余额检查）',
       orderCancelled: '订单已取消',

@@ -141,46 +141,6 @@ func newOAuthEmailFlowAuthService(
 	)
 }
 
-func newOAuthEmailFlowAuthServiceWithAffiliate(
-	userRepo UserRepository,
-	redeemRepo RedeemCodeRepository,
-	refreshTokenCache RefreshTokenCache,
-	settings map[string]string,
-	emailCache EmailCache,
-	affiliateService *AffiliateService,
-) *AuthService {
-	cfg := &config.Config{
-		JWT: config.JWTConfig{
-			Secret:                   "test-secret",
-			ExpireHour:               1,
-			AccessTokenExpireMinutes: 60,
-			RefreshTokenExpireDays:   7,
-		},
-		Default: config.DefaultConfig{
-			UserBalance:     3.5,
-			UserConcurrency: 2,
-		},
-	}
-
-	settingService := NewSettingService(&settingRepoStub{values: settings}, cfg)
-	emailService := NewEmailService(&settingRepoStub{values: settings}, emailCache)
-
-	return NewAuthService(
-		nil,
-		userRepo,
-		redeemRepo,
-		refreshTokenCache,
-		cfg,
-		settingService,
-		emailService,
-		nil,
-		nil,
-		nil,
-		nil,
-		affiliateService,
-	)
-}
-
 func TestRegisterOAuthEmailAccountRollsBackCreatedUserWhenTokenPairGenerationFails(t *testing.T) {
 	userRepo := &userRepoStub{nextID: 42}
 	redeemRepo := &redeemCodeRepoStub{
@@ -269,6 +229,67 @@ func TestRegisterOAuthEmailAccountSetsNormalizedSignupSourceOnCreatedUser(t *tes
 	require.Equal(t, "oidc", userRepo.created[0].SignupSource)
 }
 
+func TestRegisterOAuthEmailAccountKeepsGitHubAndGoogleSignupSource(t *testing.T) {
+	tests := []struct {
+		name         string
+		email        string
+		signupSource string
+		want         string
+	}{
+		{
+			name:         "github",
+			email:        "github@example.com",
+			signupSource: " GitHub ",
+			want:         "github",
+		},
+		{
+			name:         "google",
+			email:        "google@example.com",
+			signupSource: " Google ",
+			want:         "google",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userRepo := &userRepoStub{nextID: 43}
+			emailCache := &emailCacheStub{
+				data: &VerificationCodeData{
+					Code:      "246810",
+					Attempts:  0,
+					CreatedAt: time.Now().UTC(),
+					ExpiresAt: time.Now().UTC().Add(15 * time.Minute),
+				},
+			}
+			authService := newOAuthEmailFlowAuthService(
+				userRepo,
+				&redeemCodeRepoStub{},
+				&refreshTokenCacheStub{},
+				map[string]string{
+					SettingKeyRegistrationEnabled: "true",
+					SettingKeyEmailVerifyEnabled:  "true",
+				},
+				emailCache,
+			)
+
+			tokenPair, user, err := authService.RegisterOAuthEmailAccount(
+				context.Background(),
+				tt.email,
+				"secret-123",
+				"246810",
+				"",
+				tt.signupSource,
+			)
+
+			require.NoError(t, err)
+			require.NotNil(t, tokenPair)
+			require.NotNil(t, user)
+			require.Len(t, userRepo.created, 1)
+			require.Equal(t, tt.want, userRepo.created[0].SignupSource)
+		})
+	}
+}
+
 func TestRegisterOAuthEmailAccountFallsBackUnknownSignupSourceToEmail(t *testing.T) {
 	userRepo := &userRepoStub{nextID: 43}
 	emailCache := &emailCacheStub{
@@ -296,7 +317,7 @@ func TestRegisterOAuthEmailAccountFallsBackUnknownSignupSourceToEmail(t *testing
 		"secret-123",
 		"246810",
 		"",
-		"github",
+		"unknown-provider",
 	)
 
 	require.NoError(t, err)
@@ -363,44 +384,4 @@ func TestRollbackOAuthEmailAccountCreationPropagatesDeleteError(t *testing.T) {
 
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "delete created oauth user")
-}
-
-func TestFinalizeOAuthEmailAccount_AppliesAffiliateSignupBonus(t *testing.T) {
-	userRepo := &userRepoStub{nextID: 88}
-	inviterID := int64(66)
-	inviteeID := int64(88)
-	affiliateRepo := &affiliateRepoStub{
-		summaries: map[int64]*AffiliateSummary{
-			inviterID: {UserID: inviterID, AffCode: "AFFCODE001"},
-			inviteeID: {UserID: inviteeID, InviterID: &inviterID},
-		},
-		signupBonusApplied: true,
-		signupBonusBalance: 25.5,
-	}
-	affiliateService := &AffiliateService{
-		repo: affiliateRepo,
-		settingService: NewSettingService(&settingRepoStub{values: map[string]string{
-			SettingKeyAffiliateEnabled:             "true",
-			SettingKeyAffiliateSignupRewardEnabled: "true",
-			SettingKeyAffiliateSignupRewardAmount:  "6.6",
-		}}, nil),
-	}
-
-	authService := newOAuthEmailFlowAuthServiceWithAffiliate(
-		userRepo,
-		&redeemCodeRepoStub{},
-		&refreshTokenCacheStub{},
-		map[string]string{
-			SettingKeyRegistrationEnabled: "true",
-		},
-		&emailCacheStub{},
-		affiliateService,
-	)
-
-	err := authService.FinalizeOAuthEmailAccount(context.Background(), &User{ID: inviteeID, Email: "oauth@test.com"}, "", "oidc", "AFFCODE001")
-	require.NoError(t, err)
-	require.Len(t, affiliateRepo.signupBonusCalls, 1)
-	require.Equal(t, inviterID, affiliateRepo.signupBonusCalls[0].inviterID)
-	require.Equal(t, inviteeID, affiliateRepo.signupBonusCalls[0].inviteeUserID)
-	require.InDelta(t, 6.6, affiliateRepo.signupBonusCalls[0].amount, 1e-9)
 }

@@ -98,7 +98,7 @@ type AffiliateRepository interface {
 	EnsureUserAffiliate(ctx context.Context, userID int64) (*AffiliateSummary, error)
 	GetAffiliateByCode(ctx context.Context, code string) (*AffiliateSummary, error)
 	BindInviter(ctx context.Context, userID, inviterID int64) (bool, error)
-	AccrueQuota(ctx context.Context, inviterID, inviteeUserID int64, amount float64, freezeHours int) (bool, error)
+	AccrueQuota(ctx context.Context, inviterID, inviteeUserID int64, amount float64, freezeHours int, sourceOrderID *int64) (bool, error)
 	AwardSignupBonus(ctx context.Context, inviterID, inviteeUserID int64, amount float64) (bool, float64, error)
 	GetAccruedRebateFromInvitee(ctx context.Context, inviterID, inviteeUserID int64) (float64, error)
 	ThawFrozenQuota(ctx context.Context, userID int64) (float64, error)
@@ -113,6 +113,10 @@ type AffiliateRepository interface {
 	ListUsersWithCustomSettings(ctx context.Context, filter AffiliateAdminFilter) ([]AffiliateAdminEntry, int64, error)
 	ListInvitersWithInvitees(ctx context.Context, filter AffiliateAdminFilter) ([]AffiliateInviterEntry, int64, error)
 	ListInviteesByInviter(ctx context.Context, inviterID int64, limit int) ([]AffiliateInvitee, error)
+	ListAffiliateInviteRecords(ctx context.Context, filter AffiliateRecordFilter) ([]AffiliateInviteRecord, int64, error)
+	ListAffiliateRebateRecords(ctx context.Context, filter AffiliateRecordFilter) ([]AffiliateRebateRecord, int64, error)
+	ListAffiliateTransferRecords(ctx context.Context, filter AffiliateRecordFilter) ([]AffiliateTransferRecord, int64, error)
+	GetAffiliateUserOverview(ctx context.Context, userID int64) (*AffiliateUserOverview, error)
 }
 
 // AffiliateAdminFilter 列表筛选条件
@@ -133,7 +137,6 @@ type AffiliateAdminEntry struct {
 	AffCount             int      `json:"aff_count"`
 }
 
-// AffiliateInviterEntry 管理端“有邀请记录的邀请人”列表条目。
 type AffiliateInviterEntry struct {
 	UserID      int64   `json:"user_id"`
 	Email       string  `json:"email"`
@@ -141,6 +144,76 @@ type AffiliateInviterEntry struct {
 	AffCode     string  `json:"aff_code"`
 	AffCount    int     `json:"aff_count"`
 	TotalRebate float64 `json:"total_rebate"`
+}
+
+type AffiliateRecordFilter struct {
+	Search   string
+	Page     int
+	PageSize int
+	StartAt  *time.Time
+	EndAt    *time.Time
+	SortBy   string
+	SortDesc bool
+}
+
+type AffiliateInviteRecord struct {
+	InviterID       int64     `json:"inviter_id"`
+	InviterEmail    string    `json:"inviter_email"`
+	InviterUsername string    `json:"inviter_username"`
+	InviteeID       int64     `json:"invitee_id"`
+	InviteeEmail    string    `json:"invitee_email"`
+	InviteeUsername string    `json:"invitee_username"`
+	AffCode         string    `json:"aff_code"`
+	TotalRebate     float64   `json:"total_rebate"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
+type AffiliateRebateRecord struct {
+	OrderID         int64     `json:"order_id"`
+	OutTradeNo      string    `json:"out_trade_no"`
+	InviterID       int64     `json:"inviter_id"`
+	InviterEmail    string    `json:"inviter_email"`
+	InviterUsername string    `json:"inviter_username"`
+	InviteeID       int64     `json:"invitee_id"`
+	InviteeEmail    string    `json:"invitee_email"`
+	InviteeUsername string    `json:"invitee_username"`
+	OrderAmount     float64   `json:"order_amount"`
+	PayAmount       float64   `json:"pay_amount"`
+	RebateAmount    float64   `json:"rebate_amount"`
+	PaymentType     string    `json:"payment_type"`
+	OrderStatus     string    `json:"order_status"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
+type AffiliateTransferRecord struct {
+	LedgerID            int64     `json:"ledger_id"`
+	UserID              int64     `json:"user_id"`
+	UserEmail           string    `json:"user_email"`
+	Username            string    `json:"username"`
+	Amount              float64   `json:"amount"`
+	BalanceAfter        *float64  `json:"balance_after,omitempty"`
+	AvailableQuotaAfter *float64  `json:"available_quota_after,omitempty"`
+	FrozenQuotaAfter    *float64  `json:"frozen_quota_after,omitempty"`
+	HistoryQuotaAfter   *float64  `json:"history_quota_after,omitempty"`
+	SnapshotAvailable   bool      `json:"snapshot_available"`
+	CurrentBalance      float64   `json:"-"`
+	RemainingQuota      float64   `json:"-"`
+	FrozenQuota         float64   `json:"-"`
+	HistoryQuota        float64   `json:"-"`
+	CreatedAt           time.Time `json:"created_at"`
+}
+
+type AffiliateUserOverview struct {
+	UserID              int64   `json:"user_id"`
+	Email               string  `json:"email"`
+	Username            string  `json:"username"`
+	AffCode             string  `json:"aff_code"`
+	RebateRatePercent   float64 `json:"rebate_rate_percent"`
+	RebateRateCustom    bool    `json:"-"`
+	InvitedCount        int     `json:"invited_count"`
+	RebatedInviteeCount int     `json:"rebated_invitee_count"`
+	AvailableQuota      float64 `json:"available_quota"`
+	HistoryQuota        float64 `json:"history_quota"`
 }
 
 type AffiliateService struct {
@@ -251,6 +324,10 @@ func (s *AffiliateService) BindInviterByCode(ctx context.Context, userID int64, 
 }
 
 func (s *AffiliateService) AccrueInviteRebate(ctx context.Context, inviteeUserID int64, baseRechargeAmount float64) (float64, error) {
+	return s.AccrueInviteRebateForOrder(ctx, inviteeUserID, baseRechargeAmount, nil)
+}
+
+func (s *AffiliateService) AccrueInviteRebateForOrder(ctx context.Context, inviteeUserID int64, baseRechargeAmount float64, sourceOrderID *int64) (float64, error) {
 	if s == nil || s.repo == nil {
 		return 0, nil
 	}
@@ -311,7 +388,7 @@ func (s *AffiliateService) AccrueInviteRebate(ctx context.Context, inviteeUserID
 		freezeHours = s.settingService.GetAffiliateRebateFreezeHours(ctx)
 	}
 
-	applied, err := s.repo.AccrueQuota(ctx, *inviteeSummary.InviterID, inviteeUserID, rebate, freezeHours)
+	applied, err := s.repo.AccrueQuota(ctx, *inviteeSummary.InviterID, inviteeUserID, rebate, freezeHours, sourceOrderID)
 	if err != nil {
 		return 0, err
 	}
@@ -322,10 +399,7 @@ func (s *AffiliateService) AccrueInviteRebate(ctx context.Context, inviteeUserID
 }
 
 func (s *AffiliateService) ApplySignupBonus(ctx context.Context, inviteeUserID int64) (float64, float64, error) {
-	if s == nil || s.repo == nil {
-		return 0, 0, nil
-	}
-	if inviteeUserID <= 0 {
+	if s == nil || s.repo == nil || inviteeUserID <= 0 {
 		return 0, 0, nil
 	}
 	if !s.IsEnabled(ctx) || s.settingService == nil || !s.settingService.IsAffiliateSignupRewardEnabled(ctx) {
@@ -356,6 +430,7 @@ func (s *AffiliateService) ApplySignupBonus(ctx context.Context, inviteeUserID i
 	if !applied {
 		return 0, balance, nil
 	}
+
 	s.invalidateAffiliateCaches(ctx, inviterID)
 	return amount, balance, nil
 }
@@ -541,7 +616,6 @@ func (s *AffiliateService) AdminListCustomUsers(ctx context.Context, filter Affi
 	return s.repo.ListUsersWithCustomSettings(ctx, filter)
 }
 
-// AdminListInvitersWithInvitees 列出所有有邀请记录的邀请人。
 func (s *AffiliateService) AdminListInvitersWithInvitees(ctx context.Context, filter AffiliateAdminFilter) ([]AffiliateInviterEntry, int64, error) {
 	if s == nil || s.repo == nil {
 		return nil, 0, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
@@ -549,7 +623,6 @@ func (s *AffiliateService) AdminListInvitersWithInvitees(ctx context.Context, fi
 	return s.repo.ListInvitersWithInvitees(ctx, filter)
 }
 
-// AdminListInviteesByInviter 返回某个邀请人的被邀请用户列表。
 func (s *AffiliateService) AdminListInviteesByInviter(ctx context.Context, inviterID int64) ([]AffiliateInvitee, error) {
 	if s == nil || s.repo == nil {
 		return nil, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
@@ -558,4 +631,60 @@ func (s *AffiliateService) AdminListInviteesByInviter(ctx context.Context, invit
 		return nil, infraerrors.BadRequest("INVALID_USER", "invalid user")
 	}
 	return s.repo.ListInviteesByInviter(ctx, inviterID, affiliateInviteesLimit)
+}
+
+func (s *AffiliateService) AdminListInviteRecords(ctx context.Context, filter AffiliateRecordFilter) ([]AffiliateInviteRecord, int64, error) {
+	if s == nil || s.repo == nil {
+		return nil, 0, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+	}
+	return s.repo.ListAffiliateInviteRecords(ctx, normalizeAffiliateRecordFilter(filter))
+}
+
+func (s *AffiliateService) AdminListRebateRecords(ctx context.Context, filter AffiliateRecordFilter) ([]AffiliateRebateRecord, int64, error) {
+	if s == nil || s.repo == nil {
+		return nil, 0, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+	}
+	return s.repo.ListAffiliateRebateRecords(ctx, normalizeAffiliateRecordFilter(filter))
+}
+
+func (s *AffiliateService) AdminListTransferRecords(ctx context.Context, filter AffiliateRecordFilter) ([]AffiliateTransferRecord, int64, error) {
+	if s == nil || s.repo == nil {
+		return nil, 0, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+	}
+	return s.repo.ListAffiliateTransferRecords(ctx, normalizeAffiliateRecordFilter(filter))
+}
+
+func (s *AffiliateService) AdminGetUserOverview(ctx context.Context, userID int64) (*AffiliateUserOverview, error) {
+	if userID <= 0 {
+		return nil, infraerrors.BadRequest("INVALID_USER", "invalid user")
+	}
+	if s == nil || s.repo == nil {
+		return nil, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+	}
+	overview, err := s.repo.GetAffiliateUserOverview(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if overview != nil {
+		if !overview.RebateRateCustom {
+			overview.RebateRatePercent = s.globalRebateRatePercent(ctx)
+		}
+		overview.RebateRatePercent = clampAffiliateRebateRate(overview.RebateRatePercent)
+	}
+	return overview, nil
+}
+
+func normalizeAffiliateRecordFilter(filter AffiliateRecordFilter) AffiliateRecordFilter {
+	if filter.Page <= 0 {
+		filter.Page = 1
+	}
+	if filter.PageSize <= 0 {
+		filter.PageSize = 20
+	}
+	if filter.PageSize > 100 {
+		filter.PageSize = 100
+	}
+	filter.Search = strings.TrimSpace(filter.Search)
+	filter.SortBy = strings.TrimSpace(filter.SortBy)
+	return filter
 }

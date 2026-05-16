@@ -5,14 +5,14 @@ import { flushPromises, mount } from "@vue/test-utils";
 import SettingsView from "../SettingsView.vue";
 
 const {
-  listAffiliateInviters,
-  listAffiliateInviterInvitees,
   getSettings,
   updateSettings,
   getWebSearchEmulationConfig,
   updateWebSearchEmulationConfig,
   getAdminApiKey,
   getOverloadCooldownSettings,
+  getRateLimit429CooldownSettings,
+  updateRateLimit429CooldownSettings,
   getStreamTimeoutSettings,
   getRectifierSettings,
   getBetaPolicySettings,
@@ -29,14 +29,14 @@ const {
   showError,
   showSuccess,
 } = vi.hoisted(() => ({
-  listAffiliateInviters: vi.fn(),
-  listAffiliateInviterInvitees: vi.fn(),
   getSettings: vi.fn(),
   updateSettings: vi.fn(),
   getWebSearchEmulationConfig: vi.fn(),
   updateWebSearchEmulationConfig: vi.fn(),
   getAdminApiKey: vi.fn(),
   getOverloadCooldownSettings: vi.fn(),
+  getRateLimit429CooldownSettings: vi.fn(),
+  updateRateLimit429CooldownSettings: vi.fn(),
   getStreamTimeoutSettings: vi.fn(),
   getRectifierSettings: vi.fn(),
   getBetaPolicySettings: vi.fn(),
@@ -65,6 +65,8 @@ vi.mock("@/api", () => ({
       updateWebSearchEmulationConfig,
       getAdminApiKey,
       getOverloadCooldownSettings,
+      getRateLimit429CooldownSettings,
+      updateRateLimit429CooldownSettings,
       getStreamTimeoutSettings,
       getRectifierSettings,
       getBetaPolicySettings,
@@ -85,22 +87,6 @@ vi.mock("@/api", () => ({
     },
   },
 }));
-
-vi.mock("@/api/admin/affiliates", () => {
-  const api = {
-    listUsers: vi.fn().mockResolvedValue({ items: [], total: 0 }),
-    listInviters: listAffiliateInviters,
-    listInviterInvitees: listAffiliateInviterInvitees,
-    lookupUsers: vi.fn().mockResolvedValue([]),
-    updateUserSettings: vi.fn().mockResolvedValue({ user_id: 1 }),
-    clearUserSettings: vi.fn().mockResolvedValue({ user_id: 1 }),
-    batchSetRate: vi.fn().mockResolvedValue({ affected: 0 }),
-  };
-  return {
-    affiliatesAPI: api,
-    default: api,
-  };
-});
 
 vi.mock("@/stores", () => ({
   useAppStore: () => ({
@@ -183,25 +169,6 @@ vi.mock("vue-i18n", async () => {
     "admin.settings.openaiExperimentalScheduler.description": "默认关闭。开启后仅影响本网关在 OpenAI 账号间的实验性调度选择逻辑，不代表上游 OpenAI 官方能力。",
     "admin.settings.site.uploadImage": "上传图片",
     "admin.settings.site.remove": "移除",
-    "admin.settings.features.affiliate.inviterRelations.title": "邀请关系查看",
-    "admin.settings.features.affiliate.inviterRelations.description": "查看所有有邀请记录的用户，以及他们邀请了哪些人。",
-    "admin.settings.features.affiliate.inviterRelations.searchPlaceholder": "搜索邀请人邮箱或用户名",
-    "admin.settings.features.affiliate.inviterRelations.empty": "暂无邀请关系数据",
-    "admin.settings.features.affiliate.inviterRelations.viewInvitees": "查看邀请用户",
-    "admin.settings.features.affiliate.inviterRelations.totalLabel": "共 {total} 条",
-    "admin.settings.features.affiliate.inviterRelations.inviteesTitle": "{email} 邀请的用户",
-    "admin.settings.features.affiliate.inviterRelations.inviteesDescription": "展示该邀请人当前关联的被邀请用户明细。",
-    "admin.settings.features.affiliate.inviterRelations.inviteesEmpty": "该邀请人暂无可展示的邀请用户",
-    "admin.settings.features.affiliate.inviterRelations.col.email": "邀请人邮箱",
-    "admin.settings.features.affiliate.inviterRelations.col.username": "邀请人用户名",
-    "admin.settings.features.affiliate.inviterRelations.col.code": "邀请码",
-    "admin.settings.features.affiliate.inviterRelations.col.invitedCount": "邀请人数",
-    "admin.settings.features.affiliate.inviterRelations.col.totalRebate": "累计返利",
-    "admin.settings.features.affiliate.inviterRelations.col.actions": "操作",
-    "admin.settings.features.affiliate.inviterRelations.inviteesCol.email": "被邀请用户邮箱",
-    "admin.settings.features.affiliate.inviterRelations.inviteesCol.username": "被邀请用户名",
-    "admin.settings.features.affiliate.inviterRelations.inviteesCol.joinedAt": "加入时间",
-    "admin.settings.features.affiliate.inviterRelations.inviteesCol.totalRebate": "累计返利",
   };
   return {
     ...actual,
@@ -330,7 +297,7 @@ const baseSettingsResponse = {
   default_balance: 0,
   default_concurrency: 1,
   default_subscriptions: [],
-  site_name: "GPTK",
+  site_name: "Sub2API",
   site_logo: "",
   site_subtitle: "",
   api_base_url: "",
@@ -409,6 +376,9 @@ const baseSettingsResponse = {
   enable_fingerprint_unification: true,
   enable_metadata_passthrough: false,
   enable_cch_signing: false,
+  enable_anthropic_cache_ttl_1h_injection: false,
+  rewrite_message_cache_control: false,
+  antigravity_user_agent_version: "",
   payment_enabled: true,
   payment_min_amount: 1,
   payment_max_amount: 10000,
@@ -439,13 +409,6 @@ const baseSettingsResponse = {
   balance_low_notify_recharge_url: "",
   account_quota_notify_enabled: false,
   account_quota_notify_emails: [],
-  affiliate_enabled: true,
-  affiliate_rebate_rate: 20,
-  affiliate_rebate_freeze_hours: 0,
-  affiliate_rebate_duration_days: 0,
-  affiliate_rebate_per_invitee_cap: 0,
-  affiliate_signup_reward_enabled: false,
-  affiliate_signup_reward_amount: 0,
   weekly_quota_enabled: true,
   weekly_quota_amount: 18.8,
 };
@@ -455,7 +418,6 @@ function mountView() {
     global: {
       stubs: {
         AppLayout: AppLayoutStub,
-        RouterLink: { template: "<a><slot /></a>" },
         Select: SelectStub,
         Toggle: ToggleStub,
         Icon: true,
@@ -520,6 +482,8 @@ describe("admin SettingsView payment visible method controls", () => {
     updateWebSearchEmulationConfig.mockReset();
     getAdminApiKey.mockReset();
     getOverloadCooldownSettings.mockReset();
+    getRateLimit429CooldownSettings.mockReset();
+    updateRateLimit429CooldownSettings.mockReset();
     getStreamTimeoutSettings.mockReset();
     getRectifierSettings.mockReset();
     getBetaPolicySettings.mockReset();
@@ -531,8 +495,6 @@ describe("admin SettingsView payment visible method controls", () => {
     updateProvider.mockReset();
     createProvider.mockReset();
     deleteProvider.mockReset();
-    listAffiliateInviters.mockReset();
-    listAffiliateInviterInvitees.mockReset();
     fetchPublicSettings.mockReset();
     adminSettingsFetch.mockReset();
     showError.mockReset();
@@ -560,6 +522,11 @@ describe("admin SettingsView payment visible method controls", () => {
       enabled: true,
       cooldown_minutes: 10,
     });
+    getRateLimit429CooldownSettings.mockResolvedValue({
+      enabled: true,
+      cooldown_seconds: 5,
+    });
+    updateRateLimit429CooldownSettings.mockImplementation(async (payload) => payload);
     getStreamTimeoutSettings.mockResolvedValue({
       enabled: true,
       action: "temp_unsched",
@@ -596,31 +563,6 @@ describe("admin SettingsView payment visible method controls", () => {
     getProviders.mockResolvedValue({
       data: [],
     });
-    listAffiliateInviters.mockResolvedValue({
-      items: [
-        {
-          user_id: 11,
-          email: "owner@example.com",
-          username: "owner",
-          aff_code: "AFFOWNER",
-          aff_count: 2,
-          total_rebate: 18.8,
-        },
-      ],
-      total: 1,
-      page: 1,
-      page_size: 20,
-      pages: 1,
-    });
-    listAffiliateInviterInvitees.mockResolvedValue([
-      {
-        user_id: 101,
-        email: "friend@example.com",
-        username: "friend",
-        created_at: "2026-04-01T00:00:00Z",
-        total_rebate: 6.6,
-      },
-    ]);
     fetchPublicSettings.mockResolvedValue(undefined);
     adminSettingsFetch.mockResolvedValue(undefined);
   });
@@ -700,33 +642,62 @@ describe("admin SettingsView payment visible method controls", () => {
     expect(payload).not.toHaveProperty("payment_visible_method_wxpay_enabled");
   });
 
-  it("loads and submits homepage contact fields", async () => {
+  it("submits Anthropic cache TTL injection gateway setting", async () => {
     getSettings.mockResolvedValueOnce({
       ...baseSettingsResponse,
-      qq_group: "123456789",
-      wechat_contact: "sub2api_support",
+      enable_anthropic_cache_ttl_1h_injection: true,
     });
 
     const wrapper = mountView();
 
     await flushPromises();
-
-    const inputs = wrapper.findAll("input");
-    const qqInput = inputs.find((node) => (node.element as HTMLInputElement).value === "123456789");
-    const wechatInput = inputs.find((node) => (node.element as HTMLInputElement).value === "sub2api_support");
-
-    expect(qqInput).toBeDefined();
-    expect(wechatInput).toBeDefined();
-
-    await qqInput?.setValue("987654321");
-    await wechatInput?.setValue("new_wechat");
     await wrapper.find("form").trigger("submit.prevent");
     await flushPromises();
 
+    expect(updateSettings).toHaveBeenCalledTimes(1);
     expect(updateSettings).toHaveBeenCalledWith(
       expect.objectContaining({
-        qq_group: "987654321",
-        wechat_contact: "new_wechat",
+        enable_anthropic_cache_ttl_1h_injection: true,
+      }),
+    );
+  });
+
+  it("submits message cache_control rewrite gateway setting", async () => {
+    getSettings.mockResolvedValueOnce({
+      ...baseSettingsResponse,
+      rewrite_message_cache_control: true,
+    });
+
+    const wrapper = mountView();
+
+    await flushPromises();
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    expect(updateSettings).toHaveBeenCalledTimes(1);
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        rewrite_message_cache_control: true,
+      }),
+    );
+  });
+
+  it("submits Antigravity user agent version gateway setting", async () => {
+    getSettings.mockResolvedValueOnce({
+      ...baseSettingsResponse,
+      antigravity_user_agent_version: "1.23.2",
+    });
+
+    const wrapper = mountView();
+
+    await flushPromises();
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    expect(updateSettings).toHaveBeenCalledTimes(1);
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        antigravity_user_agent_version: "1.23.2",
       }),
     );
   });
@@ -823,19 +794,6 @@ describe("admin SettingsView payment visible method controls", () => {
     expect(paymentHelpImageUpload?.attributes("data-upload-label")).toBe("上传图片");
     expect(paymentHelpImageUpload?.attributes("data-remove-label")).toBe("移除");
   });
-
-  it("renders affiliate inviter relationships and loads invitee details", async () => {
-    const wrapper = mountView();
-
-    await flushPromises();
-    await openFeaturesTab(wrapper);
-    await flushPromises();
-
-    expect(wrapper.text()).not.toContain("邀请关系查看");
-    expect(wrapper.text()).not.toContain("查看邀请用户");
-    expect(listAffiliateInviters).not.toHaveBeenCalled();
-    expect(listAffiliateInviterInvitees).not.toHaveBeenCalled();
-  });
 });
 
 describe("admin SettingsView wechat connect controls", () => {
@@ -846,6 +804,8 @@ describe("admin SettingsView wechat connect controls", () => {
     updateWebSearchEmulationConfig.mockReset();
     getAdminApiKey.mockReset();
     getOverloadCooldownSettings.mockReset();
+    getRateLimit429CooldownSettings.mockReset();
+    updateRateLimit429CooldownSettings.mockReset();
     getStreamTimeoutSettings.mockReset();
     getRectifierSettings.mockReset();
     getBetaPolicySettings.mockReset();
@@ -885,6 +845,11 @@ describe("admin SettingsView wechat connect controls", () => {
       enabled: true,
       cooldown_minutes: 10,
     });
+    getRateLimit429CooldownSettings.mockResolvedValue({
+      enabled: true,
+      cooldown_seconds: 5,
+    });
+    updateRateLimit429CooldownSettings.mockImplementation(async (payload) => payload);
     getStreamTimeoutSettings.mockResolvedValue({
       enabled: true,
       action: "temp_unsched",
@@ -951,6 +916,24 @@ describe("admin SettingsView wechat connect controls", () => {
           .element as HTMLInputElement
       ).value,
     ).toBe("/auth/wechat/callback");
+  });
+
+  it("links GitHub OAuth Apps guide to GitHub developer settings", async () => {
+    getSettings.mockResolvedValueOnce({
+      ...baseSettingsResponse,
+      github_oauth_enabled: true,
+    });
+
+    const wrapper = mountView();
+
+    await flushPromises();
+    await openSecurityTab(wrapper);
+
+    const link = wrapper.get('[data-testid="github-oauth-apps-guide-link"]');
+    expect(link.text()).toContain("OAuth Apps");
+    expect(link.attributes("href")).toBe("https://github.com/settings/developers");
+    expect(link.attributes("target")).toBe("_blank");
+    expect(link.attributes("rel")).toContain("noopener");
   });
 
   it("saves WeChat Connect fields using the backend contract and clears the secret after save", async () => {

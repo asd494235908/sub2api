@@ -91,13 +91,13 @@ func TestPromptArchiveService_EnqueueDropsWhenQueueFull(t *testing.T) {
 	}
 	cfg := &config.Config{
 		Archive: config.ArchiveConfig{
-			Enabled:             true,
-			QueueCapacity:       1,
-			WorkerCount:         1,
-			BatchSize:           1,
+			Enabled:              true,
+			QueueCapacity:        1,
+			WorkerCount:          1,
+			BatchSize:            1,
 			FlushIntervalSeconds: 2,
-			OverflowPolicy:      config.PromptArchiveOverflowPolicyDropAndLog,
-			InlineDataMaxBytes:  1024,
+			OverflowPolicy:       config.PromptArchiveOverflowPolicyDropAndLog,
+			InlineDataMaxBytes:   1024,
 		},
 	}
 	svc := NewPromptArchiveService(repo, nil, cfg)
@@ -138,13 +138,13 @@ func TestPromptArchiveService_ProcessPersistsStoredRecord(t *testing.T) {
 	store := &promptArchiveStoreStub{}
 	cfg := &config.Config{
 		Archive: config.ArchiveConfig{
-			Enabled:             true,
-			QueueCapacity:       8,
-			WorkerCount:         1,
-			BatchSize:           1,
+			Enabled:              true,
+			QueueCapacity:        8,
+			WorkerCount:          1,
+			BatchSize:            1,
 			FlushIntervalSeconds: 1,
-			OverflowPolicy:      config.PromptArchiveOverflowPolicyDropAndLog,
-			InlineDataMaxBytes:  1024 * 1024,
+			OverflowPolicy:       config.PromptArchiveOverflowPolicyDropAndLog,
+			InlineDataMaxBytes:   1024 * 1024,
 		},
 	}
 	svc := NewPromptArchiveService(repo, store, cfg)
@@ -203,13 +203,13 @@ func TestPromptArchiveService_ProcessStoreFailureMarksRecordFailed(t *testing.T)
 	store := &promptArchiveStoreStub{uploadErr: errors.New("upload failed")}
 	cfg := &config.Config{
 		Archive: config.ArchiveConfig{
-			Enabled:             true,
-			QueueCapacity:       8,
-			WorkerCount:         1,
-			BatchSize:           1,
+			Enabled:              true,
+			QueueCapacity:        8,
+			WorkerCount:          1,
+			BatchSize:            1,
 			FlushIntervalSeconds: 1,
-			OverflowPolicy:      config.PromptArchiveOverflowPolicyDropAndLog,
-			InlineDataMaxBytes:  1024,
+			OverflowPolicy:       config.PromptArchiveOverflowPolicyDropAndLog,
+			InlineDataMaxBytes:   1024,
 		},
 	}
 	svc := NewPromptArchiveService(repo, store, cfg)

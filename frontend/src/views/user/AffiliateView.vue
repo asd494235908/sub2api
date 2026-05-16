@@ -168,7 +168,7 @@ const inviteLink = computed(() => {
 })
 
 // Rebate rate is a percentage in the range [0, 100]; backend already clamps it.
-// We trim trailing zeros (e.g. 20.00 -> "20", 12.50 -> "12.5") for a cleaner UI.
+// We trim trailing zeros (e.g. 20.00 → "20", 12.50 → "12.5") for a cleaner UI.
 const formattedRebateRate = computed(() => {
   const v = detail.value?.effective_rebate_rate_percent ?? 0
   const rounded = Math.round(v * 100) / 100

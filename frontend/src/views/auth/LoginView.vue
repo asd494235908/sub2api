@@ -10,33 +10,6 @@
           {{ t('auth.signInToAccount') }}
         </p>
       </div>
-
-  <div v-if="!backendModeEnabled && (linuxdoOAuthEnabled || wechatOAuthEnabled || oidcOAuthEnabled)" class="space-y-4">
-        <LinuxDoOAuthSection
-          v-if="linuxdoOAuthEnabled"
-          :disabled="isLoading"
-          :show-divider="false"
-        />
-        <WechatOAuthSection
-          v-if="wechatOAuthEnabled"
-          :disabled="isLoading"
-          :show-divider="false"
-        />
-        <OidcOAuthSection
-          v-if="oidcOAuthEnabled"
-          :disabled="isLoading"
-          :provider-name="oidcOAuthProviderName"
-          :show-divider="false"
-        />
-        <div class="flex items-center gap-3">
-          <div class="h-px flex-1 bg-gray-200 dark:bg-dark-700"></div>
-          <span class="text-xs text-gray-500 dark:text-dark-400">
-            {{ t('auth.oauthOrContinue') }}
-          </span>
-          <div class="h-px flex-1 bg-gray-200 dark:bg-dark-700"></div>
-        </div>
-      </div>
-
       <!-- Login Form -->
       <form @submit.prevent="handleLogin" class="space-y-5">
         <!-- Identifier Input -->
@@ -55,7 +28,7 @@
               required
               autofocus
               :autocomplete="phoneVerifyEnabled ? 'username' : 'email'"
-              :disabled="isLoading"
+              :disabled="authActionDisabled"
               class="input pl-11"
               :class="{ 'input-error': errors.identifier }"
               :placeholder="phoneVerifyEnabled ? t('auth.identifierPlaceholder') : t('auth.emailPlaceholder')"
@@ -64,7 +37,7 @@
         </div>
 
         <!-- Password Input -->
-        <div v-if="!isPhoneLogin">
+        <div v-if="!isPhoneIdentifier">
           <label for="password" class="input-label">
             {{ t('auth.passwordLabel') }}
           </label>
@@ -76,9 +49,9 @@
               id="password"
               v-model="formData.password"
               :type="showPassword ? 'text' : 'password'"
-              :required="!isPhoneLogin"
+              :required="!isPhoneIdentifier"
               autocomplete="current-password"
-              :disabled="isLoading"
+              :disabled="authActionDisabled"
               class="input pl-11 pr-11"
               :class="{ 'input-error': errors.password }"
               :placeholder="t('auth.passwordPlaceholder')"
@@ -86,6 +59,7 @@
             <button
               type="button"
               @click="showPassword = !showPassword"
+              :disabled="authActionDisabled"
               class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-dark-300"
             >
               <Icon v-if="showPassword" name="eyeOff" size="md" />
@@ -104,7 +78,7 @@
           </div>
         </div>
 
-        <div v-if="isPhoneLogin">
+        <div v-if="phoneVerifyEnabled && isPhoneIdentifier">
           <label for="sms_code" class="input-label">
             {{ t('auth.smsCodeLabel') }}
           </label>
@@ -144,7 +118,7 @@
         <!-- Submit Button -->
         <button
           type="submit"
-          :disabled="isLoading || (turnstileEnabled && !turnstileToken)"
+          :disabled="authActionDisabled || (turnstileEnabled && !turnstileToken)"
           class="btn btn-primary w-full"
         >
           <svg
@@ -170,6 +144,52 @@
           <Icon v-else name="login" size="md" class="mr-2" />
           {{ isLoading ? t('auth.signingIn') : t('auth.signIn') }}
         </button>
+
+        <LoginAgreementPrompt
+          v-if="loginAgreementEnabled"
+          :accepted="agreementAccepted"
+          :documents="loginAgreementDocuments"
+          :mode="loginAgreementMode"
+          :updated-at="loginAgreementUpdatedAt"
+          :visible="showAgreementModal"
+          @accept="acceptLoginAgreement"
+          @reject="rejectLoginAgreement"
+          @open="showAgreementModal = true"
+        />
+
+        <div v-if="showOAuthLogin" class="space-y-3 pt-1">
+          <div class="flex items-center gap-3">
+            <div class="h-px flex-1 bg-gray-200 dark:bg-dark-700"></div>
+            <span class="text-xs text-gray-500 dark:text-dark-400">
+              {{ t('auth.oauthOrContinue') }}
+            </span>
+            <div class="h-px flex-1 bg-gray-200 dark:bg-dark-700"></div>
+          </div>
+
+          <EmailOAuthButtons
+            :disabled="authActionDisabled"
+            :github-enabled="githubOAuthEnabled"
+            :google-enabled="googleOAuthEnabled"
+            :show-divider="false"
+          />
+
+          <LinuxDoOAuthSection
+            v-if="linuxdoOAuthEnabled"
+            :disabled="authActionDisabled"
+            :show-divider="false"
+          />
+          <WechatOAuthSection
+            v-if="wechatOAuthEnabled"
+            :disabled="authActionDisabled"
+            :show-divider="false"
+          />
+          <OidcOAuthSection
+            v-if="oidcOAuthEnabled"
+            :disabled="authActionDisabled"
+            :provider-name="oidcOAuthProviderName"
+            :show-divider="false"
+          />
+        </div>
       </form>
     </div>
 
@@ -206,17 +226,21 @@ import { AuthLayout } from '@/components/layout'
 import LinuxDoOAuthSection from '@/components/auth/LinuxDoOAuthSection.vue'
 import OidcOAuthSection from '@/components/auth/OidcOAuthSection.vue'
 import WechatOAuthSection from '@/components/auth/WechatOAuthSection.vue'
+import EmailOAuthButtons from '@/components/auth/EmailOAuthButtons.vue'
+import LoginAgreementPrompt from '@/components/auth/LoginAgreementPrompt.vue'
 import TotpLoginModal from '@/components/auth/TotpLoginModal.vue'
 import Icon from '@/components/icons/Icon.vue'
 import TurnstileWidget from '@/components/TurnstileWidget.vue'
 import { useAuthStore, useAppStore } from '@/stores'
 import { apiClient } from '@/api/client'
 import { getPublicSettings, isTotp2FARequired, isWeChatWebOAuthEnabled } from '@/api/auth'
-import type { TotpLoginResponse } from '@/types'
+import type { LoginAgreementDocument, TotpLoginResponse } from '@/types'
+import { extractI18nErrorMessage } from '@/utils/apiError'
 import { clearAllAffiliateReferralCodes } from '@/utils/oauthAffiliate'
 import { buildAuthErrorMessage } from '@/utils/authError'
 
 const { t } = useI18n()
+const LOGIN_AGREEMENT_STORAGE_KEY = 'sub2api_login_agreement_consent'
 
 // ==================== Router & Stores ====================
 
@@ -229,6 +253,7 @@ const appStore = useAppStore()
 const isLoading = ref<boolean>(false)
 const errorMessage = ref<string>('')
 const showPassword = ref<boolean>(false)
+const publicSettingsLoaded = ref<boolean>(false)
 
 // Public settings
 const turnstileEnabled = ref<boolean>(false)
@@ -238,8 +263,17 @@ const wechatOAuthEnabled = ref<boolean>(false)
 const backendModeEnabled = ref<boolean>(false)
 const oidcOAuthEnabled = ref<boolean>(false)
 const oidcOAuthProviderName = ref<string>('OIDC')
+const githubOAuthEnabled = ref<boolean>(false)
+const googleOAuthEnabled = ref<boolean>(false)
 const passwordResetEnabled = ref<boolean>(false)
 const phoneVerifyEnabled = ref<boolean>(false)
+const loginAgreementEnabled = ref<boolean>(false)
+const loginAgreementMode = ref<'modal' | 'checkbox' | string>('modal')
+const loginAgreementUpdatedAt = ref<string>('')
+const loginAgreementRevision = ref<string>('')
+const loginAgreementDocuments = ref<LoginAgreementDocument[]>([])
+const agreementAccepted = ref<boolean>(false)
+const showAgreementModal = ref<boolean>(false)
 
 // Turnstile
 const turnstileRef = ref<InstanceType<typeof TurnstileWidget> | null>(null)
@@ -268,6 +302,14 @@ const validationToastMessage = computed(
   () => errors.identifier || errors.sms_code || errors.password || errors.turnstile || ''
 )
 
+const agreementGateActive = computed(
+  () => loginAgreementEnabled.value && !agreementAccepted.value
+)
+
+const authActionDisabled = computed(
+  () => isLoading.value || !publicSettingsLoaded.value || agreementGateActive.value
+)
+
 const hasAlphabetIdentifier = computed(() => /[a-zA-Z]/.test(formData.identifier))
 const isEmailIdentifier = computed(() => {
   const raw = formData.identifier.trim()
@@ -275,9 +317,18 @@ const isEmailIdentifier = computed(() => {
 })
 const isPhoneIdentifier = computed(() => {
   const raw = formData.identifier.trim()
-  return raw.length > 0 && !isEmailIdentifier.value
+  return raw.length > 0 && phoneVerifyEnabled.value && !isEmailIdentifier.value
 })
-const isPhoneLogin = computed(() => phoneVerifyEnabled.value && isPhoneIdentifier.value)
+
+const showOAuthLogin = computed(
+  () =>
+    !backendModeEnabled.value &&
+    (linuxdoOAuthEnabled.value ||
+      wechatOAuthEnabled.value ||
+      oidcOAuthEnabled.value ||
+      githubOAuthEnabled.value ||
+      googleOAuthEnabled.value)
+)
 
 watch(validationToastMessage, (value, previousValue) => {
   if (value && value !== previousValue) {
@@ -305,13 +356,82 @@ onMounted(async () => {
     backendModeEnabled.value = settings.backend_mode_enabled
     oidcOAuthEnabled.value = settings.oidc_oauth_enabled
     oidcOAuthProviderName.value = settings.oidc_oauth_provider_name || 'OIDC'
+    githubOAuthEnabled.value = settings.github_oauth_enabled
+    googleOAuthEnabled.value = settings.google_oauth_enabled
     backendModeEnabled.value = settings.backend_mode_enabled
     passwordResetEnabled.value = settings.password_reset_enabled
     phoneVerifyEnabled.value = settings.phone_verify_enabled === true
+    applyLoginAgreementSettings(settings)
   } catch (error) {
     console.error('Failed to load public settings:', error)
+    loginAgreementEnabled.value = false
+    agreementAccepted.value = true
+  } finally {
+    publicSettingsLoaded.value = true
   }
 })
+
+// ==================== Login Agreement ====================
+
+function applyLoginAgreementSettings(settings: {
+  login_agreement_enabled?: boolean
+  login_agreement_mode?: string
+  login_agreement_updated_at?: string
+  login_agreement_revision?: string
+  login_agreement_documents?: LoginAgreementDocument[]
+}): void {
+  const documents = Array.isArray(settings.login_agreement_documents)
+    ? settings.login_agreement_documents.filter((doc) => doc.title?.trim())
+    : []
+  loginAgreementDocuments.value = documents
+  loginAgreementEnabled.value = settings.login_agreement_enabled === true && documents.length > 0
+  loginAgreementMode.value = settings.login_agreement_mode === 'checkbox' ? 'checkbox' : 'modal'
+  loginAgreementUpdatedAt.value = settings.login_agreement_updated_at || ''
+  loginAgreementRevision.value =
+    settings.login_agreement_revision ||
+    `${loginAgreementUpdatedAt.value}:${documents.map((doc) => `${doc.id}:${doc.title}`).join('|')}`
+
+  agreementAccepted.value = !loginAgreementEnabled.value || hasAcceptedLoginAgreement(loginAgreementRevision.value)
+  showAgreementModal.value =
+    loginAgreementEnabled.value && !agreementAccepted.value && loginAgreementMode.value !== 'checkbox'
+}
+
+function hasAcceptedLoginAgreement(revision: string): boolean {
+  if (!revision) {
+    return false
+  }
+  try {
+    const raw = localStorage.getItem(LOGIN_AGREEMENT_STORAGE_KEY)
+    if (!raw) {
+      return false
+    }
+    const parsed = JSON.parse(raw) as { revision?: string }
+    return parsed.revision === revision
+  } catch {
+    return false
+  }
+}
+
+function acceptLoginAgreement(): void {
+  if (loginAgreementRevision.value) {
+    localStorage.setItem(
+      LOGIN_AGREEMENT_STORAGE_KEY,
+      JSON.stringify({
+        revision: loginAgreementRevision.value,
+        accepted_at: new Date().toISOString()
+      })
+    )
+  }
+  agreementAccepted.value = true
+  showAgreementModal.value = false
+}
+
+function rejectLoginAgreement(): void {
+  localStorage.removeItem(LOGIN_AGREEMENT_STORAGE_KEY)
+  agreementAccepted.value = false
+  showAgreementModal.value = false
+  appStore.showWarning('未同意最新条款前，无法输入账号密码或使用快捷登录。')
+}
 
 // ==================== Turnstile Handlers ====================
 
@@ -341,7 +461,14 @@ function validateForm(): boolean {
 
   let isValid = true
 
-  // Phone validation
+  if (agreementGateActive.value) {
+    appStore.showWarning('请先阅读并同意最新条款后再登录。')
+    if (loginAgreementMode.value !== 'checkbox') {
+      showAgreementModal.value = true
+    }
+    return false
+  }
+
   const identifier = formData.identifier.trim()
   if (!identifier) {
     errors.identifier = t('auth.identifierRequired')
@@ -350,13 +477,13 @@ function validateForm(): boolean {
     errors.identifier = t('auth.invalidEmail')
     isValid = false
   }
-  if (isPhoneLogin.value && !formData.sms_code.trim()) {
+  if (phoneVerifyEnabled.value && isPhoneIdentifier.value && !formData.sms_code.trim()) {
     errors.sms_code = t('auth.smsCodeRequired')
     isValid = false
   }
 
   // Password validation
-  if (!isPhoneLogin.value) {
+  if (!isPhoneIdentifier.value) {
     if (!formData.password) {
       errors.password = t('auth.passwordRequired')
       isValid = false
@@ -376,7 +503,8 @@ function validateForm(): boolean {
 }
 
 function validateEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
 }
 
 // ==================== Form Handlers ====================
@@ -397,9 +525,9 @@ async function handleLogin(): Promise<void> {
     const response = await authStore.login({
       identifier: formData.identifier,
       email: isEmailIdentifier.value ? formData.identifier : undefined,
-      phone_number: isPhoneLogin.value ? formData.identifier : undefined,
-      sms_code: isPhoneLogin.value ? formData.sms_code : undefined,
-      password: isPhoneLogin.value ? undefined : formData.password,
+      phone_number: isPhoneIdentifier.value ? formData.identifier : undefined,
+      sms_code: isPhoneIdentifier.value ? formData.sms_code : undefined,
+      password: isPhoneIdentifier.value ? undefined : formData.password,
       turnstile_token: turnstileEnabled.value ? turnstileToken.value : undefined
     })
 
@@ -427,8 +555,7 @@ async function handleLogin(): Promise<void> {
       turnstileToken.value = ''
     }
 
-    // Handle login error
-    errorMessage.value = buildAuthErrorMessage(error, { fallback: t('auth.loginFailed') })
+    errorMessage.value = extractI18nErrorMessage(error, t, 'auth.errors', t('auth.loginFailed'))
 
     // Also show error toast
     appStore.showError(errorMessage.value)
@@ -442,7 +569,7 @@ const smsCountdown = ref(0)
 let smsCountdownTimer: ReturnType<typeof setInterval> | null = null
 
 async function sendSMSCode(): Promise<void> {
-  if (!isPhoneLogin.value || sendingSMSCode.value || smsCountdown.value > 0) {
+  if (!isPhoneIdentifier.value || sendingSMSCode.value || smsCountdown.value > 0) {
     return
   }
   sendingSMSCode.value = true

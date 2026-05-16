@@ -932,3 +932,36 @@ func TestAuthService_LoginOrRegisterOAuthWithTokenPair_ExistingUserDoesNotGrantA
 	require.Empty(t, repo.created)
 	require.Empty(t, assigner.calls)
 }
+
+func TestAuthService_LoginOrRegisterOAuthWithTokenPair_AppliesAffiliateSignupBonusOnSignup(t *testing.T) {
+	repo := &userRepoStub{nextID: 91}
+	inviterID := int64(55)
+	affiliateRepo := &affiliateRepoStub{
+		summaries: map[int64]*AffiliateSummary{
+			inviterID: {UserID: inviterID, AffCode: "INVITER001"},
+		},
+		signupBonusApplied: true,
+		signupBonusBalance: 66.6,
+	}
+	affiliateService := &AffiliateService{
+		repo: affiliateRepo,
+		settingService: NewSettingService(&settingRepoStub{values: map[string]string{
+			SettingKeyAffiliateEnabled:             "true",
+			SettingKeyAffiliateSignupRewardEnabled: "true",
+			SettingKeyAffiliateSignupRewardAmount:  "8.8",
+		}}, nil),
+	}
+	service := newAuthServiceWithAffiliate(repo, map[string]string{
+		SettingKeyRegistrationEnabled: "true",
+	}, nil, affiliateService)
+	service.refreshTokenCache = &refreshTokenCacheStub{}
+
+	tokenPair, user, err := service.LoginOrRegisterOAuthWithTokenPair(context.Background(), "oauth-user@test.com", "oauth-user", "", "INVITER001")
+	require.NoError(t, err)
+	require.NotNil(t, tokenPair)
+	require.NotNil(t, user)
+	require.Len(t, affiliateRepo.signupBonusCalls, 1)
+	require.Equal(t, inviterID, affiliateRepo.signupBonusCalls[0].inviterID)
+	require.Equal(t, user.ID, affiliateRepo.signupBonusCalls[0].inviteeUserID)
+	require.InDelta(t, 8.8, affiliateRepo.signupBonusCalls[0].amount, 1e-9)
+}

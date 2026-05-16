@@ -10,398 +10,103 @@ export default {
     login: 'Login',
     getStarted: 'Get Started',
     goToDashboard: 'Go to Dashboard',
-    companySlogan: 'Private enterprise network · Fast mainland access · Zero-code integration in 3 minutes',
-    nav: {
-      overview: 'Overview',
-      compatibility: 'Compatibility',
-      integration: 'Quick Start'
+    // User-focused value proposition
+    heroSubtitle: 'One Key, All AI Models',
+    heroDescription: 'No need to manage multiple subscriptions. Access Claude, GPT, Gemini and more with a single API key',
+    tags: {
+      subscriptionToApi: 'Subscription to API',
+      stickySession: 'Session Persistence',
+      realtimeBilling: 'Pay As You Go'
     },
-    hero: {
-      badge: 'OpenAI Enterprise Relay',
-      title: '{brand} - Enterprise-grade OpenAI official API relay service',
-      subtitle: 'Private enterprise proxy network · Fast mainland direct access · Zero-code integration in 3 minutes',
-      description:
-        'Built for enterprise development teams that need stable, compliant, production-ready relay access to OpenAI official APIs.',
-      secondaryCta: 'View Integration Docs',
-      summaryTitle: 'Overview',
-      summaryItems: {
-        relay: 'Enterprise-operated private relay service for long-term production use',
-        compatibility: 'Compatible with official OpenAI request formats and existing workflows',
-        integration: 'Replace the Base URL and keep the rest of your SDK usage nearly unchanged'
-      },
-      codeTitle: 'Quick Start Example',
-      endpointTitle: 'Service Endpoint',
-      endpointValue: 'https://token.gepinapi.com/v1',
-      noticeTitle: 'Production Notes',
-      noticeItems: {
-        sla: '99.9% SLA commitment',
-        privacy: 'Encrypted transit with no prompt plaintext logging',
-        procurement: 'Enterprise invoicing and service contracts supported'
-      }
-    },
-    overview: {
-      kicker: 'Overview',
-      title: 'Why enterprise developers choose GPTK',
-      painPoint:
-        'Still dealing with unstable NAT routes and disconnects? Worried that public proxy key leaks could get your accounts blocked?',
-      cards: {
-        company: {
-          title: 'Company-operated and built for long-term stability',
-          description:
-            '{companyName} operates GPTK as a formal technical service with enterprise invoicing, service contracts, and a 99.9% SLA commitment.',
-          points: {
-            invoice: 'Enterprise VAT invoicing and procurement-friendly billing',
-            contract: 'Service contracts supported for compliant purchasing',
-            sla: 'Stable API supply for long-term production operations'
-          }
+    // Pain points section
+    painPoints: {
+      title: 'Sound Familiar?',
+      items: {
+        expensive: {
+          title: 'High Subscription Costs',
+          desc: 'Paying for multiple AI subscriptions that add up every month'
         },
-        network: {
-          title: 'Private proxy network that is fast and secure',
-          description:
-            'Built on private enterprise relay infrastructure and stable international connectivity with security as a first-class concern.',
-          points: {
-            speed: 'Fast mainland access with smoother streaming responses',
-            privacy: 'Traffic is encrypted in transit and prompt plaintext is not logged',
-            stability: 'Reduces instability and leakage risks commonly seen with shared proxies'
-          }
+        complex: {
+          title: 'Account Chaos',
+          desc: 'Managing scattered accounts and API keys across different platforms'
         },
-        compatibility: {
-          title: 'Native OpenAI experience with seamless migration',
-          description:
-            'Replace api.openai.com with GPTK and keep the rest of your integration flow almost unchanged.',
-          points: {
-            baseUrl: 'Swap the Base URL and keep your request flow',
-            sdk: 'Compatible with official OpenAI request formats and common SDKs',
-            models: 'Supports GPT-4o, o1, DALL·E, Whisper, Assistants API and related capabilities'
-          }
+        unstable: {
+          title: 'Service Interruptions',
+          desc: 'Single accounts hitting rate limits and disrupting your workflow'
+        },
+        noControl: {
+          title: 'No Usage Control',
+          desc: "Can't track where your money goes or limit team member usage"
         }
       }
     },
-    compatibility: {
-      kicker: 'Compatibility',
-      title: 'Compatibility Matrix',
-      description: 'Production-oriented compatibility notes to help your team migrate and validate integrations quickly.',
-      rows: {
-        baseUrl: {
-          label: 'Base URL Migration',
-          value: 'Replace it with the GPTK endpoint'
-        },
-        sdk: {
-          label: 'SDK Changes',
-          value: 'Minimal or none in most scenarios'
-        },
-        auth: {
-          label: 'Authentication',
-          value: 'Bearer API Key'
-        },
-        format: {
-          label: 'Request Format',
-          value: 'Compatible with the official OpenAI request format'
+    // Solutions section
+    solutions: {
+      title: 'We Solve These Problems',
+      subtitle: 'Three simple steps to stress-free AI access'
+    },
+    features: {
+      unifiedGateway: 'One-Click Access',
+      unifiedGatewayDesc: 'Get a single API key to call all connected AI models. No separate applications needed.',
+      multiAccount: 'Always Reliable',
+      multiAccountDesc: 'Smart routing across multiple upstream accounts with automatic failover. Say goodbye to errors.',
+      balanceQuota: 'Pay What You Use',
+      balanceQuotaDesc: 'Usage-based billing with quota limits. Full visibility into team consumption.'
+    },
+    // Comparison section
+    comparison: {
+      title: 'Why Choose Us?',
+      headers: {
+        feature: 'Comparison',
+        official: 'Official Subscriptions',
+        us: 'Our Platform'
+      },
+      items: {
+        pricing: {
+          feature: 'Pricing',
+          official: 'Fixed monthly fee, pay even if unused',
+          us: 'Pay only for what you use'
         },
         models: {
-          label: 'Supported Capabilities',
-          value: 'GPT-4o, o1, DALL·E, Whisper, Assistants API'
+          feature: 'Model Selection',
+          official: 'Single provider only',
+          us: 'Switch between models freely'
+        },
+        management: {
+          feature: 'Account Management',
+          official: 'Manage each service separately',
+          us: 'Unified key, one dashboard'
+        },
+        stability: {
+          feature: 'Stability',
+          official: 'Single account rate limits',
+          us: 'Multi-account pool, auto-failover'
+        },
+        control: {
+          feature: 'Usage Control',
+          official: 'Not available',
+          us: 'Quotas & detailed analytics'
         }
       }
     },
-    integration: {
-      kicker: 'Minimal Integration Demo',
-      title: 'Start production AI workflows in three simple steps',
-      subtitle: 'Keep the familiar OpenAI API experience and finish migration plus verification in minutes.',
-      demoTitle: 'Integration Example',
-      demoHint: 'Replace the Base URL in your production code with the GPTK endpoint.',
-      demoComment: 'Keep the official OpenAI request format and send requests as usual.',
-      steps: {
-        register: {
-          title: 'Get your API key',
-          description: 'Complete phone-based personal or enterprise verification and receive your dedicated access key.'
-        },
-        baseUrl: {
-          title: 'Replace the Base URL',
-          description: 'Point requests to https://token.gepinapi.com/v1 while keeping the rest of your SDK usage unchanged.'
-        },
-        request: {
-          title: 'Send requests',
-          description: 'Continue using Chat Completions and related APIs with the same developer experience you already know.'
-        }
-      }
+    providers: {
+      title: 'Supported AI Models',
+      description: 'One API, Multiple Choices',
+      supported: 'Supported',
+      soon: 'Soon',
+      claude: 'Claude',
+      gemini: 'Gemini',
+      antigravity: 'Antigravity',
+      more: 'More'
+    },
+    // CTA section
+    cta: {
+      title: 'Ready to Get Started?',
+      description: 'Sign up now and get free trial credits to experience seamless AI access',
+      button: 'Sign Up Free'
     },
     footer: {
       allRightsReserved: 'All rights reserved.'
-    },
-    landing: {
-      brand: 'GPTK',
-      logoTagline: 'Enterprise OpenAI Relay',
-      nav: {
-        home: 'Home',
-        pricing: 'Pricing',
-        gpshop: '格品购物',
-        gpci: '格品生图',
-        docs: 'Docs',
-        community: 'Community'
-      },
-      console: {
-        login: 'Get Started',
-        enter: 'Dashboard'
-      },
-      hero: {
-        badge: 'Reliable, secure, and fast OpenAI relay service',
-        titlePrefix: 'GPTK',
-        titleLead: '',
-        titleHighlight: 'AI',
-        titleSuffix: ' builds AI faster',
-        subtitle: 'AI API services | Enterprise-grade secure access | Stable fast response in mainland China',
-        primaryCtaGuest: 'Start Now',
-        primaryCtaAuthed: 'Go to Dashboard',
-        secondaryCta: 'Read Docs',
-        promoTitle: 'Start building your AI application',
-        promoSubtitle: 'A few simple steps to unlock powerful AI capabilities',
-        placeholder: {
-          badge: 'Hero Placeholder',
-          title: 'Reserved hero visual area',
-          description: 'This area is reserved for homepage visuals, product demos, or key brand assets. For now it uses a polished placeholder style to preserve the intended layout hierarchy.',
-          footer: 'Awaiting final imagery'
-        },
-        checks: {
-          availability: '99.9% availability',
-          latency: 'Fast response < 200ms',
-          security: 'Enterprise-grade protection'
-        },
-        stats: {
-          calls: 'API calls',
-          developers: 'trusted developers',
-          sla: 'uptime SLA',
-          support: 'support'
-        }
-      },
-      seo: {
-        title: 'AI API Service Platform - Enterprise Secure Access | {siteName}',
-        description:
-          'GPTK provides AI API services for developers and businesses, with enterprise-grade secure access, stable fast mainland connectivity, and streamlined integration for development, testing, and production use.'
-      },
-      overview: {
-        kicker: 'Why choose Gepin API',
-        title: 'Fast, stable, and secure AI integration',
-        subtitle: 'We provide stable, fast, and secure OpenAI API relay access so your team can focus on shipping product value.',
-        benefits: {
-          stability: {
-            title: 'High stability',
-            description: 'End-to-end acceleration and elastic routing keep responses stable even during peak traffic.'
-          },
-          security: {
-            title: 'Enterprise security',
-            description: 'TLS encryption and isolated routing architecture balance security and compliance.'
-          },
-          value: {
-            title: 'Strong value',
-            description: 'Usage-based billing and subscription plans cover everything from evaluation to production.'
-          },
-          easy: {
-            title: 'Easy to use',
-            description: 'Compatible with OpenAI APIs, so you can swap the Base URL and go live quickly.'
-          },
-          support: {
-            title: 'Expert support',
-            description: '24/7 support coverage and maintenance updates help teams resolve issues faster.'
-          },
-          updates: {
-            title: 'Always updated',
-            description: 'We track the latest OpenAI models and capabilities and roll supported models forward quickly.'
-          }
-        }
-      },
-      products: {
-        kicker: 'Core capabilities',
-        title: 'One entry point for your AI delivery workflow',
-        subtitle: 'From access and routing to delivery and security, the platform is presented around real production needs for developers, teams, and enterprise projects.',
-        cards: {
-          infrastructure: {
-            title: 'Unified model access',
-            description: 'Expose reasoning, image, and extended capabilities through a more consistent integration surface.'
-          },
-          integration: {
-            title: 'Low-friction go-live',
-            description: 'Keep the familiar OpenAI request shape and reduce migration effort so teams can ship faster.'
-          },
-          delivery: {
-            title: 'Faster mainland delivery',
-            description: 'Optimized for domestic development environments to reduce debugging friction caused by unstable routes.'
-          },
-          security: {
-            title: 'Secure and controllable',
-            description: 'Independent channels, encrypted traffic, and service stability strategies support production confidence.'
-          }
-        }
-      },
-      platforms: {
-        kicker: 'Supported platforms',
-        title: 'Operating systems and devices we support',
-        subtitle: 'Use the API across mainstream environments and devices',
-        mobile: 'Mobile',
-        devices: 'Dev devices'
-      },
-      models: {
-        kicker: 'Current model lineup',
-        cardTitle: 'OpenAI frontier models',
-        cardSubtitle: 'Covering the main reasoning, lightweight, and image workloads currently available in the API.',
-        apiNotice: 'Now featuring GPT-5.5 for complex reasoning, coding, and professional workflows.',
-        viewAll: 'View all models',
-        badges: {
-          latest: 'Latest'
-        },
-        items: {
-          gpt55: 'OpenAI\'s latest supported model for complex reasoning, coding, and professional workflows.',
-          gpt54: 'A balanced frontier model for coding, tool use, and general production workloads.',
-          gpt54Nano: 'An ultra-low-cost option for high-frequency and basic workloads.',
-          gptImage2: 'OpenAI\'s current image generation model for image creation and editing.'
-        }
-      },
-      showcase: {
-        kicker: 'Trust and showcase',
-        title: 'Built to fit real production expectations',
-        subtitle: 'The redesigned homepage keeps your actual business value while presenting platform strengths, customer confidence, and future case-study content in a more modern way.',
-        stats: {
-          developers: 'trusted developers',
-          sla: 'service availability',
-          support: 'support coverage'
-        },
-        quotes: {
-          team: {
-            quote: 'The integration flow barely changed, which let the team focus more on product delivery than compatibility issues.',
-            author: 'Product team feedback',
-            role: 'Enterprise onboarding scenario'
-          },
-          engineer: {
-            quote: 'From testing to launch, the overall delivery rhythm felt smoother once the integration path became more stable.',
-            author: 'Engineering perspective',
-            role: 'Implementation experience'
-          },
-          ops: {
-            quote: 'For us, stability and support responsiveness matter most, and that is the baseline for long-term use.',
-            author: 'Operations feedback',
-            role: 'Production reliability focus'
-          }
-        }
-      },
-      cta: {
-        badge: 'Get started quickly',
-        title: 'Ready to bring your AI app to production faster?',
-        subtitle: 'Keep the workflow your team already knows, while using a more stable path for integration, testing, launch, and ongoing support.',
-        trust: {
-          freeTrial: 'Fast trial and evaluation',
-          noCard: 'No complex migration path',
-          fastSupport: 'Direct technical support'
-        }
-      },
-      pricing: {
-        kicker: 'Flexible pricing',
-        title: 'Choose the plan that fits',
-        subtitle: 'Usage billing, lightweight subscriptions, and enterprise plans are all available.',
-        viewDetails: 'View pricing details',
-        plans: {
-          standard: {
-            plan: 'Standard',
-            description: 'A good fit for individual developers and lighter projects',
-            badge: 'Light'
-          },
-          pro: {
-            plan: 'Professional',
-            description: 'Best for growing teams and reliable production use',
-            badge: 'Recommended'
-          },
-          enterprise: {
-            plan: 'Enterprise',
-            description: 'Tailored for large organizations and custom requirements',
-            badge: 'Enterprise',
-            price: 'Custom pricing'
-          }
-        }
-      },
-      setup: {
-        kicker: 'Three-step integration',
-        title: 'Connect your models with ease',
-        subtitle: 'A few simple steps are all you need to get started.',
-        steps: {
-          register: {
-            title: 'Create an account',
-            description: 'Sign up and generate your dedicated API key.'
-          },
-          integrate: {
-            title: 'Integrate the API',
-            description: 'Replace the documented endpoint in your app configuration.'
-          },
-          start: {
-            title: 'Start calling',
-            description: 'Send requests and build your AI-powered workflows.'
-          }
-        }
-      },
-      community: {
-        kicker: 'Join the developer community',
-        title: 'Community QR codes',
-        lead: 'Scan to join via QQ or WeChat',
-        body: 'Get onboarding help, model updates, and fast troubleshooting.',
-        qrLabels: {
-          qq: 'QQ Group',
-          wechat: 'WeChat'
-        },
-        qrAlt: {
-          qq: 'QQ group QR code',
-          wechat: 'WeChat QR code'
-        }
-      },
-      placeholders: {
-        visual: {
-          badge: 'Visual area',
-          title: 'Reserved for demos, architecture visuals, or key screenshots',
-          description: 'This area is intended for homepage visuals, product demos, customer screenshots, or other graphic storytelling assets. The placeholder keeps the presentation complete until final assets are ready.',
-          footer: 'Imagery to be replaced later'
-        },
-        caseStudy: {
-          badge: 'Showcase area',
-          title: 'Reserved for case studies, demos, or partner content',
-          description: 'This section can later host platform screenshots, scenario demos, customer stories, or partner showcases.',
-          footer: 'Reserved for future content'
-        }
-      },
-      footer: {
-        about: 'Enterprise OpenAI API relay service that helps teams build AI products faster.',
-        follow: 'Follow us',
-        copyrightOwner: 'Chengdu Gepin Technology Co., Ltd. All rights reserved',
-        columns: {
-          product: {
-            title: 'Product',
-            pricing: 'Pricing',
-            docs: 'API Docs',
-            platforms: 'Platforms',
-            changelog: 'Changelog'
-          },
-          developer: {
-            title: 'Developers',
-            quickstart: 'Quickstart',
-            sdk: 'SDK & Tools',
-            bestPractices: 'Best Practices',
-            status: 'API Status'
-          },
-          links: {
-            title: 'Links',
-            gpshop: '格品购物',
-            gpci: '格品生图'
-          },
-          company: {
-            title: 'Company',
-            about: 'About',
-            contact: 'Contact',
-            terms: 'Terms',
-            privacy: 'Privacy'
-          },
-          support: {
-            title: 'Support',
-            help: 'Help Center',
-            community: 'Community'
-          }
-        }
-      }
     }
   },
 
@@ -477,8 +182,8 @@ export default {
 
   // Setup Wizard
   setup: {
-    title: 'Gepin API Setup',
-    description: 'Configure your Gepin API instance',
+    title: 'GPTK Setup',
+    description: 'Configure your GPTK instance',
     database: {
       title: 'Database Configuration',
       description: 'Connect to your PostgreSQL database',
@@ -642,6 +347,10 @@ export default {
     usage: 'Usage',
     redeem: 'Redeem',
     affiliate: 'Affiliate Rebates',
+    affiliateManagement: 'Affiliate Rebates',
+    affiliateInviteRecords: 'Invite Records',
+    affiliateRebateRecords: 'Rebate Records',
+    affiliateTransferRecords: 'Transfer Records',
     profile: 'Profile',
     users: 'Users',
     groups: 'Groups',
@@ -650,7 +359,6 @@ export default {
     subscriptions: 'Subscriptions',
     accounts: 'Accounts',
     proxies: 'Proxies',
-    adminAffiliateRelations: 'Affiliate Relations',
     redeemCodes: 'Redeem Codes',
     ops: 'Ops',
     promoCodes: 'Promo Codes',
@@ -676,11 +384,12 @@ export default {
     channelPricing: 'Channel Pricing',
     channelMonitor: 'Channel Monitor',
     channelStatus: 'Channel Status',
+    riskControl: 'Risk Control',
   },
 
   luckyWheel: {
     heroTag: 'Lucky Wheel',
-    heroDescription: 'Each qualified paid RMB amount enters a multiplier session. The winning RMB reward is converted to platform balance using the configured rate.',
+    heroDescription: 'Each qualified payment enters a multiplier session. Draw multiple times, keep the highest multiplier, and settle the bonus after all draws finish.',
     chances: 'Remaining Chances',
     drawNow: 'Draw Now',
     disabled: 'This activity is currently unavailable',
@@ -692,8 +401,8 @@ export default {
     noRecords: 'No draw records yet',
     noActiveSession: 'There is no active lucky wheel session right now. Complete a qualifying payment to start one.',
     currentSession: 'Current Session',
-    currentSessionHint: 'Each spin is recorded. After all draws, the RMB reward is converted to platform balance.',
-    rechargeAmount: 'Paid RMB',
+    currentSessionHint: 'Each spin is recorded. The bonus settles once all draws in the session are finished.',
+    rechargeAmount: 'Payment Amount',
     tierName: 'Matched Tier',
     inviteBonus: 'Invite Bonus',
     goldenBonus: 'Golden Bonus',
@@ -709,7 +418,7 @@ export default {
     rulesTitle: 'Rules',
     ruleTier20To50: 'Pay 20-50: 1.1x-2.0x, guaranteed 1.1x, up to 2 draws.',
     ruleTier51Plus: 'Pay 51+: 1.2x-3.0x, guaranteed 1.2x, up to 3 draws, plus one extra draw in the golden window.',
-    ruleHighestWins: 'Multiple draws in the same payment session keep the highest multiplier. RMB reward = paid amount × highest multiplier.',
+    ruleHighestWins: 'Multiple draws in the same payment session settle at the highest multiplier only.',
     ruleInviteBonus: 'Each invited user who completes a qualified 20+ payment adds +0.2x to your next session, capped at +1.0x.',
     ruleGoldenWindow: 'From 20:00 to 22:00 Beijing time, the first five 51+ payments get one extra draw.',
     historyTitle: 'Settled History',
@@ -718,7 +427,7 @@ export default {
     balanceOrder: 'Recharge Order',
     paidAmount: 'Paid',
     resultTitle: 'Session Settled',
-    resultHint: 'This session is complete. The winning RMB reward was converted to platform balance using the configured rate.',
+    resultHint: 'This session is complete. The final bonus was credited using the highest multiplier.',
     resultConfirm: 'Got it',
     toastWin: 'You won {name}, balance +{amount}',
     toastDrawn: 'This draw landed on {amount}x. Keep going for a higher multiplier.',
@@ -729,16 +438,10 @@ export default {
     adminValidationTitle: 'Fix these issues before saving',
     adminOrderTypesTitle: 'Eligible Order Types',
     adminOrderTypesHint: 'Choose which paid orders can create a lucky wheel session.',
-    adminCopyTitle: 'Activity Copy',
-    adminCopyHint: 'Configure the top intro and rules shown on `/lucky-wheel`.',
-    adminIntroTextLabel: 'Intro Text',
-    adminRulesTitleLabel: 'Rules Title',
-    adminRulesItemsLabel: 'Rules Items',
-    adminAddRuleItem: 'Add Rule',
     adminMultiplierStep: 'Multiplier Step',
     adminGlobalMaxMultiplier: 'Global Max Multiplier',
     adminTiersTitle: 'Amount Tiers',
-    adminTiersHint: 'Configure multiplier range and draw count by the amount the user actually paid.',
+    adminTiersHint: 'Configure multiplier range and draw count by payment amount.',
     adminAddTier: 'Add Tier',
     adminTierLabel: 'Tier #{value}',
     adminTierIdLabel: 'Tier ID',
@@ -750,7 +453,7 @@ export default {
     adminTierMaxMultiplierLabel: 'Max Multiplier',
     adminInviteBonusTitle: 'Invite Bonus',
     adminInviteBonusHint: 'Invite bonus is consumed all at once by the next session.',
-    adminInviteQualifyingAmountLabel: 'Qualified Paid Amount',
+    adminInviteQualifyingAmountLabel: 'Qualified Amount',
     adminInviteBonusPerInviteeLabel: 'Bonus Per Invitee',
     adminInviteMaxBonusLabel: 'Max Bonus',
     adminInviteConsumePolicyLabel: 'Consume Policy',
@@ -759,7 +462,7 @@ export default {
     adminGoldenTimezoneLabel: 'Timezone',
     adminGoldenStartTimeLabel: 'Start Time',
     adminGoldenEndTimeLabel: 'End Time',
-    adminGoldenMinAmountLabel: 'Minimum Paid Amount',
+    adminGoldenMinAmountLabel: 'Minimum Amount',
     adminGoldenExtraDrawsLabel: 'Extra Draws',
     adminGoldenDailyQuotaLabel: 'Daily Quota',
     adminTotalSessions: 'Total Sessions',
@@ -820,6 +523,9 @@ export default {
     passwordRequired: 'Password is required',
     passwordMinLength: 'Password must be at least 6 characters',
     loginFailed: 'Login failed. Please check your credentials and try again.',
+    errors: {
+      USER_NOT_ACTIVE: 'Account has been disabled.',
+    },
     registrationFailed: 'Registration failed. Please try again.',
     emailSuffixNotAllowed: 'This email domain is not allowed for registration.',
     emailSuffixNotAllowedWithAllowed:
@@ -882,6 +588,9 @@ export default {
       completing: 'Completing registration…',
       completeRegistrationFailed: 'Registration failed. Please check your invitation code and try again.'
     },
+    emailOAuth: {
+      signIn: 'Continue with {providerName}'
+    },
     oidc: {
       signIn: 'Continue with {providerName}',
       callbackTitle: 'Signing you in with {providerName}',
@@ -941,6 +650,8 @@ export default {
     oauth: {
       callbackTitle: 'OAuth Callback',
       callbackHint: 'Copy the code and state back to the admin authorization flow when needed.',
+      invalidCallbackTitle: 'Invalid sign-in callback',
+      invalidCallbackHint: 'This page does not contain a valid authorization result. Return to the login page and start quick sign-in again.',
       code: 'Code',
       state: 'State',
       fullUrl: 'Full URL'
@@ -1150,8 +861,8 @@ export default {
     },
     // Quota and expiration
     quotaLimit: 'Quota Limit',
-    quotaAmount: 'Quota Amount (USD)',
-    quotaAmountPlaceholder: 'Enter quota limit in USD',
+    quotaAmount: 'Quota Amount (CNY)',
+    quotaAmountPlaceholder: 'Enter quota limit in CNY',
     quotaAmountHint: 'Set the maximum amount this key can spend. 0 = unlimited.',
     quotaUsed: 'Quota Used',
     reset: 'Reset',
@@ -1163,9 +874,9 @@ export default {
     rateLimitColumn: 'Rate Limit',
     rateLimitSection: 'Rate Limit',
     resetUsage: 'Reset',
-    rateLimit5h: '5-Hour Limit (USD)',
-    rateLimit1d: 'Daily Limit (USD)',
-    rateLimit7d: '7-Day Limit (USD)',
+    rateLimit5h: '5-Hour Limit (CNY)',
+    rateLimit1d: 'Daily Limit (CNY)',
+    rateLimit7d: '7-Day Limit (CNY)',
     rateLimitHint: 'Set the maximum spending for this key within each time window. 0 = unlimited.',
     rateLimitUsage: 'Rate Limit Usage',
     resetRateLimitUsage: 'Reset Rate Limit Usage',
@@ -1254,6 +965,8 @@ export default {
     perMillionTokens: '/ 1M tokens',
     unitPrice: 'Per-request price',
     imageUnitPrice: 'Per-image price',
+    imageTotalPrice: 'Image total price',
+    imageCount: 'Image count',
     cacheRead: 'Read',
     cacheWrite: 'Write',
     serviceTier: 'Service tier',
@@ -1460,10 +1173,7 @@ export default {
     recentActivity: 'Recent Activity',
     historyWillAppear: 'Your redemption history will appear here',
     balanceAddedRedeem: 'Balance Added (Redeem)',
-    balanceAddedPayment: 'Balance Added (Payment)',
-    balanceAddedWxpay: 'Balance Added (WeChat Pay)',
-    balanceAddedAlipay: 'Balance Added (Alipay)',
-    balanceAddedStripe: 'Balance Added (Stripe)',
+    balanceAddedAffiliate: 'Balance Added (Affiliate Transfer)',
     balanceAddedAdmin: 'Balance Added (Admin)',
     balanceDeductedAdmin: 'Balance Deducted (Admin)',
     concurrencyAddedRedeem: 'Concurrency Added (Redeem)',
@@ -2089,6 +1799,72 @@ export default {
       }
     },
 
+    affiliates: {
+      title: 'Affiliate Invite Relations',
+      description: 'Browse inviters and inspect the users they invited.',
+      searchPlaceholder: 'Search inviter email or username',
+      empty: 'No affiliate relationship data yet',
+      viewInvitees: 'View invitees',
+      totalLabel: '{total} total',
+      inviteesTitle: 'Invitees of {email}',
+      inviteesDescription: 'Shows the users currently attributed to this inviter.',
+      inviteesEmpty: 'This inviter has no invitees to display',
+      col: {
+        email: 'Inviter Email',
+        username: 'Inviter Username',
+        code: 'Invite Code',
+        invitedCount: 'Invite Count',
+        totalRebate: 'Total Rebate',
+        actions: 'Actions',
+      },
+      inviteesCol: {
+        email: 'Invitee Email',
+        username: 'Invitee Username',
+        joinedAt: 'Joined At',
+        totalRebate: 'Total Rebate',
+      },
+      invitesDescription: 'View site-wide inviter and invitee relationships',
+      rebatesDescription: 'View recharge orders that generated affiliate rebates',
+      transfersDescription: 'View affiliate quota transfers into account balance',
+      errors: {
+        loadFailed: 'Failed to load affiliate records'
+      },
+      records: {
+        search: 'Search',
+        searchPlaceholder: 'Email, username, user ID, or order number',
+        startAt: 'Start date',
+        endAt: 'End date',
+        inviter: 'Inviter',
+        invitee: 'Invitee',
+        user: 'User',
+        affCode: 'Invite Code',
+        order: 'Order',
+        totalRebate: 'Total Rebate',
+        orderAmount: 'Top-up Amount',
+        payAmount: 'Paid Amount',
+        rebateAmount: 'Rebate Amount',
+        paymentType: 'Payment Method',
+        orderStatus: 'Order Status',
+        transferAmount: 'Transfer Amount',
+        balanceAfter: 'Balance After',
+        availableQuotaAfter: 'Available After',
+        frozenQuotaAfter: 'Frozen After',
+        historyQuotaAfter: 'Historical Rebate After',
+        invitedAt: 'Invited At',
+        rebatedAt: 'Rebated At',
+        transferredAt: 'Transferred At'
+      },
+      overview: {
+        title: 'Affiliate User Overview',
+        affCode: 'Invite Code',
+        rebateRate: 'Rebate Rate',
+        invitedCount: 'Invited Users',
+        rebatedInviteeCount: 'Rebated Invitees',
+        availableQuota: 'Available Quota',
+        historyQuota: 'Historical Rebate'
+      }
+    },
+
     // Users
     users: {
       title: 'User Management',
@@ -2242,6 +2018,7 @@ export default {
       noBalanceHistory: 'No records found for this user',
       allTypes: 'All Types',
       typeBalance: 'Balance (Redeem)',
+      typeAffiliateBalance: 'Balance (Affiliate Transfer)',
       typeAdminBalance: 'Balance (Admin)',
       typeConcurrency: 'Concurrency (Redeem)',
       typeAdminConcurrency: 'Concurrency (Admin)',
@@ -2447,16 +2224,22 @@ export default {
         typeNotEditable: 'Billing type cannot be changed after group creation.',
         standard: 'Standard (Balance)',
         subscription: 'Subscription (Quota)',
-        dailyLimit: 'Daily Limit (USD)',
-        weeklyLimit: 'Weekly Limit (USD)',
-        monthlyLimit: 'Monthly Limit (USD)',
+        dailyLimit: 'Daily Limit (CNY)',
+        weeklyLimit: 'Weekly Limit (CNY)',
+        monthlyLimit: 'Monthly Limit (CNY)',
         defaultValidityDays: 'Default Validity (Days)',
         validityHint: 'Number of days the subscription is valid when assigned to a user',
         noLimit: 'No limit'
       },
       imagePricing: {
         title: 'Image Generation Pricing',
-        description: 'Configure pricing for image generation models. Leave empty to use default prices.'
+        description: 'Configure image generation access and base image prices. Leave empty to use default prices.',
+        allowImageGeneration: 'Allow image generation for this group',
+        independentMultiplier: 'Use independent image multiplier',
+        imageMultiplier: 'Image multiplier',
+        modeHint: 'By default, image billing uses image price × current effective group multiplier. Independent mode uses image price × image multiplier.',
+        finalPricePreview: 'Final per-image price preview',
+        notConfigured: 'Not configured'
       },
       claudeCode: {
         title: 'Claude Code Client Restriction',
@@ -2681,6 +2464,8 @@ export default {
         webSearchEmulation: 'Web Search Emulation',
         webSearchEmulationHint: '⚠️ When enabled, all accounts in this channel\'s Anthropic groups will intercept web_search requests. Use with caution.',
         webSearchEmulationGlobalDisabled: 'Please enable the global switch first in Settings → Gateway → Web Search Emulation',
+        codexImageGenerationBridge: 'Codex Image Generation Bridge',
+        codexImageGenerationBridgeHint: 'When enabled, Codex /responses text requests in OpenAI groups may be automatically given the image_generation tool. Keep off unless the routed accounts support image generation.',
         basicSettings: 'Basic Settings',
         addPlatform: 'Add Platform',
         noPlatforms: 'Click "Add Platform" to start configuring the channel',
@@ -2701,6 +2486,216 @@ export default {
         noGroupsInChannel: 'No groups selected in platform tabs above',
         unnamed: 'Unnamed'
       }
+    },
+
+    riskControl: {
+      title: 'Risk Control',
+      description: 'Configure content moderation and review audit records',
+      loadFailed: 'Failed to load risk control',
+      saveFailed: 'Failed to save content moderation config',
+      logsFailed: 'Failed to load audit records',
+      saved: 'Content moderation config saved',
+      refresh: 'Refresh',
+      config: 'Content Moderation Config',
+      configHint: 'Use OpenAI Moderations to score request content and handle threshold hits by mode.',
+      openSettings: 'Moderation Settings',
+      settingsTitle: 'Content Moderation Settings',
+      refreshStatus: 'Refresh Status',
+      records: 'Audit Records',
+      recordsHint: 'Shows hits, blocks, errors, and sampled records.',
+      saveConfig: 'Save Moderation Config',
+      statusFailed: 'Failed to load runtime status',
+      enabled: 'Enable Content Moderation',
+      enabledHint: 'When off, gateway requests are not moderated even if the menu is enabled.',
+      mode: 'Global Mode',
+      modePreBlock: 'Pre-Block',
+      modePreBlockDesc: 'Synchronously reviews the latest user input before every request and rejects hits immediately.',
+      modeObserve: 'Observe Only',
+      modeObserveDesc: 'Requests pass through while the latest user input is queued for async review; hits are recorded, notified, and counted.',
+      modeOff: 'Off',
+      modeOffDesc: 'Content moderation is disabled and no audit records are written.',
+      baseUrl: 'OpenAI Base URL',
+      model: 'Model',
+      apiKey: 'OpenAI API Key',
+      apiKeys: 'OpenAI API Keys',
+      apiKeyCount: '{count} keys',
+      apiKeyPlaceholder: 'Enter API Key',
+      apiKeysPlaceholder: 'Add API Keys, one per line. They will be appended on save.',
+      apiKeysPlaceholderReplace: 'Replace API Keys, one per line. Stored keys will be replaced on save.',
+      apiKeysPlaceholderKeep: 'Add API Keys, one per line. They will be appended on save.',
+      apiKeysHint: '{count} keys are currently stored. This input only adds keys; save appends and de-duplicates them.',
+      apiKeysWriteMode: 'Write mode',
+      apiKeysModeAppend: 'Add',
+      apiKeysModeReplace: 'Replace',
+      apiKeysModeAppendHint: 'Default: save appends input keys and keeps stored keys.',
+      apiKeysModeReplaceHint: 'Replace mode: save replaces all stored keys with input keys.',
+      apiKeysReplaceWarning: 'Replace mode',
+      apiKeysReplaceNoInput: 'Replace mode requires at least 1 API Key',
+      apiKeyPlaceholderKeep: 'Leave empty to keep current key',
+      apiKeyWillClear: 'Configured key will be cleared on save',
+      apiKeyConfigured: 'Configured',
+      apiKeyTemporary: 'Pending',
+      apiKeyPendingDelete: 'Pending delete',
+      apiKeyPendingDeleteCount: '{count} keys pending deletion',
+      deleteApiKey: 'Delete this key',
+      undoDeleteApiKey: 'Undo delete',
+      inputApiKeyCount: '{count} keys in input',
+      storedApiKeyCount: '{count} stored keys',
+      testInputApiKeys: 'Test input keys',
+      testStoredApiKeys: 'Test stored keys',
+      testContentWithStoredApiKey: 'Test content with stored key',
+      testingApiKeys: 'Testing',
+      apiKeyTestNoInput: 'Enter OpenAI API Keys to test first',
+      apiKeyTestDone: 'Key test completed for {count} keys',
+      apiKeyTestFailed: 'Failed to test OpenAI API Keys',
+      apiKeyHealth: 'Key Availability',
+      apiKeyFreezeRule: '400 does not freeze; 401/403 freeze for 10 minutes; 429/529 freeze for 1 minute; other HTTP errors freeze for 10 seconds.',
+      apiKeyRows: '{count} keys',
+      apiKeyRowsCollapsed: '{count} keys hidden',
+      apiKeyRowsExpanded: 'Showing all {count} keys',
+      expandApiKeyRows: 'Expand',
+      collapseApiKeyRows: 'Collapse',
+      apiKeyHealthEmpty: 'No key status yet',
+      apiKeyHealthEmptyHint: 'Save keys or test input keys to see availability.',
+      apiKeyStatusOk: 'Available',
+      apiKeyStatusError: 'Error',
+      apiKeyStatusFrozen: 'Frozen',
+      apiKeyStatusUnknown: 'Untested',
+      apiKeyFailureCount: '{count} failures',
+      apiKeyLatency: '{ms} ms',
+      apiKeyHTTPStatus: 'HTTP {status}',
+      apiKeyFrozenUntil: 'Frozen until {time}',
+      apiKeyLastChecked: 'Checked at {time}',
+      apiKeyNotTested: 'Not tested',
+      auditTestInput: 'Audit Test Input',
+      auditTestInputHint: 'Enter a prompt and upload or paste images; images are sent as base64 and are not stored.',
+      auditTestPromptPlaceholder: 'Enter a user prompt to test; leave empty to only test key availability.',
+      auditTestImages: 'Test Images',
+      auditTestImagesHint: 'Upload, drag, or paste images. Up to 1 image, 8MB each.',
+      addAuditTestImage: 'Add image',
+      clearAuditTest: 'Clear test',
+      auditTestImageLimit: 'You can add up to {count} test images',
+      auditTestImageTooLarge: 'Each test image must be 8MB or smaller',
+      auditTestImageReadFailed: 'Failed to read test image',
+      auditTestResult: 'Audit Test Result',
+      auditTestHighest: 'Top category {category}, score {score}',
+      auditTestComposite: 'Composite score',
+      auditTestFlagged: 'Threshold hit',
+      auditTestPassed: 'Pass',
+      notConfigured: 'Not configured',
+      clearApiKey: 'Clear stored key',
+      keepApiKey: 'Keep stored key',
+      timeoutMs: 'HTTP Timeout (ms)',
+      retryCount: 'Retry Count',
+      sampleRate: 'Sample Rate',
+      recordNonHits: 'Record Non-Hits',
+      recordNonHitsHint: 'When enabled, sampled non-hit request summaries are redacted before storage.',
+      preHashCheck: 'Enable Pre-Hash Check',
+      preHashCheckHint: 'Hashes from async hits are blocked before moderation; this does not send email or increment ban counters.',
+      flaggedHashCount: 'Current hash collection size: {count}',
+      flaggedHashHint: 'Hashes are stored permanently in Redis; paste a full 64-character hash to remove a false block, or clear all stored hashes.',
+      flaggedHashPlaceholder: 'Paste full 64-character input hash',
+      deleteFlaggedHash: 'Delete hash',
+      clearFlaggedHashes: 'Clear all',
+      clearFlaggedHashesConfirm: 'Clear all risk input hashes? This does not delete audit records, but removes all historical hash blocks.',
+      flaggedHashDeleted: 'Risk hash deleted',
+      flaggedHashNotFound: 'Risk hash not found',
+      flaggedHashDeleteFailed: 'Failed to delete risk hash',
+      flaggedHashesCleared: 'Cleared {count} risk hashes',
+      flaggedHashesClearFailed: 'Failed to clear risk hashes',
+      workerCount: 'Worker Count',
+      queueSize: 'Async Queue Size',
+      blockStatus: 'Block HTTP Status',
+      blockMessage: 'Custom Block Message',
+      emailOnHit: 'Email on Hit',
+      emailOnHitHint: 'When enabled, send a risk-control email on every hit; auto-ban notices are always sent.',
+      autoBan: 'Auto Ban User',
+      autoBanHint: 'Disable the user, invalidate auth cache, and send a ban notice after the hit threshold is reached.',
+      banThreshold: 'Ban Threshold',
+      violationWindowHours: 'Count Window (hours)',
+      hitRetentionDays: 'Hit Record Retention (days)',
+      nonHitRetentionDays: 'Non-Hit Record Retention (days, max 3)',
+      violationCount: '{count} hits',
+      emailSent: 'Email sent',
+      emailNotSent: 'No email',
+      autoBanned: 'Banned',
+      unbanUser: 'Unban',
+      unbanSuccess: 'User has been unbanned',
+      unbanFailed: 'Failed to unban user',
+      inputDetailTitle: 'Input Summary Detail',
+      inputDetailContent: 'Full Content',
+      queueDelay: 'Queued {ms} ms',
+      allGroups: 'All Groups',
+      allGroupsHint: 'Auditing all groups',
+      selectedGroupsHint: 'Auditing selected groups',
+      groupScope: 'Audit Groups',
+      groupScopeHint: 'Switch on for all groups, or turn off to choose specific groups.',
+      selectedGroups: 'Selected Groups',
+      searchGroups: 'Search group name or platform',
+      noGroups: 'No groups available',
+      emptyLogs: 'No audit records',
+      workerStatus: 'Worker Runtime',
+      workerStatusHint: 'Queue and worker pool status for asynchronous observation tasks.',
+      workerPool: 'Worker Pool',
+      workerPoolMeta: '{active} processing, {idle} idle and ready, {total} total',
+      queueUsage: 'Queue Usage',
+      activeWorkers: 'Processing',
+      idleWorkers: 'Idle Ready',
+      workerActive: 'Processing an asynchronous audit task',
+      workerIdle: 'Started, idle and ready',
+      workerDisabled: 'Risk control or content audit is disabled',
+      processed: 'Processed',
+      droppedErrors: 'Dropped / Errors',
+      autoRefresh: 'Auto refresh every 15s',
+      lastCleanup: 'Last cleanup: {time}',
+      cleanupStats: 'Last cleanup deleted {hit} hits and {nonHit} non-hits',
+      riskSwitchOff: 'System switch off',
+      tabs: {
+        basic: 'Basic',
+        scope: 'Scope',
+        runtime: 'Runtime',
+        response: 'Hit Notice',
+        retention: 'Retention',
+      },
+      overview: {
+        status: 'Status',
+        enabled: 'Enabled',
+        disabled: 'Disabled',
+        apiKey: 'API Key',
+        groupScope: 'Scope',
+        logs: 'Audit Records',
+        currentFilter: 'Current filter',
+      },
+      filters: {
+        search: 'Search user/key/summary',
+        from: 'From',
+        to: 'To',
+        allGroups: 'All Groups',
+        allEndpoints: 'All Endpoints',
+      },
+      table: {
+        time: 'Time',
+        group: 'Group',
+        user: 'User',
+        apiKey: 'API Key',
+        endpoint: 'Endpoint',
+        result: 'Result',
+        highest: 'Highest',
+        actionMeta: 'Action',
+        latency: 'Latency',
+        input: 'Input Summary',
+      },
+      result: {
+        all: 'All Results',
+        hit: 'Hit',
+        blocked: 'Blocked',
+        pass: 'Pass',
+        error: 'Error',
+      },
+      action: {
+        block: 'Blocked',
+        error: 'Error',
+      },
     },
 
     // Channel Monitor
@@ -2954,6 +2949,11 @@ export default {
       dataExportSelected: 'Export Selected',
       dataExportIncludeProxies: 'Include proxies linked to the exported accounts',
       dataImport: 'Import',
+      moreActions: 'More Actions',
+      dataActions: 'Data',
+      toolActions: 'Tools',
+      viewColumns: 'Columns',
+      selectedCount: '{count} selected',
       dataExportConfirmMessage: 'The exported data contains sensitive account and proxy information. Store it securely.',
       dataExportConfirm: 'Confirm Export',
       dataExported: 'Data exported successfully',
@@ -3169,7 +3169,7 @@ export default {
       resetQuota: 'Reset Quota',
       quotaLimit: 'Quota Limit',
       quotaLimitPlaceholder: '0 means unlimited',
-      quotaLimitHint: 'Set daily/weekly/total spending limits (USD). Anthropic API key accounts can also configure client affinity. Changing limits won\'t reset usage.',
+      quotaLimitHint: 'Set daily/weekly/total spending limits (CNY). Anthropic API key accounts can also configure client affinity. Changing limits won\'t reset usage.',
       quotaLimitToggle: 'Enable Quota Limit',
       quotaLimitToggleHint: 'When enabled, account will be paused when usage reaches the set limit',
       quotaDailyLimit: 'Daily Limit',
@@ -3329,6 +3329,18 @@ export default {
         codexCLIOnly: 'Codex official clients only',
         codexCLIOnlyDesc:
           'Only applies to OpenAI OAuth. When enabled, only Codex official client families are allowed; when disabled, the gateway bypasses this restriction and keeps existing behavior.',
+        codexImageGenerationBridge: 'Codex image-generation bridge',
+        codexImageGenerationBridgeDesc:
+          'Account policy takes precedence over channel and global settings. Only controls whether Codex requests through the /responses text endpoint receive the image_generation tool; standalone image-generation endpoints are unaffected.',
+        codexImageGenerationBridgeInherit: 'Follow channel',
+        codexImageGenerationBridgeInheritDesc: 'Do not write an account override; use the channel or global policy.',
+        codexImageGenerationBridgeEnabled: 'Force on',
+        codexImageGenerationBridgeEnabledDesc: 'Allow image tool injection for Codex /responses requests.',
+        codexImageGenerationBridgeDisabled: 'Force off',
+        codexImageGenerationBridgeDisabledDesc: 'Block image tool injection for Codex /responses requests.',
+        codexImageGenerationBridgeBadgeInherit: 'Channel policy',
+        codexImageGenerationBridgeBadgeEnabled: 'Account on',
+        codexImageGenerationBridgeBadgeDisabled: 'Account off',
         compactMode: 'Compact mode',
         compactModeDesc:
           'Controls how this account participates in /responses/compact routing. Auto follows probe results, Force On always allows, Force Off always excludes.',
@@ -3340,7 +3352,8 @@ export default {
           'Only applies to /responses/compact. Use this when the upstream compact endpoint requires a special compact model.',
         compactSupported: 'Compact supported',
         compactUnsupported: 'Compact unsupported',
-        compactUnknown: 'Compact unknown',
+        compactAuto: 'Compact Auto',
+        compactUnknown: 'Compact Auto',
         compactLastChecked: 'Last compact probe',
         testMode: 'Test mode',
         testModeDefault: 'Default request',
@@ -3374,7 +3387,7 @@ export default {
       targetNoWildcard: 'Target model cannot contain wildcard *',
       searchModels: 'Search models...',
       noMatchingModels: 'No matching models',
-      fillRelatedModels: 'Fill related models',
+      fillRelatedModels: 'Sync latest supported models',
       clearAllModels: 'Clear all models',
       customModelName: 'Custom model name',
       enterCustomModelName: 'Enter custom model name',
@@ -3634,6 +3647,16 @@ export default {
           refreshTokenAuth: 'Manual RT Input',
           refreshTokenDesc: 'Enter your existing OpenAI Refresh Token(s). Supports batch input (one per line). The system will automatically validate and create accounts.',
           refreshTokenPlaceholder: 'Paste your OpenAI Refresh Token...\nSupports multiple, one per line',
+          codexSessionAuth: 'Codex JSON / AT Batch Input',
+          codexSessionDesc: 'Paste Codex JSON or an accessToken. Accounts use the step 1 settings.',
+          codexSessionInputLabel: 'Codex JSON or accessToken',
+          codexSessionPlaceholder: 'Multiple lines supported, one token or JSON per line',
+          codexSessionHint: 'sessionToken will not be saved as refresh_token. Without refresh_token, the account expires with the accessToken expiry; import is rejected if the expiry cannot be parsed and step 1 has no expiration.',
+          codexSessionImportAndCreate: 'Import & Create Account',
+          codexSessionEmpty: 'Please enter Codex JSON or accessToken',
+          codexSessionImportFailed: 'Failed to import Codex account',
+          codexSessionImportSuccess: 'Import completed: created {created}, updated {updated}, skipped {skipped}',
+          codexSessionImportPartial: 'Partial success: created {created}, updated {updated}, skipped {skipped}, failed {failed}',
           sessionTokenAuth: 'Manual ST Input',
           sessionTokenDesc: 'Enter your existing Session Token(s). Supports batch input (one per line). The system will automatically validate and create accounts.',
           sessionTokenPlaceholder: 'Paste your Session Token...\nSupports multiple, one per line',
@@ -4199,7 +4222,7 @@ export default {
       generatedSuccessfully: 'Generated Successfully',
       codesCreated: '{count} redeem code(s) created',
       codeType: 'Code Type',
-      amount: 'Amount ($)',
+      amount: 'Amount (¥)',
       value: 'Value',
       count: 'Count',
       generating: 'Generating...',
@@ -4337,7 +4360,7 @@ export default {
       code: 'Promo Code',
       autoGenerate: 'auto-generate if empty',
       codePlaceholder: 'Enter promo code or leave empty',
-      bonusAmount: 'Bonus Amount ($)',
+      bonusAmount: 'Bonus Amount (¥)',
       maxUses: 'Max Uses',
       zeroUnlimited: '0 = unlimited',
       expiresAt: 'Expires At',
@@ -4370,32 +4393,6 @@ export default {
       failedToUpdate: 'Failed to update promo code',
       failedToDelete: 'Failed to delete promo code',
       failedToLoadUsages: 'Failed to load usage records'
-    },
-
-    affiliates: {
-      title: 'Affiliate Relations',
-      description: 'Browse inviters and inspect their invitees and rebate details',
-      searchPlaceholder: 'Search inviter email or username',
-      empty: 'No invite relationship data yet',
-      viewInvitees: 'View invitees',
-      totalLabel: '{total} total',
-      inviteesTitle: 'Invitees of {email}',
-      inviteesDescription: 'Shows the users currently attributed to this inviter.',
-      inviteesEmpty: 'This inviter has no invitees to display',
-      col: {
-        email: 'Inviter Email',
-        username: 'Inviter Username',
-        code: 'Invite Code',
-        invitedCount: 'Invite Count',
-        totalRebate: 'Total Rebate',
-        actions: 'Actions',
-      },
-      inviteesCol: {
-        email: 'Invitee Email',
-        username: 'Invitee Username',
-        joinedAt: 'Joined At',
-        totalRebate: 'Total Rebate',
-      },
     },
 
     // Usage Records
@@ -5261,6 +5258,7 @@ export default {
       description: 'Manage registration, email verification, default values, and SMTP settings',
       tabs: {
         general: 'General',
+        agreement: 'Agreement',
         features: 'Feature Switches',
         security: 'Security',
         users: 'Users',
@@ -5286,14 +5284,21 @@ export default {
           enabled: 'Enable Available Channels',
           enabledHint: 'When off, the sidebar entry is hidden and the endpoint returns an empty list.',
         },
+        riskControl: {
+          title: 'Risk Control',
+          description: 'Enable the content moderation menu and gateway audit entry point. Disabled by default.',
+          configureLink: 'Configure content moderation in Risk Control',
+          enabled: 'Enable Risk Control',
+          enabledHint: 'When off, the admin sidebar entry is hidden and gateway moderation is skipped.',
+        },
         weeklyQuota: {
           title: 'Weekly Quota Claim',
-          description: 'Allow users to claim a fixed balance amount from the redeem page once per rolling 7-day window based on signup time. Disabled by default.',
-          enabled: 'Enable Weekly Quota Claim',
-          enabledHint: 'When off, the user weekly quota module is hidden and the claim API is blocked.',
-          amount: 'Weekly claim amount',
-          amountHint: 'Enter an amount greater than 0 to grant as balance for each window.',
-          amountRequired: 'Weekly claim amount must be greater than 0 when the feature is enabled.',
+          description: 'Allow users to claim a fixed balance once per rolling 7-day window based on signup time.',
+          enabled: 'Enable Weekly Quota',
+          enabledHint: 'When off, the user entry is hidden and no new weekly quota can be claimed.',
+          amount: 'Weekly Amount',
+          amountHint: 'Balance amount users can claim in each 7-day window.',
+          amountRequired: 'Enter a weekly amount greater than 0 when weekly quota is enabled.',
         },
         affiliate: {
           title: 'Affiliate (Invite Rebate)',
@@ -5309,34 +5314,9 @@ export default {
           perInviteeCap: 'Per-Invitee Rebate Cap',
           perInviteeCapDesc: 'Maximum total rebate from a single invitee. 0 = no limit.',
           signupRewardEnabled: 'Enable Signup Reward',
-          signupRewardEnabledHint: 'When an invited user completes their first registration, credit a fixed reward directly to the inviter balance.',
+          signupRewardEnabledHint: 'When an invited user completes registration, grant the inviter a one-time reward.',
           signupRewardAmount: 'Signup Reward Amount',
-          signupRewardAmountDesc: 'This reward is credited directly to balance and counted in historical rebate. 0 = disabled.',
-          inviterRelations: {
-            title: 'Invite Relationships',
-            description: 'Browse every inviter that has invited users and inspect who they invited.',
-            searchPlaceholder: 'Search inviter email or username',
-            empty: 'No invite relationship data yet',
-            viewInvitees: 'View invitees',
-            totalLabel: '{total} total',
-            inviteesTitle: 'Invitees of {email}',
-            inviteesDescription: 'Shows the users currently attributed to this inviter.',
-            inviteesEmpty: 'This inviter has no invitees to display',
-            col: {
-              email: 'Inviter Email',
-              username: 'Inviter Username',
-              code: 'Invite Code',
-              invitedCount: 'Invite Count',
-              totalRebate: 'Total Rebate',
-              actions: 'Actions',
-            },
-            inviteesCol: {
-              email: 'Invitee Email',
-              username: 'Invitee Username',
-              joinedAt: 'Joined At',
-              totalRebate: 'Total Rebate',
-            },
-          },
+          signupRewardAmountDesc: 'The inviter receives this one-time reward amount. 0 = no reward.',
           customUsers: {
             title: 'Per-User Overrides',
             description: 'Set a custom invite code or exclusive rebate rate for specific users. Lists only users that have an override applied.',
@@ -5421,7 +5401,7 @@ export default {
         secretKeyConfiguredHint: 'Secret key configured. Leave empty to keep the current value.'      },
       linuxdo: {
         title: 'LinuxDo Connect Login',
-        description: 'Configure LinuxDo Connect OAuth for Gepin API end-user login',
+        description: 'Configure LinuxDo Connect OAuth for GPTK end-user login',
         enable: 'Enable LinuxDo Login',
         enableHint: 'Show LinuxDo login on the login/register pages',
         clientId: 'Client ID',
@@ -5538,6 +5518,13 @@ export default {
         metadataPassthroughHint: 'Pass through client\'s original metadata.user_id without rewriting. May improve upstream cache hit rates.',
         cchSigning: 'CCH Signing',
         cchSigningHint: 'Sign the billing header in forwarded requests with CCH hash. When disabled, the placeholder is preserved.',
+        anthropicCacheTTL1hInjection: 'Anthropic Cache TTL Injection',
+        anthropicCacheTTL1hInjectionHint: 'When enabled, existing ephemeral cache_control blocks in Anthropic OAuth/Setup Token request bodies are forced to 1h; response usage is billed back as 5m by default, with account-level TTL billing override taking priority.',
+        rewriteMessageCacheControl: 'Rewrite Message Cache Breakpoints',
+        rewriteMessageCacheControlHint: 'Default off: preserve client cache_control on message content blocks. When enabled, client breakpoints are stripped and proxy breakpoints are injected for clients that do not manage caching themselves.',
+        antigravityUserAgentVersion: 'Antigravity UA Version',
+        antigravityUserAgentVersionPlaceholder: '1.23.2',
+        antigravityUserAgentVersionHint: 'Leave empty to use ANTIGRAVITY_USER_AGENT_VERSION or the built-in default 1.23.2; when set, the admin setting takes precedence.',
       },
       webSearchEmulation: {
         title: 'Web Search Emulation',
@@ -5583,7 +5570,7 @@ export default {
         siteNamePlaceholder: 'GPTK',
         siteNameHint: 'Displayed in emails and page titles',
         siteSubtitle: 'Site Subtitle',
-        siteSubtitlePlaceholder: 'Subscription to API Conversion Platform',
+        siteSubtitlePlaceholder: 'GPTK AI Service Platform',
         siteSubtitleHint: 'Displayed on login and register pages',
         apiBaseUrl: 'API Base URL',
         apiBaseUrlPlaceholder: 'https://api.example.com',
@@ -5626,10 +5613,6 @@ export default {
           remove: 'Remove Link',
           label: 'Label',
           labelPlaceholder: 'e.g., Gepin Shop',
-          labelZh: 'Chinese Name',
-          labelZhPlaceholder: 'e.g., 格品购物',
-          labelEn: 'English Name',
-          labelEnPlaceholder: 'e.g., Gepin Shop',
           url: 'URL',
           urlPlaceholder: 'https://example.com',
           labelRequired: 'Homepage link label is required',
@@ -5705,8 +5688,8 @@ export default {
         maxAmount: 'Maximum Amount',
         dailyLimit: 'Daily Limit',
         balanceRechargeMultiplier: 'Balance Recharge Multiplier',
-        balanceRechargeMultiplierHint: 'How many USD balance the user receives for each 1 CNY paid',
-        balanceRechargePreview: 'Preview: 1 CNY = {usd} USD',
+        balanceRechargeMultiplierHint: 'How many CNY balance the user receives for each 1 CNY paid',
+        balanceRechargePreview: 'Preview: 1 CNY = {usd} CNY',
         rechargeFeeRate: 'Recharge Fee Rate',
         rechargeFeeRateHint: 'Percentage of service fee charged on top of recharge amount, 0 means no fee',
         rechargeFeePreview: 'Preview: Recharge 100, fee {fee}',
@@ -5739,6 +5722,7 @@ export default {
         providerAlipay: 'Alipay (Direct)',
         providerWxpay: 'WeChat Pay (Direct)',
         providerStripe: 'Stripe',
+        providerAirwallex: 'Airwallex',
         typeDisabled: 'type disabled',
         enableTypesFirst: 'Enable at least one payment type above first',
         easypayRedirect: 'Redirect',
@@ -5765,12 +5749,24 @@ export default {
         wxpayConfigHint: 'WeChat Pay usually only needs App ID. Fill MP App ID, H5 App Name, and H5 App URL only when your Official Account or H5 flow specifically requires them.',
         wxpayAdvancedOptions: 'WeChat Pay Advanced Options',
         field_secretKey: 'Secret Key',
+        field_clientId: 'Client ID',
+        field_apiKey: 'API Key',
         field_publishableKey: 'Publishable Key',
         field_webhookSecret: 'Webhook Secret',
+        field_countryCode: 'Country/region code',
+        field_currency: 'Payment currency',
+        field_accountId: 'Airwallex Account ID',
+        field_airwallexApiBaseHint: 'Must match the API key environment: use https://api-demo.airwallex.com/api/v1 for sandbox/demo keys, and https://api.airwallex.com/api/v1 for production keys. Mixed environments return credentials_invalid / Access Denied.',
+        field_paymentCurrencyHint: 'Default is CNY. Stripe and Airwallex can choose HKD, USD, or another listed currency supported by the account; WeChat Pay, Alipay, and EasyPay remain CNY.',
+        field_accountIdHint: 'Leave this empty unless you use multiple accounts, an organization-level key, or connected-account payments. A single-account scoped API key uses the selected account by default.',
         field_cid: 'Channel ID',
         field_cidAlipay: 'Alipay Channel ID',
         field_cidWxpay: 'WeChat Channel ID',
         stripeWebhookHint: 'Configure the following URL as a Webhook endpoint in Stripe Dashboard:',
+        stripeWebhookApiVersionHint: 'Set this Webhook endpoint API version to match the integrated Stripe SDK. Recommended: {version}. A mismatch can cause webhook parsing errors.',
+        airwallexWebhookHint: 'Configure the following URL as a Webhook endpoint in Airwallex. Select at least Payment Intent -> Succeeded (payment_intent.succeeded), preferably also Payment Intent -> Cancelled (payment_intent.cancelled). Use the account default or latest stable API version.',
+        airwallexGuideSummary: 'When creating an Airwallex scoped API key, select Read and Write for Payment Acceptance under account-level permissions.',
+        airwallexGuideNote: 'Do not grant unrelated permissions such as Spend, Payouts, Transfers, Funds Splits, or POS Terminals unless you explicitly need them. For webhooks, select at least payment_intent.succeeded, preferably also payment_intent.cancelled, and use the account default or latest stable API version.',
         limitsTitle: 'Limits',
         limitSingleMin: 'Min per order',
         limitSingleMax: 'Max per order',
@@ -6024,6 +6020,16 @@ export default {
         cooldownMinutesHint: 'Duration to pause account scheduling (1-120 minutes)',
         saved: 'Overload cooldown settings saved',
         saveFailed: 'Failed to save overload cooldown settings'
+      },
+      rateLimit429Cooldown: {
+        title: '429 Default Cooldown',
+        description: 'Configure the default account cooldown when upstream returns 429 without an explicit reset time',
+        enabled: 'Enable 429 Default Cooldown',
+        enabledHint: 'Pause account scheduling when a 429 has no reset time, then auto-recover after cooldown',
+        cooldownSeconds: 'Cooldown Duration (seconds)',
+        cooldownSecondsHint: 'Default cooldown duration (1-7200 seconds); explicit upstream reset times still take precedence',
+        saved: '429 default cooldown settings saved',
+        saveFailed: 'Failed to save 429 default cooldown settings'
       },
       streamTimeout: {
         title: 'Stream Timeout Handling',
@@ -6494,7 +6500,7 @@ export default {
       },
       groupMultiplier: {
         title: '💰 3. Rate Multiplier',
-        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Set the billing multiplier to control user charges.</p><div style="padding: 8px 12px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>⚙️ Billing Rules:</b><ul style="margin: 8px 0 0 16px;"><li><b>1.0</b> - Original price (cost price)</li><li><b>1.5</b> - User consumes $1, charged $1.5</li><li><b>2.0</b> - User consumes $1, charged $2</li><li><b>0.8</b> - Subsidy mode (loss-making)</li></ul></div><p style="font-size: 13px; color: #6b7280;">Recommend setting test group to 1.0</p></div>',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Set the billing multiplier to control user charges.</p><div style="padding: 8px 12px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>⚙️ Billing Rules:</b><ul style="margin: 8px 0 0 16px;"><li><b>1.0</b> - Original price (cost price)</li><li><b>1.5</b> - User consumes ¥1, charged ¥1.5</li><li><b>2.0</b> - User consumes ¥1, charged ¥2</li><li><b>0.8</b> - Subsidy mode (loss-making)</li></ul></div><p style="font-size: 13px; color: #6b7280;">Recommend setting test group to 1.0</p></div>',
         nextBtn: 'Next'
       },
       groupExclusive: {
@@ -6617,6 +6623,7 @@ export default {
       alipay: 'Alipay',
       wxpay: 'WeChat Pay',
       stripe: 'Stripe',
+      airwallex: 'Airwallex',
       card: 'Card',
       link: 'Link',
       alipay_direct: 'Alipay (Direct)',
@@ -6696,12 +6703,14 @@ export default {
     amountTooLow: 'Minimum amount is {min}',
     amountTooHigh: 'Maximum amount is {max}',
     amountNoMethod: 'No payment method available for this amount',
-    rechargeRatePreview: 'Current rate: 1 CNY = {usd} USD',
+    rechargeRatePreview: 'Current rate: 1 CNY = {usd} CNY',
     refundReason: 'Refund Reason',
     refundReasonPlaceholder: 'Please describe your refund reason',
     stripeLoadFailed: 'Failed to load payment component. Please refresh and try again.',
     stripeMissingParams: 'Missing order ID or client secret',
     stripeNotConfigured: 'Stripe is not configured',
+    airwallexLoadFailed: 'Failed to load Airwallex payment component. Please refresh and try again.',
+    airwallexMissingParams: 'Missing Airwallex payment parameters',
     errors: {
       tooManyPending: 'Too many pending orders (max {max}). Please complete or cancel existing orders first.',
       cancelRateLimited: 'Too many cancellations. Please try again later.',
@@ -6747,6 +6756,7 @@ export default {
       REFUND_AMOUNT_EXCEEDED: 'Refund amount exceeds the recharge amount.',
       REFUND_FAILED: 'Refund failed.',
     },
+    airwallexPay: 'Airwallex Payment',
     stripePay: 'Pay Now',
     stripeSuccessProcessing: 'Payment successful, processing your order...',
     stripePopup: {
@@ -6825,7 +6835,7 @@ export default {
       deductBalanceHint: 'Subtract recharged amount from user balance',
       userBalance: 'User Balance',
       orderAmount: 'Order Amount',
-      insufficientBalance: 'Insufficient balance — will deduct to $0',
+      insufficientBalance: 'Insufficient balance — will deduct to ¥0',
       noDeduction: 'Will NOT deduct user balance',
       forceRefund: 'Force refund (ignore balance check)',
       orderCancelled: 'Order Cancelled',
