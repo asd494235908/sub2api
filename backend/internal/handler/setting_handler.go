@@ -89,6 +89,10 @@ func (h *SettingHandler) GetPublicSettings(c *gin.Context) {
 
 		AffiliateEnabled: settings.AffiliateEnabled,
 
+		LuckyWheelEnabled: settings.LuckyWheelEnabled,
+
+		RechargeActivityEnabled: settings.RechargeActivityEnabled,
+
 		RiskControlEnabled: settings.RiskControlEnabled,
 	})
 }

@@ -114,6 +114,90 @@ func (r *affiliateRepository) BindInviter(ctx context.Context, userID, inviterID
 	return bound, nil
 }
 
+func (r *affiliateRepository) AdminSetInviteRelation(ctx context.Context, inviterUserID, inviteeUserID int64, overwrite bool) (*service.AffiliateInviteRelationChange, error) {
+	result := &service.AffiliateInviteRelationChange{
+		InviterUserID: inviterUserID,
+		InviteeUserID: inviteeUserID,
+	}
+	err := r.withTx(ctx, func(txCtx context.Context, txClient *dbent.Client) error {
+		if err := ensureUserExists(txCtx, txClient, inviterUserID); err != nil {
+			return err
+		}
+		if err := ensureUserExists(txCtx, txClient, inviteeUserID); err != nil {
+			return err
+		}
+		if _, err := ensureUserAffiliateWithClient(txCtx, txClient, inviterUserID); err != nil {
+			return err
+		}
+		if _, err := ensureUserAffiliateWithClient(txCtx, txClient, inviteeUserID); err != nil {
+			return err
+		}
+
+		rows, err := txClient.QueryContext(txCtx,
+			"SELECT inviter_id FROM user_affiliates WHERE user_id = $1 FOR UPDATE",
+			inviteeUserID,
+		)
+		if err != nil {
+			return fmt.Errorf("lock invitee affiliate relation: %w", err)
+		}
+		defer func() { _ = rows.Close() }()
+		if !rows.Next() {
+			if err := rows.Err(); err != nil {
+				return err
+			}
+			return service.ErrAffiliateProfileNotFound
+		}
+		var current sql.NullInt64
+		if err := rows.Scan(&current); err != nil {
+			return err
+		}
+		if err := rows.Close(); err != nil {
+			return err
+		}
+
+		if current.Valid {
+			result.PreviousInviterUserID = &current.Int64
+			if current.Int64 == inviterUserID {
+				return nil
+			}
+			if !overwrite {
+				return service.ErrAffiliateAlreadyBound
+			}
+			result.Overwritten = true
+			if _, err := txClient.ExecContext(txCtx,
+				"UPDATE user_affiliates SET aff_count = GREATEST(aff_count - 1, 0), updated_at = NOW() WHERE user_id = $1",
+				current.Int64,
+			); err != nil {
+				return fmt.Errorf("decrement previous inviter aff_count: %w", err)
+			}
+		}
+
+		res, err := txClient.ExecContext(txCtx,
+			"UPDATE user_affiliates SET inviter_id = $1, updated_at = NOW() WHERE user_id = $2",
+			inviterUserID, inviteeUserID,
+		)
+		if err != nil {
+			return fmt.Errorf("set admin invite relation: %w", err)
+		}
+		affected, _ := res.RowsAffected()
+		if affected == 0 {
+			return service.ErrAffiliateProfileNotFound
+		}
+
+		if _, err := txClient.ExecContext(txCtx,
+			"UPDATE user_affiliates SET aff_count = aff_count + 1, updated_at = NOW() WHERE user_id = $1",
+			inviterUserID,
+		); err != nil {
+			return fmt.Errorf("increment inviter aff_count: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (r *affiliateRepository) AccrueQuota(ctx context.Context, inviterID, inviteeUserID int64, amount float64, freezeHours int, sourceOrderID *int64) (bool, error) {
 	if amount <= 0 {
 		return false, nil
@@ -160,6 +244,21 @@ VALUES ($1, 'accrue', $2, $3, $4, NOW(), NOW())`, inviterID, amount, inviteeUser
 		return false, err
 	}
 	return applied, nil
+}
+
+func ensureUserExists(ctx context.Context, client affiliateQueryExecer, userID int64) error {
+	rows, err := client.QueryContext(ctx, "SELECT 1 FROM users WHERE id = $1 LIMIT 1", userID)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = rows.Close() }()
+	if rows.Next() {
+		return rows.Err()
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	return service.ErrUserNotFound
 }
 
 func (r *affiliateRepository) GetAccruedRebateFromInvitee(ctx context.Context, inviterID, inviteeUserID int64) (float64, error) {

@@ -249,6 +249,33 @@ func (h *AffiliateHandler) ListInviteRecords(c *gin.Context) {
 	response.Paginated(c, items, total, filter.Page, filter.PageSize)
 }
 
+type CreateInviteRelationRequest struct {
+	InviterUserID int64 `json:"inviter_user_id" binding:"required"`
+	InviteeUserID int64 `json:"invitee_user_id" binding:"required"`
+	Overwrite     bool  `json:"overwrite"`
+}
+
+// CreateInviteRelation manually sets the current inviter-invitee relation.
+// POST /api/v1/admin/affiliates/invites
+func (h *AffiliateHandler) CreateInviteRelation(c *gin.Context) {
+	var req CreateInviteRelationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	result, err := h.affiliateService.AdminSetInviteRelation(
+		c.Request.Context(),
+		req.InviterUserID,
+		req.InviteeUserID,
+		req.Overwrite,
+	)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, result)
+}
+
 // ListRebateRecords returns all order-level affiliate rebate records.
 // GET /api/v1/admin/affiliates/rebates
 func (h *AffiliateHandler) ListRebateRecords(c *gin.Context) {

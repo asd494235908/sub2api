@@ -5,6 +5,7 @@ import (
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
+	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -19,6 +20,16 @@ type PaymentHandler struct {
 type updateLuckyWheelConfigRequest struct {
 	Enabled bool                     `json:"enabled"`
 	Config  service.LuckyWheelConfig `json:"config"`
+}
+
+type updateRechargeActivityConfigRequest struct {
+	Enabled bool                           `json:"enabled"`
+	Config  service.RechargeActivityConfig `json:"config"`
+}
+
+type updateRechargeActivityFulfillmentRequest struct {
+	Status string `json:"status"`
+	Note   string `json:"note"`
 }
 
 // NewPaymentHandler creates a new admin PaymentHandler.
@@ -102,6 +113,95 @@ func (h *PaymentHandler) GetLuckyWheelStats(c *gin.Context) {
 		return
 	}
 	response.Success(c, stats)
+}
+
+// GetRechargeActivityConfig returns the admin recharge activity configuration.
+// GET /api/v1/admin/payment/recharge-activity/config
+func (h *PaymentHandler) GetRechargeActivityConfig(c *gin.Context) {
+	if h.paymentService == nil {
+		response.InternalError(c, "Payment service not configured")
+		return
+	}
+	cfg, enabled, err := h.paymentService.GetRechargeActivityConfig(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{
+		"enabled": enabled,
+		"config":  cfg,
+	})
+}
+
+// UpdateRechargeActivityConfig updates the admin recharge activity configuration.
+// PUT /api/v1/admin/payment/recharge-activity/config
+func (h *PaymentHandler) UpdateRechargeActivityConfig(c *gin.Context) {
+	var req updateRechargeActivityConfigRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	if h.paymentService == nil {
+		response.InternalError(c, "Payment service not configured")
+		return
+	}
+	cfg, err := h.paymentService.UpdateRechargeActivityConfig(c.Request.Context(), req.Enabled, &req.Config)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{
+		"enabled": req.Enabled,
+		"config":  cfg,
+	})
+}
+
+// GetRechargeActivityStats returns admin recharge activity statistics.
+// GET /api/v1/admin/payment/recharge-activity/stats
+func (h *PaymentHandler) GetRechargeActivityStats(c *gin.Context) {
+	if h.paymentService == nil {
+		response.InternalError(c, "Payment service not configured")
+		return
+	}
+	query := service.RechargeActivityStatsQuery{
+		Page:        parsePositiveIntQuery(c.Query("page"), 1),
+		PageSize:    parsePositiveIntQuery(c.Query("page_size"), 20),
+		UserKeyword: c.Query("user_keyword"),
+	}
+	if query.PageSize > 100 {
+		query.PageSize = 100
+	}
+	stats, err := h.paymentService.GetRechargeActivityStats(c.Request.Context(), query)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, stats)
+}
+
+// UpdateRechargeActivityRecordFulfillment updates manual reward fulfillment state.
+// PUT /api/v1/admin/payment/recharge-activity/records/:id/fulfillment
+func (h *PaymentHandler) UpdateRechargeActivityRecordFulfillment(c *gin.Context) {
+	recordID, ok := parseIDParam(c, "id")
+	if !ok {
+		return
+	}
+	var req updateRechargeActivityFulfillmentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	if h.paymentService == nil {
+		response.InternalError(c, "Payment service not configured")
+		return
+	}
+	subject, _ := middleware.GetAuthSubjectFromContext(c)
+	record, err := h.paymentService.UpdateRechargeActivityRecordFulfillment(c.Request.Context(), recordID, subject.UserID, req.Status, req.Note)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, record)
 }
 
 // --- Orders ---
@@ -374,6 +474,14 @@ func parseIDParam(c *gin.Context, paramName string) (int64, bool) {
 		return 0, false
 	}
 	return id, true
+}
+
+func parsePositiveIntQuery(raw string, fallback int) int {
+	value, err := strconv.Atoi(raw)
+	if err != nil || value <= 0 {
+		return fallback
+	}
+	return value
 }
 
 // --- Config ---

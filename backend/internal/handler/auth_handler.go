@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"strings"
@@ -54,6 +55,23 @@ type RegisterRequest struct {
 	PromoCode       string `json:"promo_code"`      // 注册优惠码
 	InvitationCode  string `json:"invitation_code"` // 邀请码
 	AffCode         string `json:"aff_code"`        // 邀请返利码
+}
+
+func (r *RegisterRequest) UnmarshalJSON(data []byte) error {
+	type registerRequestAlias RegisterRequest
+	aux := struct {
+		*registerRequestAlias
+		Aff string `json:"aff"`
+	}{
+		registerRequestAlias: (*registerRequestAlias)(r),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if strings.TrimSpace(r.AffCode) == "" && strings.TrimSpace(aux.Aff) != "" {
+		r.AffCode = aux.Aff
+	}
+	return nil
 }
 
 // SendVerifyCodeRequest 发送验证码请求

@@ -93,13 +93,13 @@
                     : 'badge-primary'
               ]"
             >
-              {{ t('admin.redeem.types.' + value) }}
+              {{ formatRedeemType(value) }}
             </span>
           </template>
 
           <template #cell-value="{ value, row }">
             <span class="text-sm font-medium text-gray-900 dark:text-white">
-              <template v-if="row.type === 'balance'">¥{{ value.toFixed(2) }}</template>
+              <template v-if="isCurrencyRedeemType(row.type)">¥{{ value.toFixed(2) }}</template>
               <template v-else-if="row.type === 'subscription'">
                 {{ row.validity_days || 30 }} {{ t('admin.redeem.days') }}
                 <span v-if="row.group" class="ml-1 text-xs text-gray-500 dark:text-gray-400"
@@ -418,7 +418,7 @@ import GroupBadge from '@/components/common/GroupBadge.vue'
 import GroupOptionItem from '@/components/common/GroupOptionItem.vue'
 import Icon from '@/components/icons/Icon.vue'
 
-const { t } = useI18n()
+const { t, te, locale } = useI18n()
 const appStore = useAppStore()
 const { copyToClipboard: clipboardCopy } = useClipboard()
 
@@ -521,7 +521,9 @@ const filterTypeOptions = computed(() => [
   { value: 'balance', label: t('admin.redeem.balance') },
   { value: 'concurrency', label: t('admin.redeem.concurrency') },
   { value: 'subscription', label: t('admin.redeem.subscription') },
-  { value: 'invitation', label: t('admin.redeem.invitation') }
+  { value: 'invitation', label: t('admin.redeem.invitation') },
+  { value: 'weekly_balance', label: formatRedeemType('weekly_balance') },
+  { value: 'lucky_wheel_bonus', label: formatRedeemType('lucky_wheel_bonus') }
 ])
 
 const filterStatusOptions = computed(() => [
@@ -556,6 +558,27 @@ const showDeleteDialog = ref(false)
 const showDeleteUnusedDialog = ref(false)
 const deletingCode = ref<RedeemCode | null>(null)
 const copiedCode = ref<string | null>(null)
+
+const isCurrencyRedeemType = (type: string) =>
+  type === 'balance' || type === 'weekly_balance' || type === 'lucky_wheel_bonus'
+
+const redeemTypeFallbackLabels: Record<string, { zh: string; en: string }> = {
+  balance: { zh: '余额', en: 'Balance' },
+  concurrency: { zh: '并发数', en: 'Concurrency' },
+  subscription: { zh: '订阅', en: 'Subscription' },
+  invitation: { zh: '邀请码', en: 'Invitation' },
+  weekly_balance: { zh: '周额度领取', en: 'Weekly Quota Claim' },
+  lucky_wheel_bonus: { zh: '转盘奖励', en: 'Lucky Wheel Bonus' }
+}
+
+const formatRedeemType = (type: string) => {
+  const key = `admin.redeem.types.${type}`
+  if (te(key)) {
+    return t(key)
+  }
+  const fallbackLocale = String(locale.value || 'en').startsWith('zh') ? 'zh' : 'en'
+  return redeemTypeFallbackLabels[type]?.[fallbackLocale] ?? type
+}
 
 const generateForm = reactive({
   type: 'balance' as RedeemCodeType,

@@ -150,6 +150,7 @@ type SystemSettings struct {
 	AffiliateSignupRewardAmount  float64                      `json:"affiliate_signup_reward_amount"`
 	WeeklyQuotaEnabled           bool                         `json:"weekly_quota_enabled"`
 	WeeklyQuotaAmount            float64                      `json:"weekly_quota_amount"`
+	RechargeActivityEnabled      bool                         `json:"recharge_activity_enabled"`
 	DefaultUserRPMLimit          int                          `json:"default_user_rpm_limit"`
 	DefaultSubscriptions         []DefaultSubscriptionSetting `json:"default_subscriptions"`
 
@@ -313,6 +314,10 @@ type PublicSettings struct {
 	AvailableChannelsEnabled bool `json:"available_channels_enabled"`
 
 	AffiliateEnabled bool `json:"affiliate_enabled"`
+
+	LuckyWheelEnabled bool `json:"lucky_wheel_enabled"`
+
+	RechargeActivityEnabled bool `json:"recharge_activity_enabled"`
 
 	RiskControlEnabled bool `json:"risk_control_enabled"`
 }

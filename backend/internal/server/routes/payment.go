@@ -32,6 +32,8 @@ func RegisterPaymentRoutes(
 		authenticated.GET("/limits", paymentHandler.GetLimits)
 		authenticated.GET("/lucky-wheel", paymentHandler.GetLuckyWheelSummary)
 		authenticated.POST("/lucky-wheel/draw", paymentHandler.DrawLuckyWheel)
+		authenticated.GET("/recharge-activity", paymentHandler.GetRechargeActivitySummary)
+		authenticated.POST("/recharge-activity/draw", paymentHandler.DrawRechargeActivity)
 
 		orders := authenticated.Group("/orders")
 		{
@@ -76,6 +78,10 @@ func RegisterPaymentRoutes(
 		adminGroup.GET("/lucky-wheel/config", adminPaymentHandler.GetLuckyWheelConfig)
 		adminGroup.PUT("/lucky-wheel/config", adminPaymentHandler.UpdateLuckyWheelConfig)
 		adminGroup.GET("/lucky-wheel/stats", adminPaymentHandler.GetLuckyWheelStats)
+		adminGroup.GET("/recharge-activity/config", adminPaymentHandler.GetRechargeActivityConfig)
+		adminGroup.PUT("/recharge-activity/config", adminPaymentHandler.UpdateRechargeActivityConfig)
+		adminGroup.GET("/recharge-activity/stats", adminPaymentHandler.GetRechargeActivityStats)
+		adminGroup.PUT("/recharge-activity/records/:id/fulfillment", adminPaymentHandler.UpdateRechargeActivityRecordFulfillment)
 
 		// Config
 		adminGroup.GET("/config", adminPaymentHandler.GetConfig)

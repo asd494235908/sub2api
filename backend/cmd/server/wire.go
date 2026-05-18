@@ -45,6 +45,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 		repository.ProviderSet,
 		service.ProviderSet,
 		provideInitializedSettingService,
+		wire.Bind(new(service.WeeklyQuotaSettingsProvider), new(*service.SettingService)),
 		payment.ProviderSet,
 		middleware.ProviderSet,
 		handler.ProviderSet,

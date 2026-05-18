@@ -48,7 +48,7 @@ func TestMergeBalanceHistoryCodesIncludesAffiliateTransfersByDefault(t *testing.
 		},
 	}
 
-	got := mergeBalanceHistoryCodes(redeemCodes, affiliateCodes, pagination.PaginationParams{
+	got := mergeBalanceHistoryCodes(redeemCodes, affiliateCodes, nil, pagination.PaginationParams{
 		Page:     1,
 		PageSize: 2,
 	})
@@ -56,6 +56,35 @@ func TestMergeBalanceHistoryCodesIncludesAffiliateTransfersByDefault(t *testing.
 	require.Len(t, got, 2)
 	require.Equal(t, RedeemTypeAffiliateBalance, got[0].Type)
 	require.Equal(t, RedeemTypeBalance, got[1].Type)
+}
+
+func TestMergeBalanceHistoryCodesIncludesLuckyWheelBonusesByDefault(t *testing.T) {
+	t.Parallel()
+
+	base := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
+	usedBy := int64(10)
+	at := func(hours int) *time.Time {
+		v := base.Add(time.Duration(hours) * time.Hour)
+		return &v
+	}
+
+	got := mergeBalanceHistoryCodes(
+		[]RedeemCode{
+			{ID: 1, Type: RedeemTypeBalance, UsedBy: &usedBy, UsedAt: at(1), CreatedAt: *at(1)},
+		},
+		[]RedeemCode{
+			{ID: -2, Type: RedeemTypeAffiliateBalance, UsedBy: &usedBy, UsedAt: at(2), CreatedAt: *at(2)},
+		},
+		[]RedeemCode{
+			{ID: -3, Type: RedeemTypeLuckyWheelBonus, UsedBy: &usedBy, UsedAt: at(3), CreatedAt: *at(3)},
+		},
+		pagination.PaginationParams{Page: 1, PageSize: 3},
+	)
+
+	require.Len(t, got, 3)
+	require.Equal(t, RedeemTypeLuckyWheelBonus, got[0].Type)
+	require.Equal(t, RedeemTypeAffiliateBalance, got[1].Type)
+	require.Equal(t, RedeemTypeBalance, got[2].Type)
 }
 
 func TestMergeBalanceHistoryCodesPaginatesAfterCombiningSources(t *testing.T) {
@@ -77,6 +106,7 @@ func TestMergeBalanceHistoryCodesPaginatesAfterCombiningSources(t *testing.T) {
 			{ID: -3, Type: RedeemTypeAffiliateBalance, UsedBy: &usedBy, UsedAt: at(3), CreatedAt: *at(3)},
 			{ID: -4, Type: RedeemTypeAffiliateBalance, UsedBy: &usedBy, UsedAt: at(1), CreatedAt: *at(1)},
 		},
+		nil,
 		pagination.PaginationParams{Page: 2, PageSize: 2},
 	)
 

@@ -58,6 +58,7 @@ const (
 	RedeemTypeInvitation       = domain.RedeemTypeInvitation
 	RedeemTypeWeeklyBalance    = domain.RedeemTypeWeeklyBalance
 	RedeemTypeAffiliateBalance = "affiliate_balance"
+	RedeemTypeLuckyWheelBonus  = "lucky_wheel_bonus"
 )
 
 // PromoCode status constants
@@ -115,6 +116,7 @@ const (
 	SettingKeyWeeklyQuotaEnabled               = "weekly_quota_enabled"                // 是否启用每周额度领取
 	SettingKeyWeeklyQuotaAmount                = "weekly_quota_amount"                 // 每周可领取额度
 	SettingKeyLuckyWheelEnabled                = "lucky_wheel_enabled"                 // 是否启用幸运转盘
+	SettingKeyRechargeActivityEnabled          = "recharge_activity_enabled"           // 是否启用充值活动
 	SettingKeyRiskControlEnabled               = "risk_control_enabled"                // 是否启用风控中心入口与审计链路
 	SettingKeyContentModerationConfig          = "content_moderation_config"           // 内容审计配置（JSON）
 	SettingKeyLoginAgreementEnabled            = "login_agreement_enabled"             // 登录前是否要求同意条款

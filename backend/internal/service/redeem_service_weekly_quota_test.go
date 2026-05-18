@@ -40,7 +40,16 @@ func weeklyQuotaDerefString(value *string) string {
 }
 
 func (r *weeklyQuotaRedeemRepoStub) Create(ctx context.Context, code *RedeemCode) error {
-	created, err := r.client.RedeemCode.Create().
+	var builder interface {
+		Create() *dbent.RedeemCodeCreate
+	}
+	if tx := dbent.TxFromContext(ctx); tx != nil {
+		builder = tx.RedeemCode
+	} else {
+		builder = r.client.RedeemCode
+	}
+
+	created, err := builder.Create().
 		SetCode(code.Code).
 		SetType(code.Type).
 		SetValue(code.Value).
@@ -277,6 +286,147 @@ func TestRedeemService_ClaimWeeklyQuota_SucceedsAndWritesRedeemRecord(t *testing
 	require.NotNil(t, info.ClaimedAt)
 	require.Equal(t, int64(1), info.TotalClaimCount)
 	require.Equal(t, 12.5, info.TotalClaimAmount)
+}
+
+func TestRedeemService_ClaimWeeklyQuota_RequiresPhoneWhenPhoneVerifyEnabled(t *testing.T) {
+	ctx := context.Background()
+	client := newWeeklyQuotaTestClient(t)
+	createdAt := time.Now().UTC().Add(-2 * 24 * time.Hour)
+	userEnt, err := client.User.Create().
+		SetEmail("weekly-phone-required@example.com").
+		SetPasswordHash("hash").
+		SetUsername("weekly-phone-required-user").
+		SetBalance(5).
+		SetCreatedAt(createdAt).
+		Save(ctx)
+	require.NoError(t, err)
+
+	userRepo := &mockUserRepo{
+		getByIDUser: &User{
+			ID:        userEnt.ID,
+			Email:     userEnt.Email,
+			Username:  userEnt.Username,
+			Balance:   5,
+			CreatedAt: createdAt,
+		},
+	}
+	userRepo.updateBalanceFn = func(context.Context, int64, float64) error {
+		t.Fatal("UpdateBalance must not be called before phone binding")
+		return nil
+	}
+
+	svc := NewRedeemService(
+		&weeklyQuotaRedeemRepoStub{client: client},
+		userRepo,
+		nil,
+		nil,
+		nil,
+		client,
+		nil,
+		nil,
+		&weeklyQuotaSettingsProviderStub{settings: &SystemSettings{WeeklyQuotaEnabled: true, WeeklyQuotaAmount: 12.5, PhoneVerifyEnabled: true}},
+	)
+
+	_, err = svc.ClaimWeeklyQuota(ctx, userEnt.ID)
+	require.ErrorIs(t, err, ErrWeeklyQuotaPhoneRequired)
+	require.Equal(t, 5.0, userRepo.getByIDUser.Balance)
+
+	records, err := client.RedeemCode.Query().All(ctx)
+	require.NoError(t, err)
+	require.Empty(t, records)
+}
+
+func TestRedeemService_ClaimWeeklyQuota_AllowsBoundPhoneWhenPhoneVerifyEnabled(t *testing.T) {
+	ctx := context.Background()
+	client := newWeeklyQuotaTestClient(t)
+	createdAt := time.Now().UTC().Add(-2 * 24 * time.Hour)
+	userEnt, err := client.User.Create().
+		SetEmail("weekly-phone-bound@example.com").
+		SetPasswordHash("hash").
+		SetUsername("weekly-phone-bound-user").
+		SetBalance(5).
+		SetCreatedAt(createdAt).
+		Save(ctx)
+	require.NoError(t, err)
+
+	userRepo := &mockUserRepo{
+		getByIDUser: &User{
+			ID:          userEnt.ID,
+			Email:       userEnt.Email,
+			PhoneNumber: "+8613800138000",
+			Username:    userEnt.Username,
+			Balance:     5,
+			CreatedAt:   createdAt,
+		},
+	}
+	userRepo.updateBalanceFn = func(ctx context.Context, id int64, amount float64) error {
+		require.Equal(t, userEnt.ID, id)
+		userRepo.getByIDUser.Balance += amount
+		return nil
+	}
+
+	svc := NewRedeemService(
+		&weeklyQuotaRedeemRepoStub{client: client},
+		userRepo,
+		nil,
+		nil,
+		nil,
+		client,
+		nil,
+		nil,
+		&weeklyQuotaSettingsProviderStub{settings: &SystemSettings{WeeklyQuotaEnabled: true, WeeklyQuotaAmount: 12.5, PhoneVerifyEnabled: true}},
+	)
+
+	result, err := svc.ClaimWeeklyQuota(ctx, userEnt.ID)
+	require.NoError(t, err)
+	require.Equal(t, RedeemTypeWeeklyBalance, result.Type)
+	require.Equal(t, 17.5, result.NewBalance)
+}
+
+func TestRedeemService_ClaimWeeklyQuota_AllowsUnboundPhoneWhenPhoneVerifyDisabled(t *testing.T) {
+	ctx := context.Background()
+	client := newWeeklyQuotaTestClient(t)
+	createdAt := time.Now().UTC().Add(-2 * 24 * time.Hour)
+	userEnt, err := client.User.Create().
+		SetEmail("weekly-phone-disabled@example.com").
+		SetPasswordHash("hash").
+		SetUsername("weekly-phone-disabled-user").
+		SetBalance(5).
+		SetCreatedAt(createdAt).
+		Save(ctx)
+	require.NoError(t, err)
+
+	userRepo := &mockUserRepo{
+		getByIDUser: &User{
+			ID:        userEnt.ID,
+			Email:     userEnt.Email,
+			Username:  userEnt.Username,
+			Balance:   5,
+			CreatedAt: createdAt,
+		},
+	}
+	userRepo.updateBalanceFn = func(ctx context.Context, id int64, amount float64) error {
+		require.Equal(t, userEnt.ID, id)
+		userRepo.getByIDUser.Balance += amount
+		return nil
+	}
+
+	svc := NewRedeemService(
+		&weeklyQuotaRedeemRepoStub{client: client},
+		userRepo,
+		nil,
+		nil,
+		nil,
+		client,
+		nil,
+		nil,
+		&weeklyQuotaSettingsProviderStub{settings: &SystemSettings{WeeklyQuotaEnabled: true, WeeklyQuotaAmount: 12.5, PhoneVerifyEnabled: false}},
+	)
+
+	result, err := svc.ClaimWeeklyQuota(ctx, userEnt.ID)
+	require.NoError(t, err)
+	require.Equal(t, RedeemTypeWeeklyBalance, result.Type)
+	require.Equal(t, 17.5, result.NewBalance)
 }
 
 func TestRedeemService_ClaimWeeklyQuota_RejectsSecondClaimInSameWindow(t *testing.T) {

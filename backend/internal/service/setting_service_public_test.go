@@ -50,7 +50,11 @@ func (s *settingPublicRepoStub) SetMultiple(ctx context.Context, settings map[st
 }
 
 func (s *settingPublicRepoStub) GetAll(ctx context.Context) (map[string]string, error) {
-	panic("unexpected GetAll call")
+	out := make(map[string]string, len(s.values))
+	for key, value := range s.values {
+		out[key] = value
+	}
+	return out, nil
 }
 
 func (s *settingPublicRepoStub) Delete(ctx context.Context, key string) error {
@@ -205,6 +209,19 @@ func TestSettingService_GetPublicSettings_ExposesWeeklyQuotaEnabled(t *testing.T
 	require.NoError(t, err)
 	require.True(t, all.WeeklyQuotaEnabled)
 	require.Equal(t, 18.88, all.WeeklyQuotaAmount)
+}
+
+func TestSettingService_GetPublicSettings_ExposesLuckyWheelEnabled(t *testing.T) {
+	repo := &settingPublicRepoStub{
+		values: map[string]string{
+			SettingKeyLuckyWheelEnabled: "true",
+		},
+	}
+	svc := NewSettingService(repo, &config.Config{})
+
+	settings, err := svc.GetPublicSettings(context.Background())
+	require.NoError(t, err)
+	require.True(t, settings.LuckyWheelEnabled)
 }
 
 func TestSettingService_GetPublicSettings_ExposesWeChatOAuthModeCapabilities(t *testing.T) {

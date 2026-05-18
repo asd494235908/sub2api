@@ -11,7 +11,14 @@ import (
 )
 
 type affiliateRepoStub struct {
-	summaries map[int64]*AffiliateSummary
+	summaries        map[int64]*AffiliateSummary
+	setRelationCalls []struct {
+		inviterUserID int64
+		inviteeUserID int64
+		overwrite     bool
+	}
+	setRelationResult *AffiliateInviteRelationChange
+	setRelationErr    error
 
 	signupBonusCalls []struct {
 		inviterID     int64
@@ -57,6 +64,15 @@ func (s *affiliateRepoStub) BindInviter(_ context.Context, userID, inviterID int
 	}
 	invitee.InviterID = &inviterID
 	return true, nil
+}
+
+func (s *affiliateRepoStub) AdminSetInviteRelation(_ context.Context, inviterUserID, inviteeUserID int64, overwrite bool) (*AffiliateInviteRelationChange, error) {
+	s.setRelationCalls = append(s.setRelationCalls, struct {
+		inviterUserID int64
+		inviteeUserID int64
+		overwrite     bool
+	}{inviterUserID: inviterUserID, inviteeUserID: inviteeUserID, overwrite: overwrite})
+	return s.setRelationResult, s.setRelationErr
 }
 
 func (s *affiliateRepoStub) AccrueQuota(context.Context, int64, int64, float64, int, *int64) (bool, error) {
@@ -239,6 +255,47 @@ func TestApplySignupBonus_AwardsDirectBalanceAndReturnsBalance(t *testing.T) {
 	require.Equal(t, inviterID, repo.signupBonusCalls[0].inviterID)
 	require.Equal(t, inviteeID, repo.signupBonusCalls[0].inviteeUserID)
 	require.InDelta(t, 18.88, repo.signupBonusCalls[0].amount, 1e-9)
+}
+
+func TestAdminSetInviteRelationDelegatesOverwrite(t *testing.T) {
+	t.Parallel()
+
+	previousID := int64(33)
+	repo := &affiliateRepoStub{
+		setRelationResult: &AffiliateInviteRelationChange{
+			InviterUserID:         11,
+			InviteeUserID:         22,
+			Overwritten:           true,
+			PreviousInviterUserID: &previousID,
+		},
+	}
+	svc := &AffiliateService{repo: repo}
+
+	result, err := svc.AdminSetInviteRelation(context.Background(), 11, 22, true)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, int64(11), result.InviterUserID)
+	require.Equal(t, int64(22), result.InviteeUserID)
+	require.True(t, result.Overwritten)
+	require.Equal(t, previousID, *result.PreviousInviterUserID)
+	require.Len(t, repo.setRelationCalls, 1)
+	require.Equal(t, int64(11), repo.setRelationCalls[0].inviterUserID)
+	require.Equal(t, int64(22), repo.setRelationCalls[0].inviteeUserID)
+	require.True(t, repo.setRelationCalls[0].overwrite)
+}
+
+func TestAdminSetInviteRelationRejectsInvalidIDs(t *testing.T) {
+	t.Parallel()
+
+	svc := &AffiliateService{repo: &affiliateRepoStub{}}
+	_, err := svc.AdminSetInviteRelation(context.Background(), 0, 22, true)
+	require.Error(t, err)
+
+	_, err = svc.AdminSetInviteRelation(context.Background(), 11, 0, true)
+	require.Error(t, err)
+
+	_, err = svc.AdminSetInviteRelation(context.Background(), 11, 11, true)
+	require.Error(t, err)
 }
 
 func TestApplySignupBonus_SkipsWhenFeatureDisabledOrNoInviter(t *testing.T) {

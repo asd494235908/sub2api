@@ -13,6 +13,10 @@ import type {
   AdminLuckyWheelConfigResponse,
   LuckyWheelStats,
   LuckyWheelConfig,
+  AdminRechargeActivityConfigResponse,
+  RechargeActivityStats,
+  RechargeActivityConfig,
+  RechargeActivityDrawRecord,
 } from '@/types/payment'
 import type { BasePaginationResponse } from '@/types'
 
@@ -87,6 +91,26 @@ export const adminPaymentAPI = {
   /** Get lucky wheel admin stats */
   getLuckyWheelStats() {
     return apiClient.get<LuckyWheelStats>('/admin/payment/lucky-wheel/stats')
+  },
+
+  /** Get recharge activity admin configuration */
+  getRechargeActivityConfig() {
+    return apiClient.get<AdminRechargeActivityConfigResponse>('/admin/payment/recharge-activity/config')
+  },
+
+  /** Update recharge activity admin configuration */
+  updateRechargeActivityConfig(data: { enabled: boolean; config: RechargeActivityConfig }) {
+    return apiClient.put<AdminRechargeActivityConfigResponse>('/admin/payment/recharge-activity/config', data)
+  },
+
+  /** Get recharge activity admin stats */
+  getRechargeActivityStats(params?: { page?: number; page_size?: number; user_keyword?: string }) {
+    return apiClient.get<RechargeActivityStats>('/admin/payment/recharge-activity/stats', { params })
+  },
+
+  /** Update manual fulfillment status for a recharge activity draw record */
+  updateRechargeActivityRecordFulfillment(id: number, data: { status: 'pending' | 'fulfilled'; note?: string }) {
+    return apiClient.put<RechargeActivityDrawRecord>(`/admin/payment/recharge-activity/records/${id}/fulfillment`, data)
   },
 
   // ==================== Orders ====================

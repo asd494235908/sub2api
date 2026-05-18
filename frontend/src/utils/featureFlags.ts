@@ -129,6 +129,11 @@ export const FeatureFlags = {
     mode: 'opt-in',
     label: 'Lucky Wheel',
   }),
+  rechargeActivity: defineFlag({
+    key: 'recharge_activity_enabled',
+    mode: 'opt-in',
+    label: 'Recharge Activity',
+  }),
 } as const
 
 export type RegisteredFeatureFlag = keyof typeof FeatureFlags

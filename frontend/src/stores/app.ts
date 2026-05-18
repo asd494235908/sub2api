@@ -365,6 +365,7 @@ export const useAppStore = defineStore('app', () => {
         affiliate_enabled: false,
         weekly_quota_enabled: false,
         lucky_wheel_enabled: false,
+        recharge_activity_enabled: false,
       }
     }
 

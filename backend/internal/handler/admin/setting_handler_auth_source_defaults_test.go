@@ -252,6 +252,45 @@ func TestSettingHandler_UpdateSettings_PersistsPaymentVisibleMethodsAndAdvancedS
 	require.Equal(t, true, data["openai_advanced_scheduler_enabled"])
 }
 
+func TestSettingHandler_UpdateSettings_PersistsWeeklyQuotaSettings(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	repo := &settingHandlerRepoStub{
+		values: map[string]string{
+			service.SettingKeyPromoCodeEnabled:   "true",
+			service.SettingKeyWeeklyQuotaEnabled: "false",
+			service.SettingKeyWeeklyQuotaAmount:  "0",
+		},
+	}
+	svc := service.NewSettingService(repo, &config.Config{Default: config.DefaultConfig{UserConcurrency: 5}})
+	handler := NewSettingHandler(svc, nil, nil, nil, nil, nil, nil)
+
+	body := map[string]any{
+		"promo_code_enabled":   true,
+		"weekly_quota_enabled": true,
+		"weekly_quota_amount":  12.5,
+	}
+	rawBody, err := json.Marshal(body)
+	require.NoError(t, err)
+
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = httptest.NewRequest(http.MethodPut, "/api/v1/admin/settings", bytes.NewReader(rawBody))
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	handler.UpdateSettings(c)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, "true", repo.values[service.SettingKeyWeeklyQuotaEnabled])
+	require.Equal(t, "12.50000000", repo.values[service.SettingKeyWeeklyQuotaAmount])
+
+	var resp response.Response
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	data, ok := resp.Data.(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, true, data["weekly_quota_enabled"])
+	require.Equal(t, 12.5, data["weekly_quota_amount"])
+}
+
 func TestSettingHandler_UpdateSettings_PreservesLegacyBlankPaymentVisibleMethodSource(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	repo := &settingHandlerRepoStub{

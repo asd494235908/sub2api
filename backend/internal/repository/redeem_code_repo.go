@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"sort"
 	"strconv"
 	"strings"
@@ -401,23 +402,27 @@ LIMIT ?`
 			value         float64
 			usedAt        time.Time
 			createdAt     time.Time
-			tierName      string
+			tierName      sql.NullString
 		)
 		if err := rows.Scan(&id, &sourceOrderID, &value, &usedAt, &createdAt, &tierName); err != nil {
 			return nil, err
 		}
 		usedAtCopy := usedAt
+		title := service.RedeemTypeLuckyWheelBonus
+		if tierName.Valid {
+			title = tierName.String
+		}
 		items = append(items, service.RedeemHistoryItem{
 			ID:        id,
 			Code:      "LUCKY-" + strconv.FormatInt(sourceOrderID, 10),
-			Type:      "lucky_wheel_bonus",
+			Type:      service.RedeemTypeLuckyWheelBonus,
 			Value:     value,
 			Status:    service.StatusUsed,
 			UsedBy:    &userID,
 			UsedAt:    &usedAtCopy,
 			CreatedAt: createdAt,
 			Source:    "lucky_wheel",
-			Title:     tierName,
+			Title:     title,
 		})
 	}
 	return items, rows.Err()

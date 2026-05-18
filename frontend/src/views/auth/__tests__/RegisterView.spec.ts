@@ -10,6 +10,7 @@ const {
   showErrorMock,
   registerMock,
   pushMock,
+  routeState,
 } = vi.hoisted(() => ({
   getPublicSettingsMock: vi.fn(),
   apiClientPostMock: vi.fn(),
@@ -17,15 +18,18 @@ const {
   showErrorMock: vi.fn(),
   registerMock: vi.fn(),
   pushMock: vi.fn(),
+  routeState: {
+    query: {} as Record<string, string>,
+  },
 }))
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({
     push: pushMock,
-    currentRoute: { value: { query: {} } },
+    currentRoute: { value: routeState },
   }),
   useRoute: () => ({
-    query: {},
+    query: routeState.query,
   }),
   RouterLink: {
     template: '<a><slot /></a>',
@@ -71,7 +75,15 @@ vi.mock('@/api/client', () => ({
 
 vi.mock('@/utils/oauthAffiliate', () => ({
   loadAffiliateReferralCode: () => '',
-  resolveAffiliateReferralCode: () => '',
+  resolveAffiliateReferralCode: (...values: unknown[]) => {
+    for (const value of values) {
+      const code = Array.isArray(value) ? value[0] : value
+      if (typeof code === 'string' && code.trim()) {
+        return code.trim()
+      }
+    }
+    return ''
+  },
   clearAffiliateReferralCode: vi.fn(),
 }))
 
@@ -138,6 +150,8 @@ describe('RegisterView', () => {
     showErrorMock.mockReset()
     registerMock.mockReset()
     pushMock.mockReset()
+    routeState.query = {}
+    sessionStorage.clear()
 
     getPublicSettingsMock.mockResolvedValue(defaultPublicSettings())
   })
@@ -246,5 +260,47 @@ describe('RegisterView', () => {
         locale: { value: 'en' },
       }),
     }))
+  })
+
+  it('submits affiliate code from invite link during direct registration', async () => {
+    routeState.query = { aff: 'AFF123' }
+    getPublicSettingsMock.mockResolvedValueOnce({
+      ...defaultPublicSettings(),
+      phone_verify_enabled: false,
+    })
+    registerMock.mockResolvedValue({})
+
+    const wrapper = mountRegisterView()
+    await flushPromises()
+
+    await wrapper.get('#email').setValue('invitee@example.com')
+    await wrapper.get('#password').setValue('password')
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(registerMock).toHaveBeenCalledWith(expect.objectContaining({
+      aff_code: 'AFF123',
+    }))
+  })
+
+  it('persists affiliate code from invite link for email verification registration', async () => {
+    routeState.query = { aff: 'AFF123' }
+    getPublicSettingsMock.mockResolvedValueOnce({
+      ...defaultPublicSettings(),
+      email_verify_enabled: true,
+      phone_verify_enabled: false,
+    })
+
+    const wrapper = mountRegisterView()
+    await flushPromises()
+
+    await wrapper.get('#email').setValue('verify-invitee@example.com')
+    await wrapper.get('#password').setValue('password')
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+
+    const stored = JSON.parse(sessionStorage.getItem('register_data') || '{}')
+    expect(stored.aff_code).toBe('AFF123')
+    expect(pushMock).toHaveBeenCalledWith('/email-verify')
   })
 })

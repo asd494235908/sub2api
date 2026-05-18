@@ -632,6 +632,7 @@ func registerAffiliateRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	affiliates := admin.Group("/affiliates")
 	{
 		affiliates.GET("/invites", h.Admin.Affiliate.ListInviteRecords)
+		affiliates.POST("/invites", h.Admin.Affiliate.CreateInviteRelation)
 		affiliates.GET("/rebates", h.Admin.Affiliate.ListRebateRecords)
 		affiliates.GET("/transfers", h.Admin.Affiliate.ListTransferRecords)
 		affiliates.GET("/inviters", h.Admin.Affiliate.ListInviters)

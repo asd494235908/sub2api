@@ -313,6 +313,9 @@ func (s *PaymentService) markCompleted(ctx context.Context, o *dbent.PaymentOrde
 	if err := s.GrantLuckyWheelChanceForOrder(ctx, o); err != nil {
 		return fmt.Errorf("grant lucky wheel chance: %w", err)
 	}
+	if err := s.GrantRechargeActivityChanceForOrder(ctx, o); err != nil {
+		return fmt.Errorf("grant recharge activity chance: %w", err)
+	}
 	return nil
 }
 

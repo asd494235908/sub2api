@@ -98,6 +98,7 @@ type AffiliateRepository interface {
 	EnsureUserAffiliate(ctx context.Context, userID int64) (*AffiliateSummary, error)
 	GetAffiliateByCode(ctx context.Context, code string) (*AffiliateSummary, error)
 	BindInviter(ctx context.Context, userID, inviterID int64) (bool, error)
+	AdminSetInviteRelation(ctx context.Context, inviterUserID, inviteeUserID int64, overwrite bool) (*AffiliateInviteRelationChange, error)
 	AccrueQuota(ctx context.Context, inviterID, inviteeUserID int64, amount float64, freezeHours int, sourceOrderID *int64) (bool, error)
 	AwardSignupBonus(ctx context.Context, inviterID, inviteeUserID int64, amount float64) (bool, float64, error)
 	GetAccruedRebateFromInvitee(ctx context.Context, inviterID, inviteeUserID int64) (float64, error)
@@ -144,6 +145,13 @@ type AffiliateInviterEntry struct {
 	AffCode     string  `json:"aff_code"`
 	AffCount    int     `json:"aff_count"`
 	TotalRebate float64 `json:"total_rebate"`
+}
+
+type AffiliateInviteRelationChange struct {
+	InviterUserID         int64  `json:"inviter_user_id"`
+	InviteeUserID         int64  `json:"invitee_user_id"`
+	Overwritten           bool   `json:"overwritten"`
+	PreviousInviterUserID *int64 `json:"previous_inviter_user_id,omitempty"`
 }
 
 type AffiliateRecordFilter struct {
@@ -631,6 +639,19 @@ func (s *AffiliateService) AdminListInviteesByInviter(ctx context.Context, invit
 		return nil, infraerrors.BadRequest("INVALID_USER", "invalid user")
 	}
 	return s.repo.ListInviteesByInviter(ctx, inviterID, affiliateInviteesLimit)
+}
+
+func (s *AffiliateService) AdminSetInviteRelation(ctx context.Context, inviterUserID, inviteeUserID int64, overwrite bool) (*AffiliateInviteRelationChange, error) {
+	if inviterUserID <= 0 || inviteeUserID <= 0 {
+		return nil, infraerrors.BadRequest("INVALID_USER", "invalid user")
+	}
+	if inviterUserID == inviteeUserID {
+		return nil, infraerrors.BadRequest("INVALID_AFFILIATE_RELATION", "inviter and invitee cannot be the same user")
+	}
+	if s == nil || s.repo == nil {
+		return nil, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+	}
+	return s.repo.AdminSetInviteRelation(ctx, inviterUserID, inviteeUserID, overwrite)
 }
 
 func (s *AffiliateService) AdminListInviteRecords(ctx context.Context, filter AffiliateRecordFilter) ([]AffiliateInviteRecord, int64, error) {

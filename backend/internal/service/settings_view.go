@@ -144,6 +144,7 @@ type SystemSettings struct {
 	WeeklyQuotaEnabled           bool
 	WeeklyQuotaAmount            float64
 	LuckyWheelEnabled            bool
+	RechargeActivityEnabled      bool
 	DefaultUserRPMLimit          int
 	DefaultSubscriptions         []DefaultSubscriptionSetting
 
@@ -275,6 +276,9 @@ type PublicSettings struct {
 	AccountQuotaNotifyEnabled   bool
 	BalanceLowNotifyThreshold   float64
 	BalanceLowNotifyRechargeURL string
+	WeeklyQuotaEnabled          bool
+	LuckyWheelEnabled           bool
+	RechargeActivityEnabled     bool
 
 	// Channel Monitor feature
 	ChannelMonitorEnabled                bool `json:"channel_monitor_enabled"`

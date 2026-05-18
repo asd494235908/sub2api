@@ -30,7 +30,7 @@
           <div class="flex gap-1">
             <span v-for="star in 5" :key="star" class="text-yellow-500">★</span>
           </div>
-          <p class="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">“{{ quote.quote }}”</p>
+          <p class="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">{{ quoteOpen }}{{ quote.quote }}{{ quoteClose }}</p>
           <div class="mt-5">
             <p class="text-sm font-black text-slate-950 dark:text-white">{{ quote.author }}</p>
             <p class="mt-1 text-xs text-slate-400 dark:text-slate-500">{{ quote.role }}</p>
@@ -45,12 +45,17 @@
 <script setup lang="ts">
 import Icon from '@/components/icons/Icon.vue'
 
-defineProps<{
+withDefaults(defineProps<{
   kicker: string
   title: string
   subtitle: string
   sectionOffsetStyle: Record<string, string>
   stats: Array<{ icon: 'users' | 'shield' | 'sparkles'; value: string; label: string }>
   quotes: Array<{ quote: string; author: string; role: string }>
-}>()
+  quoteOpen?: string
+  quoteClose?: string
+}>(), {
+  quoteOpen: '“',
+  quoteClose: '”'
+})
 </script>

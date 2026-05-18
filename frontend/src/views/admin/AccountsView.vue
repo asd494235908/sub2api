@@ -339,7 +339,7 @@
         </DataTable>
         </div>
       </template>
-      <template #pagination><Pagination v-if="pagination.total > 0" :page="pagination.page" :total="pagination.total" :page-size="pagination.page_size" @update:page="handlePageChange" @update:pageSize="handlePageSizeChange" /></template>
+      <template #pagination><Pagination v-if="pagination.total > 0" :page="pagination.page" :total="pagination.total" :page-size="pagination.page_size" :page-size-options="ACCOUNT_PAGE_SIZE_OPTIONS" @update:page="handlePageChange" @update:pageSize="handlePageSizeChange" /></template>
     </TablePageLayout>
     <CreateAccountModal :show="showCreate" :proxies="proxies" :groups="groups" @close="showCreate = false" @created="reload" />
     <EditAccountModal :show="showEdit" :account="edAcc" :proxies="proxies" :groups="groups" @close="showEdit = false" @updated="handleAccountUpdated" />
@@ -411,6 +411,7 @@ import ErrorPassthroughRulesModal from '@/components/admin/ErrorPassthroughRules
 import TLSFingerprintProfilesModal from '@/components/admin/TLSFingerprintProfilesModal.vue'
 import { buildOpenAIUsageRefreshKey } from '@/utils/accountUsageRefresh'
 import { formatDateTime, formatRelativeTime } from '@/utils/format'
+import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 import type { Account, AccountPlatform, AccountType, Proxy as AccountProxy, AdminGroup, WindowStats, ClaudeModel } from '@/types'
 
 const { t } = useI18n()
@@ -421,6 +422,7 @@ const proxies = ref<AccountProxy[]>([])
 const groups = ref<AdminGroup[]>([])
 const accountTableRef = ref<HTMLElement | null>(null)
 const dataTableRef = ref<InstanceType<typeof DataTable> | null>(null)
+const ACCOUNT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 500]
 type AccountBulkEditTarget =
   | {
       mode: 'selected'
@@ -721,6 +723,7 @@ const {
   handlePageSizeChange: baseHandlePageSizeChange
 } = useTableLoader<Account, any>({
   fetchFn: adminAPI.accounts.list,
+  pageSize: getPersistedPageSize(undefined, ACCOUNT_PAGE_SIZE_OPTIONS),
   initialParams: {
     platform: '',
     type: '',

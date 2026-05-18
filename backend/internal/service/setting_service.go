@@ -654,6 +654,9 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyBalanceLowNotifyEnabled,
 		SettingKeyBalanceLowNotifyThreshold,
 		SettingKeyBalanceLowNotifyRechargeURL,
+		SettingKeyWeeklyQuotaEnabled,
+		SettingKeyLuckyWheelEnabled,
+		SettingKeyRechargeActivityEnabled,
 		SettingKeyAccountQuotaNotifyEnabled,
 		SettingKeyChannelMonitorEnabled,
 		SettingKeyChannelMonitorDefaultIntervalSeconds,
@@ -760,6 +763,9 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		AccountQuotaNotifyEnabled:        settings[SettingKeyAccountQuotaNotifyEnabled] == "true",
 		BalanceLowNotifyThreshold:        balanceLowNotifyThreshold,
 		BalanceLowNotifyRechargeURL:      settings[SettingKeyBalanceLowNotifyRechargeURL],
+		WeeklyQuotaEnabled:               settings[SettingKeyWeeklyQuotaEnabled] == "true",
+		LuckyWheelEnabled:                settings[SettingKeyLuckyWheelEnabled] == "true",
+		RechargeActivityEnabled:          settings[SettingKeyRechargeActivityEnabled] == "true",
 
 		ChannelMonitorEnabled:                !isFalseSettingValue(settings[SettingKeyChannelMonitorEnabled]),
 		ChannelMonitorDefaultIntervalSeconds: parseChannelMonitorInterval(settings[SettingKeyChannelMonitorDefaultIntervalSeconds]),
@@ -976,6 +982,8 @@ type PublicSettingsInjectionPayload struct {
 	ChannelMonitorDefaultIntervalSeconds int  `json:"channel_monitor_default_interval_seconds"`
 	AvailableChannelsEnabled             bool `json:"available_channels_enabled"`
 	AffiliateEnabled                     bool `json:"affiliate_enabled"`
+	LuckyWheelEnabled                    bool `json:"lucky_wheel_enabled"`
+	RechargeActivityEnabled              bool `json:"recharge_activity_enabled"`
 	RiskControlEnabled                   bool `json:"risk_control_enabled"`
 }
 
@@ -1041,6 +1049,8 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		ChannelMonitorDefaultIntervalSeconds: settings.ChannelMonitorDefaultIntervalSeconds,
 		AvailableChannelsEnabled:             settings.AvailableChannelsEnabled,
 		AffiliateEnabled:                     settings.AffiliateEnabled,
+		LuckyWheelEnabled:                    settings.LuckyWheelEnabled,
+		RechargeActivityEnabled:              settings.RechargeActivityEnabled,
 		RiskControlEnabled:                   settings.RiskControlEnabled,
 	}, nil
 }
@@ -1753,6 +1763,7 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	}
 	updates[SettingKeyAffiliateSignupRewardAmount] = strconv.FormatFloat(settings.AffiliateSignupRewardAmount, 'f', 8, 64)
 	updates[SettingKeyWeeklyQuotaEnabled] = strconv.FormatBool(settings.WeeklyQuotaEnabled)
+	updates[SettingKeyRechargeActivityEnabled] = strconv.FormatBool(settings.RechargeActivityEnabled)
 	if settings.WeeklyQuotaAmount < 0 || math.IsNaN(settings.WeeklyQuotaAmount) || math.IsInf(settings.WeeklyQuotaAmount, 0) {
 		settings.WeeklyQuotaAmount = 0
 	}
@@ -2587,6 +2598,9 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyAffiliateRebatePerInviteeCap:             strconv.FormatFloat(AffiliateRebatePerInviteeCapDefault, 'f', 2, 64),
 		SettingKeyAffiliateSignupRewardEnabled:             "false",
 		SettingKeyAffiliateSignupRewardAmount:              strconv.FormatFloat(AffiliateSignupRewardAmountDefault, 'f', 2, 64),
+		SettingKeyWeeklyQuotaEnabled:                       "false",
+		SettingKeyRechargeActivityEnabled:                  "false",
+		SettingKeyWeeklyQuotaAmount:                        "0",
 		SettingKeyDefaultUserRPMLimit:                      "0",
 		SettingKeyDefaultSubscriptions:                     "[]",
 		SettingKeyAuthSourceDefaultEmailBalance:            "0",
@@ -2796,6 +2810,12 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		result.AffiliateSignupRewardAmount = signupRewardAmount
 	}
 	result.DefaultSubscriptions = parseDefaultSubscriptions(settings[SettingKeyDefaultSubscriptions])
+	result.WeeklyQuotaEnabled = settings[SettingKeyWeeklyQuotaEnabled] == "true"
+	if weeklyQuotaAmount, err := strconv.ParseFloat(settings[SettingKeyWeeklyQuotaAmount], 64); err == nil && weeklyQuotaAmount >= 0 {
+		result.WeeklyQuotaAmount = weeklyQuotaAmount
+	}
+	result.LuckyWheelEnabled = settings[SettingKeyLuckyWheelEnabled] == "true"
+	result.RechargeActivityEnabled = settings[SettingKeyRechargeActivityEnabled] == "true"
 
 	// 敏感信息直接返回，方便测试连接时使用
 	result.SMTPPassword = settings[SettingKeySMTPPassword]

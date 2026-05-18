@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -137,6 +138,22 @@ func TestAffiliateReaderStub_ListInviterInviteesRejectsBadUserID(t *testing.T) {
 	ctx, rec := newAffiliateTestContext(http.MethodGet, "/api/v1/admin/affiliates/inviters/abc/invitees")
 	ctx.Params = gin.Params{{Key: "user_id", Value: "abc"}}
 	stub.ListInviterInvitees(ctx)
+
+	require.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func TestAffiliateHandler_CreateInviteRelationRejectsSameUser(t *testing.T) {
+	t.Parallel()
+
+	svc := &service.AffiliateService{}
+	handler := NewAffiliateHandler(svc, nil)
+	gin.SetMode(gin.TestMode)
+	rec := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(rec)
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/v1/admin/affiliates/invites", strings.NewReader(`{"inviter_user_id":11,"invitee_user_id":11,"overwrite":true}`))
+	ctx.Request.Header.Set("Content-Type", "application/json")
+
+	handler.CreateInviteRelation(ctx)
 
 	require.Equal(t, http.StatusBadRequest, rec.Code)
 }

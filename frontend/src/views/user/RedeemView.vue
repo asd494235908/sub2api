@@ -91,12 +91,19 @@
             </div>
             <button
               type="button"
-              :disabled="weeklyQuotaClaiming || weeklyQuota.status !== 'claimable'"
+              :disabled="weeklyQuotaClaiming || weeklyQuota.status !== 'claimable' || weeklyQuotaPhoneRequired"
               class="btn btn-primary"
               @click="handleClaimWeeklyQuota"
             >
               {{ weeklyQuotaClaiming ? t('redeem.weeklyQuotaClaiming') : t('redeem.weeklyQuotaClaimButton') }}
             </button>
+          </div>
+
+          <div
+            v-if="weeklyQuotaPhoneRequired"
+            class="rounded-lg border border-amber-300 bg-amber-100/70 px-4 py-3 text-sm text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200"
+          >
+            {{ t('redeem.weeklyQuotaPhoneRequired') }}
           </div>
 
           <div class="grid gap-4 md:grid-cols-2">
@@ -368,7 +375,7 @@
                 </p>
                 <!-- Display notes for admin adjustments -->
                 <p
-                  v-if="item.notes"
+                  v-if="shouldShowHistoryNotes(item)"
                   class="mt-1 text-xs text-gray-500 dark:text-dark-400 italic max-w-[200px] truncate"
                   :title="item.notes"
                 >
@@ -427,6 +434,7 @@ const redeemResult = ref<{
 const errorMessage = ref('')
 const weeklyQuota = ref<WeeklyQuotaInfo | null>(null)
 const weeklyQuotaClaiming = ref(false)
+const phoneVerifyEnabled = ref(false)
 
 // History data
 const history = ref<RedeemHistoryItem[]>([])
@@ -446,11 +454,20 @@ const isAdminAdjustment = (type: string) => {
   return type === 'admin_balance' || type === 'admin_concurrency'
 }
 
+const shouldShowHistoryNotes = (item: RedeemHistoryItem) => {
+  if (!item.notes) return false
+  return item.type !== 'weekly_balance'
+}
+
 const weeklyQuotaStatusText = computed(() => {
   if (!weeklyQuota.value) return ''
   if (weeklyQuota.value.status === 'claimable') return t('redeem.weeklyQuotaClaimable')
   if (weeklyQuota.value.status === 'claimed') return t('redeem.weeklyQuotaClaimed')
   return t('redeem.weeklyQuotaDisabled')
+})
+
+const weeklyQuotaPhoneRequired = computed(() => {
+  return phoneVerifyEnabled.value && !user.value?.phone_number?.trim()
 })
 
 const getHistoryItemTitle = (item: RedeemHistoryItem) => {
@@ -557,6 +574,11 @@ const handleRedeem = async () => {
 }
 
 const handleClaimWeeklyQuota = async () => {
+  if (weeklyQuotaPhoneRequired.value) {
+    appStore.showError(t('redeem.weeklyQuotaBindPhoneFirst'))
+    return
+  }
+
   weeklyQuotaClaiming.value = true
   errorMessage.value = ''
   redeemResult.value = null
@@ -585,6 +607,7 @@ onMounted(async () => {
   try {
     const settings = await authAPI.getPublicSettings()
     contactInfo.value = settings.contact_info || ''
+    phoneVerifyEnabled.value = settings.phone_verify_enabled === true
   } catch (error) {
     console.error('Failed to load contact info:', error)
   }

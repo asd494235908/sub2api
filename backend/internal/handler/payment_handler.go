@@ -233,6 +233,45 @@ func (h *PaymentHandler) DrawLuckyWheel(c *gin.Context) {
 	response.Success(c, result)
 }
 
+// GetRechargeActivitySummary returns current recharge activity state for the authenticated user.
+// GET /api/v1/payment/recharge-activity
+func (h *PaymentHandler) GetRechargeActivitySummary(c *gin.Context) {
+	subject, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+	summary, err := h.paymentService.GetRechargeActivitySummary(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, summary)
+}
+
+// DrawRechargeActivity consumes one recharge activity chance and returns the draw result.
+// POST /api/v1/payment/recharge-activity/draw
+func (h *PaymentHandler) DrawRechargeActivity(c *gin.Context) {
+	subject, ok := requireAuth(c)
+	if !ok {
+		return
+	}
+
+	var req struct {
+		ChanceID int64 `json:"chance_id"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	result, err := h.paymentService.DrawRechargeActivity(c.Request.Context(), subject.UserID, req.ChanceID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, result)
+}
+
 // GetLimits returns per-payment-type limits derived from enabled provider instances.
 // GET /api/v1/payment/limits
 func (h *PaymentHandler) GetLimits(c *gin.Context) {

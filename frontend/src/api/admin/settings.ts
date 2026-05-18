@@ -543,6 +543,9 @@ export interface SystemSettings {
   weekly_quota_enabled: boolean;
   weekly_quota_amount: number;
 
+  // Recharge activity feature switch
+  recharge_activity_enabled: boolean;
+
   // OpenAI fast/flex policy
   openai_fast_policy_settings?: OpenAIFastPolicySettings;
 }
@@ -751,6 +754,9 @@ export interface UpdateSettingsRequest {
   // Weekly quota feature switch
   weekly_quota_enabled?: boolean;
   weekly_quota_amount?: number;
+
+  // Recharge activity feature switch
+  recharge_activity_enabled?: boolean;
 
   // OpenAI fast/flex policy
   openai_fast_policy_settings?: OpenAIFastPolicySettings;

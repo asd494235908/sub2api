@@ -126,6 +126,12 @@ func (s *luckyWheelHandlerUserRepoStub) DeductBalance(context.Context, int64, fl
 func (s *luckyWheelHandlerUserRepoStub) UpdateConcurrency(context.Context, int64, int) error {
 	panic("unexpected UpdateConcurrency")
 }
+func (s *luckyWheelHandlerUserRepoStub) BatchSetConcurrency(context.Context, []int64, int) (int, error) {
+	panic("unexpected BatchSetConcurrency")
+}
+func (s *luckyWheelHandlerUserRepoStub) BatchAddConcurrency(context.Context, []int64, int) (int, error) {
+	panic("unexpected BatchAddConcurrency")
+}
 func (s *luckyWheelHandlerUserRepoStub) ExistsByEmail(context.Context, string) (bool, error) {
 	panic("unexpected ExistsByEmail")
 }

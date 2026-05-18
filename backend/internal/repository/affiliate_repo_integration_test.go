@@ -201,6 +201,92 @@ func TestAffiliateRepository_ListInvitees_IncludesSignupBonusInTotalRebate(t *te
 	require.InDelta(t, 8.5, invitees[0].TotalRebate, 1e-9)
 }
 
+func TestAffiliateRepository_AdminSetInviteRelationCreatesRelationAndCounts(t *testing.T) {
+	ctx := context.Background()
+	tx := testEntTx(t)
+	txCtx := dbent.NewTxContext(ctx, tx)
+	client := tx.Client()
+
+	repo := NewAffiliateRepository(client, integrationDB)
+	inviter := mustCreateUser(t, client, &service.User{
+		Email:        fmt.Sprintf("affiliate-manual-inviter-%d@example.com", time.Now().UnixNano()),
+		PasswordHash: "hash",
+		Role:         service.RoleUser,
+		Status:       service.StatusActive,
+		Concurrency:  5,
+	})
+	invitee := mustCreateUser(t, client, &service.User{
+		Email:        fmt.Sprintf("affiliate-manual-invitee-%d@example.com", time.Now().UnixNano()+1),
+		PasswordHash: "hash",
+		Role:         service.RoleUser,
+		Status:       service.StatusActive,
+		Concurrency:  5,
+	})
+
+	result, err := repo.AdminSetInviteRelation(txCtx, inviter.ID, invitee.ID, true)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, inviter.ID, result.InviterUserID)
+	require.Equal(t, invitee.ID, result.InviteeUserID)
+	require.False(t, result.Overwritten)
+	require.Nil(t, result.PreviousInviterUserID)
+
+	inviterID := querySingleInt(t, txCtx, client,
+		"SELECT inviter_id FROM user_affiliates WHERE user_id = $1", invitee.ID)
+	require.Equal(t, int(inviter.ID), inviterID)
+	affCount := querySingleInt(t, txCtx, client,
+		"SELECT aff_count FROM user_affiliates WHERE user_id = $1", inviter.ID)
+	require.Equal(t, 1, affCount)
+}
+
+func TestAffiliateRepository_AdminSetInviteRelationOverwritesRelationAndCounts(t *testing.T) {
+	ctx := context.Background()
+	tx := testEntTx(t)
+	txCtx := dbent.NewTxContext(ctx, tx)
+	client := tx.Client()
+
+	repo := NewAffiliateRepository(client, integrationDB)
+	oldInviter := mustCreateUser(t, client, &service.User{
+		Email:        fmt.Sprintf("affiliate-old-inviter-%d@example.com", time.Now().UnixNano()),
+		PasswordHash: "hash",
+		Role:         service.RoleUser,
+		Status:       service.StatusActive,
+		Concurrency:  5,
+	})
+	newInviter := mustCreateUser(t, client, &service.User{
+		Email:        fmt.Sprintf("affiliate-new-inviter-%d@example.com", time.Now().UnixNano()+1),
+		PasswordHash: "hash",
+		Role:         service.RoleUser,
+		Status:       service.StatusActive,
+		Concurrency:  5,
+	})
+	invitee := mustCreateUser(t, client, &service.User{
+		Email:        fmt.Sprintf("affiliate-overwrite-invitee-%d@example.com", time.Now().UnixNano()+2),
+		PasswordHash: "hash",
+		Role:         service.RoleUser,
+		Status:       service.StatusActive,
+		Concurrency:  5,
+	})
+
+	_, err := repo.AdminSetInviteRelation(txCtx, oldInviter.ID, invitee.ID, true)
+	require.NoError(t, err)
+	result, err := repo.AdminSetInviteRelation(txCtx, newInviter.ID, invitee.ID, true)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.True(t, result.Overwritten)
+	require.Equal(t, oldInviter.ID, *result.PreviousInviterUserID)
+
+	currentInviterID := querySingleInt(t, txCtx, client,
+		"SELECT inviter_id FROM user_affiliates WHERE user_id = $1", invitee.ID)
+	require.Equal(t, int(newInviter.ID), currentInviterID)
+	oldCount := querySingleInt(t, txCtx, client,
+		"SELECT aff_count FROM user_affiliates WHERE user_id = $1", oldInviter.ID)
+	require.Equal(t, 0, oldCount)
+	newCount := querySingleInt(t, txCtx, client,
+		"SELECT aff_count FROM user_affiliates WHERE user_id = $1", newInviter.ID)
+	require.Equal(t, 1, newCount)
+}
+
 // TestAffiliateRepository_AccrueQuota_ReusesOuterTransaction guards the
 // cross-layer tx propagation invariant: when AccrueQuota is called with a ctx
 // that already carries a transaction (via dbent.NewTxContext), repo.withTx

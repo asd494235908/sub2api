@@ -14,7 +14,9 @@ import type {
   CreateOrderResult,
   PaymentOrder,
   LuckyWheelSummary,
-  LuckyWheelDrawResult
+  LuckyWheelDrawResult,
+  RechargeActivitySummary,
+  RechargeActivityDrawResult
 } from '@/types/payment'
 import type { BasePaginationResponse } from '@/types'
 
@@ -97,5 +99,15 @@ export const paymentAPI = {
   /** Draw the lucky wheel once */
   drawLuckyWheel(session_id: number) {
     return apiClient.post<LuckyWheelDrawResult>('/payment/lucky-wheel/draw', { session_id })
+  },
+
+  /** Get current recharge activity summary */
+  getRechargeActivitySummary() {
+    return apiClient.get<RechargeActivitySummary>('/payment/recharge-activity')
+  },
+
+  /** Draw the recharge activity once */
+  drawRechargeActivity(chance_id: number) {
+    return apiClient.post<RechargeActivityDrawResult>('/payment/recharge-activity/draw', { chance_id })
   }
 }

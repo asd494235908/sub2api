@@ -18,4 +18,14 @@ describe('usePersistedPageSize', () => {
 
     expect(getPersistedPageSize()).toBe(50)
   })
+
+  it('normalizes persisted page size against page-specific options when provided', () => {
+    window.__APP_CONFIG__ = {
+      table_default_page_size: 1000,
+      table_page_size_options: [20, 50, 1000]
+    } as any
+    localStorage.setItem('table-page-size', '1000')
+
+    expect(getPersistedPageSize(undefined, [10, 20, 50, 100, 500])).toBe(500)
+  })
 })

@@ -27,9 +27,13 @@ const getSanitizedConfiguredOptions = (): number[] => {
   const configured = getInjectedAppConfig()?.table_page_size_options
   if (!Array.isArray(configured)) return []
 
+  return sanitizePageSizeOptions(configured)
+}
+
+export const sanitizePageSizeOptions = (options: unknown[]): number[] => {
   return Array.from(
     new Set(
-      configured
+      options
         .map((value) => sanitizePageSize(value))
         .filter((value): value is number => value !== null)
     )
@@ -62,10 +66,11 @@ export const getConfiguredTablePageSizeOptions = (): number[] => {
   return unique.length > 0 ? unique : [...DEFAULT_TABLE_PAGE_SIZE_OPTIONS]
 }
 
-export const normalizeTablePageSize = (value: unknown): number => {
+export const normalizeTablePageSize = (value: unknown, pageSizeOptions?: number[]): number => {
   const normalized = parsePageSizeForSelection(value)
   const defaultSize = getConfiguredTableDefaultPageSize()
-  const options = getConfiguredTablePageSizeOptions()
+  const customOptions = pageSizeOptions ? sanitizePageSizeOptions(pageSizeOptions) : []
+  const options = customOptions.length > 0 ? customOptions : getConfiguredTablePageSizeOptions()
   if (normalized !== null) {
     return normalizePageSizeToOptions(normalized, options)
   }

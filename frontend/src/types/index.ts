@@ -256,6 +256,7 @@ export interface PublicSettings {
   affiliate_enabled: boolean
   weekly_quota_enabled: boolean
   lucky_wheel_enabled: boolean
+  recharge_activity_enabled: boolean
 }
 
 export interface AuthResponse {
@@ -1176,7 +1177,13 @@ export interface CodexSessionImportResult {
 
 // ==================== Usage & Redeem Types ====================
 
-export type RedeemCodeType = 'balance' | 'concurrency' | 'subscription' | 'invitation'
+export type RedeemCodeType =
+  | 'balance'
+  | 'concurrency'
+  | 'subscription'
+  | 'invitation'
+  | 'weekly_balance'
+  | 'lucky_wheel_bonus'
 export type UsageRequestType = 'unknown' | 'sync' | 'stream' | 'ws_v2'
 
 export interface UsageLog {

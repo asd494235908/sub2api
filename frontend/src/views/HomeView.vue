@@ -131,6 +131,8 @@
         :section-offset-style="sectionOffsetStyle"
         :stats="showcaseStats"
         :quotes="showcaseQuotes"
+        :quote-open="t('home.landing.showcase.quoteMarks.open')"
+        :quote-close="t('home.landing.showcase.quoteMarks.close')"
       />
 
       <HomeCTA
@@ -175,6 +177,7 @@ import HomeHeader from '@/components/home/HomeHeader.vue'
 import HomeHero from '@/components/home/HomeHero.vue'
 import HomeProducts from '@/components/home/HomeProducts.vue'
 import HomeShowcase from '@/components/home/HomeShowcase.vue'
+import { TOKEN_DOC_URL } from '@/constants/externalLinks'
 import type { HomeLink } from '@/types'
 
 const { t, locale } = useI18n()
@@ -183,7 +186,7 @@ const appStore = useAppStore()
 
 const siteLogo = computed(() => appStore.cachedPublicSettings?.site_logo || appStore.siteLogo || '')
 const homeContent = computed(() => appStore.cachedPublicSettings?.home_content || '')
-const docUrl = computed(() => appStore.cachedPublicSettings?.doc_url || appStore.docUrl || '')
+const docUrl = TOKEN_DOC_URL
 const communityQrItems = computed(() => [
   { src: '/qq.jpg', alt: t('home.landing.community.qrAlt.qq'), label: t('home.landing.community.qrLabels.qq') },
   { src: '/wechat.jpg', alt: t('home.landing.community.qrAlt.wechat'), label: t('home.landing.community.qrLabels.wechat') }
@@ -191,8 +194,7 @@ const communityQrItems = computed(() => [
 const footerContactItems = computed(() =>
   [
     { label: t('home.landing.community.qrLabels.qq'), value: appStore.cachedPublicSettings?.qq_group || '' },
-    { label: t('home.landing.community.qrLabels.wechat'), value: appStore.cachedPublicSettings?.wechat_contact || '' },
-    { label: t('common.contact'), value: appStore.cachedPublicSettings?.contact_info || '' }
+    { label: t('home.landing.community.qrLabels.wechat'), value: appStore.cachedPublicSettings?.wechat_contact || '' }
   ].filter((item) => item.value.trim())
 )
 
@@ -247,7 +249,7 @@ const navItems = computed(() => [
   { href: '#top', label: t('home.landing.nav.home') },
   { href: '#pricing', label: t('home.landing.nav.pricing') },
   ...visibleHomeLinks.value,
-  { href: docUrl.value, label: t('home.landing.nav.docs'), external: true },
+  { href: docUrl, label: t('home.landing.nav.docs'), external: true },
   { href: '#footer', label: t('home.landing.nav.community') }
 ])
 
@@ -309,6 +311,7 @@ const productCards = computed<Array<{ icon: 'cpu' | 'sparkles' | 'globe' | 'shie
 const modelChoices = computed(() => [
   { name: 'GPT-5.5', description: t('home.landing.models.items.gpt55'), badge: t('home.landing.models.badges.latest') },
   { name: 'GPT-5.4', description: t('home.landing.models.items.gpt54'), badge: '' },
+  { name: 'GPT-5.4 nano', description: t('home.landing.models.items.gpt54nano'), badge: '' },
   { name: 'GPT Image 2', description: t('home.landing.models.items.gptImage2'), badge: '' }
 ])
 
@@ -359,23 +362,32 @@ const footerColumns = computed(() => [
     title: t('home.landing.footer.columns.product.title'),
     items: [
       { label: t('home.landing.footer.columns.product.pricing'), href: '#pricing' },
-      { label: t('home.landing.footer.columns.product.docs'), href: docUrl.value, external: true },
+      { label: t('home.landing.footer.columns.product.docs'), href: docUrl, external: true },
       { label: t('home.landing.footer.columns.product.platforms'), href: '#overview' },
-      { label: t('home.landing.footer.columns.product.changelog'), href: docUrl.value, external: true }
+      { label: t('home.landing.footer.columns.product.changelog'), href: docUrl, external: true }
     ]
   },
   {
     title: t('home.landing.footer.columns.developer.title'),
     items: [
-      { label: t('home.landing.footer.columns.developer.quickstart'), href: docUrl.value, external: true },
-      { label: t('home.landing.footer.columns.developer.sdk'), href: docUrl.value, external: true },
-      { label: t('home.landing.footer.columns.developer.bestPractices'), href: docUrl.value, external: true },
-      { label: t('home.landing.footer.columns.developer.status'), href: docUrl.value, external: true }
+      { label: t('home.landing.footer.columns.developer.quickstart'), href: docUrl, external: true },
+      { label: t('home.landing.footer.columns.developer.sdk'), href: docUrl, external: true },
+      { label: t('home.landing.footer.columns.developer.bestPractices'), href: docUrl, external: true },
+      { label: t('home.landing.footer.columns.developer.status'), href: docUrl, external: true }
     ]
   },
   {
     title: t('home.landing.footer.columns.links.title'),
     items: visibleHomeLinks.value
+  },
+  {
+    title: t('home.landing.footer.columns.company.title'),
+    items: [
+      { label: t('home.landing.footer.columns.company.about'), href: '#overview' },
+      { label: t('home.landing.footer.columns.company.contact'), href: '#footer' },
+      { label: t('home.landing.footer.columns.company.terms'), href: docUrl, external: true },
+      { label: t('home.landing.footer.columns.company.privacy'), href: docUrl, external: true }
+    ]
   }
 ])
 

@@ -64,6 +64,14 @@ describe('tablePreferences', () => {
     expect(normalizeTablePageSize(undefined)).toBe(20)
   })
 
+  it('normalizes page size against page-specific options when provided', () => {
+    const accountPageSizeOptions = [10, 20, 50, 100, 500]
+
+    expect(normalizeTablePageSize(500, accountPageSizeOptions)).toBe(500)
+    expect(normalizeTablePageSize(1000, accountPageSizeOptions)).toBe(500)
+    expect(normalizeTablePageSize(35, accountPageSizeOptions)).toBe(50)
+  })
+
   it('keeps built-in selectable defaults at 10, 20, 50, 100', () => {
     window.__APP_CONFIG__ = {
       table_default_page_size: 1000

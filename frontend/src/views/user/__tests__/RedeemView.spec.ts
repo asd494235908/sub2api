@@ -3,10 +3,17 @@ import { flushPromises, mount } from '@vue/test-utils'
 
 import RedeemView from '../RedeemView.vue'
 
-const { getHistory, getWeeklyQuota, getPublicSettings } = vi.hoisted(() => ({
+const { getHistory, getWeeklyQuota, getPublicSettings, claimWeeklyQuota, authUser, showError } = vi.hoisted(() => ({
   getHistory: vi.fn(),
   getWeeklyQuota: vi.fn(),
   getPublicSettings: vi.fn(),
+  claimWeeklyQuota: vi.fn(),
+  authUser: {
+    balance: 12.34,
+    concurrency: 5,
+    phone_number: undefined as string | undefined,
+  },
+  showError: vi.fn(),
 }))
 
 vi.mock('@/api', () => ({
@@ -14,7 +21,7 @@ vi.mock('@/api', () => ({
     getHistory,
     getWeeklyQuota,
     redeem: vi.fn(),
-    claimWeeklyQuota: vi.fn(),
+    claimWeeklyQuota,
   },
   authAPI: {
     getPublicSettings,
@@ -23,17 +30,14 @@ vi.mock('@/api', () => ({
 
 vi.mock('@/stores/auth', () => ({
   useAuthStore: () => ({
-    user: {
-      balance: 12.34,
-      concurrency: 5,
-    },
+    user: authUser,
     refreshUser: vi.fn(),
   }),
 }))
 
 vi.mock('@/stores/app', () => ({
   useAppStore: () => ({
-    showError: vi.fn(),
+    showError,
     showSuccess: vi.fn(),
     showWarning: vi.fn(),
   }),
@@ -60,6 +64,11 @@ describe('RedeemView', () => {
     getHistory.mockReset()
     getWeeklyQuota.mockReset()
     getPublicSettings.mockReset()
+    claimWeeklyQuota.mockReset()
+    showError.mockReset()
+    authUser.balance = 12.34
+    authUser.concurrency = 5
+    authUser.phone_number = undefined
 
     getHistory.mockResolvedValue([
       {
@@ -97,8 +106,8 @@ describe('RedeemView', () => {
     getPublicSettings.mockResolvedValue({ contact_info: '' })
   })
 
-  it('shows lucky wheel bonus entries inside recent activity', async () => {
-    const wrapper = mount(RedeemView, {
+  function mountRedeemView() {
+    return mount(RedeemView, {
       global: {
         stubs: {
           AppLayout: { template: '<div><slot /></div>' },
@@ -106,10 +115,100 @@ describe('RedeemView', () => {
         },
       },
     })
+  }
+
+  it('shows lucky wheel bonus entries inside recent activity', async () => {
+    const wrapper = mountRedeemView()
 
     await flushPromises()
 
     expect(wrapper.text()).toContain('Lucky Wheel Bonus')
     expect(wrapper.text()).toContain('+¥12.34')
+  })
+
+  it('disables weekly quota claim and shows phone binding prompt when phone verification is enabled', async () => {
+    getWeeklyQuota.mockResolvedValue({
+      enabled: true,
+      amount: 12.5,
+      status: 'claimable',
+      window_started_at: '2026-05-13T00:00:00Z',
+      window_ends_at: '2026-05-20T00:00:00Z',
+      total_claim_count: 0,
+      total_claim_amount: 0,
+    })
+    getPublicSettings.mockResolvedValue({ contact_info: '', phone_verify_enabled: true })
+
+    const wrapper = mountRedeemView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('redeem.weeklyQuotaPhoneRequired')
+    const buttons = wrapper.findAll('button')
+    const claimButton = buttons.find((button) => button.text() === 'redeem.weeklyQuotaClaimButton')
+    expect(claimButton?.attributes('disabled')).toBeDefined()
+  })
+
+  it('does not call weekly quota claim API when phone binding is required', async () => {
+    getWeeklyQuota.mockResolvedValue({
+      enabled: true,
+      amount: 12.5,
+      status: 'claimable',
+      window_started_at: '2026-05-13T00:00:00Z',
+      window_ends_at: '2026-05-20T00:00:00Z',
+      total_claim_count: 0,
+      total_claim_amount: 0,
+    })
+    getPublicSettings.mockResolvedValue({ contact_info: '', phone_verify_enabled: true })
+
+    const wrapper = mountRedeemView()
+    await flushPromises()
+
+    ;(wrapper.vm as any).handleClaimWeeklyQuota()
+    await flushPromises()
+
+    expect(claimWeeklyQuota).not.toHaveBeenCalled()
+    expect(showError).toHaveBeenCalledWith('redeem.weeklyQuotaBindPhoneFirst')
+  })
+
+  it('keeps weekly quota claim available when phone verification is disabled', async () => {
+    getWeeklyQuota.mockResolvedValue({
+      enabled: true,
+      amount: 12.5,
+      status: 'claimable',
+      window_started_at: '2026-05-13T00:00:00Z',
+      window_ends_at: '2026-05-20T00:00:00Z',
+      total_claim_count: 0,
+      total_claim_amount: 0,
+    })
+    getPublicSettings.mockResolvedValue({ contact_info: '', phone_verify_enabled: false })
+
+    const wrapper = mountRedeemView()
+    await flushPromises()
+
+    expect(wrapper.text()).not.toContain('redeem.weeklyQuotaPhoneRequired')
+    const buttons = wrapper.findAll('button')
+    const claimButton = buttons.find((button) => button.text() === 'redeem.weeklyQuotaClaimButton')
+    expect(claimButton?.attributes('disabled')).toBeUndefined()
+  })
+
+  it('keeps weekly quota claim available when phone is bound and phone verification is enabled', async () => {
+    authUser.phone_number = '+8613800138000'
+    getWeeklyQuota.mockResolvedValue({
+      enabled: true,
+      amount: 12.5,
+      status: 'claimable',
+      window_started_at: '2026-05-13T00:00:00Z',
+      window_ends_at: '2026-05-20T00:00:00Z',
+      total_claim_count: 0,
+      total_claim_amount: 0,
+    })
+    getPublicSettings.mockResolvedValue({ contact_info: '', phone_verify_enabled: true })
+
+    const wrapper = mountRedeemView()
+    await flushPromises()
+
+    expect(wrapper.text()).not.toContain('redeem.weeklyQuotaPhoneRequired')
+    const buttons = wrapper.findAll('button')
+    const claimButton = buttons.find((button) => button.text() === 'redeem.weeklyQuotaClaimButton')
+    expect(claimButton?.attributes('disabled')).toBeUndefined()
   })
 })

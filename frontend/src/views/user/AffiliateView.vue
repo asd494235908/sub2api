@@ -163,8 +163,10 @@ const detail = ref<UserAffiliateDetail | null>(null)
 
 const inviteLink = computed(() => {
   if (!detail.value) return ''
-  if (typeof window === 'undefined') return `/register?aff=${encodeURIComponent(detail.value.aff_code)}`
-  return `${window.location.origin}/register?aff=${encodeURIComponent(detail.value.aff_code)}`
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/')
+  const path = `${base}register?aff=${encodeURIComponent(detail.value.aff_code)}`
+  if (typeof window === 'undefined') return path
+  return `${window.location.origin}${path}`
 })
 
 // Rebate rate is a percentage in the range [0, 100]; backend already clamps it.

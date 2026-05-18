@@ -293,6 +293,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/recharge-activity',
+    name: 'RechargeActivity',
+    component: () => import('@/views/user/RechargeActivityView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Recharge Activity',
+      titleKey: 'nav.rechargeActivity',
+      requiresPayment: true
+    }
+  },
+  {
     path: '/payment/qrcode',
     name: 'PaymentQRCode',
     component: () => import('@/views/user/PaymentQRCodeView.vue'),
@@ -659,6 +671,18 @@ const routes: RouteRecordRaw[] = [
       requiresAdmin: true,
       title: 'Lucky Wheel',
       titleKey: 'nav.luckyWheelAdmin',
+      requiresPayment: true
+    }
+  },
+  {
+    path: '/admin/orders/recharge-activity',
+    name: 'AdminRechargeActivity',
+    component: () => import('@/views/admin/orders/AdminRechargeActivityView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Recharge Activity',
+      titleKey: 'nav.rechargeActivityAdmin',
       requiresPayment: true
     }
   },

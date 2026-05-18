@@ -1278,7 +1278,7 @@ SELECT id, user_id, source_order_id, source_order_type, source_pay_amount,
        created_at, updated_at
 FROM lucky_wheel_sessions
 WHERE user_id = ? AND settled = ?
-ORDER BY created_at DESC, id DESC
+ORDER BY COALESCE(settled_at, updated_at, created_at) DESC, id DESC
 LIMIT ?`)
 	rows, err := execCtx.QueryContext(ctx, query, userID, settled, limit)
 	if err != nil {

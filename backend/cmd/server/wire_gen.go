@@ -74,8 +74,6 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	subscriptionService := service.NewSubscriptionService(groupRepository, userSubscriptionRepository, billingCacheService, client, configConfig)
 	affiliateRepository := repository.NewAffiliateRepository(client, db)
 	affiliateService := service.NewAffiliateService(affiliateRepository, settingService, apiKeyAuthCacheInvalidator, billingCacheService)
-	authService := service.NewAuthService(client, userRepository, redeemCodeRepository, refreshTokenCache, configConfig, settingService, emailService, turnstileService, emailQueueService, promoService, subscriptionService, affiliateService)
-	userService := service.NewUserService(userRepository, settingRepository, apiKeyAuthCacheInvalidator, billingCache)
 	redeemCache := repository.NewRedeemCache(redisClient)
 	redeemService := service.NewRedeemService(redeemCodeRepository, userRepository, subscriptionService, redeemCache, billingCacheService, client, apiKeyAuthCacheInvalidator, affiliateService, settingService)
 	secretEncryptor, err := repository.NewAESEncryptor(configConfig)
@@ -86,8 +84,8 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	totpService := service.NewTotpService(userRepository, secretEncryptor, totpCache, settingService, emailService, emailQueueService)
 	smsCache := service.ProvideSMSCache(emailCache)
 	smsService := service.ProvideSMSService(settingRepository, smsCache)
-	authService.SetSMSService(smsService)
-	userService.SetSMSService(smsService)
+	authService := service.ProvideAuthService(client, userRepository, redeemCodeRepository, refreshTokenCache, configConfig, settingService, emailService, turnstileService, emailQueueService, promoService, subscriptionService, affiliateService, smsService)
+	userService := service.ProvideUserService(userRepository, settingRepository, apiKeyAuthCacheInvalidator, billingCache, smsService)
 	authHandler := handler.NewAuthHandler(configConfig, authService, userService, settingService, promoService, redeemService, totpService, smsService)
 	userHandler := handler.NewUserHandler(userService, authService, emailService, emailCache, affiliateService)
 	apiKeyHandler := handler.NewAPIKeyHandler(apiKeyService)
@@ -205,8 +203,11 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	registry := payment.ProvideRegistry()
 	defaultLoadBalancer := payment.ProvideDefaultLoadBalancer(client, encryptionKey)
 	paymentService := service.NewPaymentService(client, registry, defaultLoadBalancer, redeemService, subscriptionService, paymentConfigService, userRepository, groupRepository, affiliateService)
-	promptArchiveRepository := repository.NewPromptArchiveRepository(client, db)
-	promptArchiveObjectStore := repository.ProvidePromptArchiveObjectStore(configConfig)
+	promptArchiveRepository := repository.NewPromptArchiveRepository(db)
+	promptArchiveObjectStore, err := repository.ProvidePromptArchiveObjectStore(configConfig, backupObjectStoreFactory)
+	if err != nil {
+		return nil, err
+	}
 	promptArchiveService := service.ProvidePromptArchiveService(promptArchiveRepository, promptArchiveObjectStore, configConfig)
 	settingHandler := admin.NewSettingHandler(settingService, emailService, turnstileService, opsService, paymentConfigService, paymentService, promptArchiveService)
 	opsHandler := admin.NewOpsHandler(opsService, promptArchiveService)

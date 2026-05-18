@@ -5112,6 +5112,40 @@
           </div>
         </div>
 
+        <!-- Recharge activity feature card -->
+        <div class="card">
+          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ t('admin.settings.features.rechargeActivity.title') }}
+            </h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {{ t('admin.settings.features.rechargeActivity.description') }}
+            </p>
+            <p class="mt-1.5 text-xs">
+              <router-link
+                to="/admin/orders/recharge-activity"
+                class="inline-flex items-center gap-1 text-primary-600 hover:underline dark:text-primary-400"
+              >
+                {{ t('admin.settings.features.rechargeActivity.configureLink') }}
+                <span aria-hidden="true">→</span>
+              </router-link>
+            </p>
+          </div>
+          <div class="space-y-5 p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t('admin.settings.features.rechargeActivity.enabled') }}
+                </label>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t('admin.settings.features.rechargeActivity.enabledHint') }}
+                </p>
+              </div>
+              <Toggle v-model="form.recharge_activity_enabled" />
+            </div>
+          </div>
+        </div>
+
         <!-- Affiliate (邀请返利) feature card -->
         <div class="card">
           <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
@@ -7006,6 +7040,8 @@ const form = reactive<SettingsForm>({
   // Weekly quota feature switch
   weekly_quota_enabled: false,
   weekly_quota_amount: 0,
+  // Recharge activity feature switch
+  recharge_activity_enabled: false,
 });
 
 const authSourceDefaults = reactive<AuthSourceDefaultsState>(
@@ -8208,6 +8244,8 @@ async function saveSettings() {
         Number(form.channel_monitor_default_interval_seconds) || 60,
       // Available Channels feature switch
       available_channels_enabled: form.available_channels_enabled,
+      // Recharge activity feature switch
+      recharge_activity_enabled: form.recharge_activity_enabled,
       // Weekly quota feature switch
       weekly_quota_enabled: form.weekly_quota_enabled,
       weekly_quota_amount: Math.max(0, Number(form.weekly_quota_amount) || 0),

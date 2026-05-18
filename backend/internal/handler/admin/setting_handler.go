@@ -218,6 +218,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		AffiliateSignupRewardAmount:            settings.AffiliateSignupRewardAmount,
 		WeeklyQuotaEnabled:                     settings.WeeklyQuotaEnabled,
 		WeeklyQuotaAmount:                      settings.WeeklyQuotaAmount,
+		RechargeActivityEnabled:                settings.RechargeActivityEnabled,
 		DefaultUserRPMLimit:                    settings.DefaultUserRPMLimit,
 		DefaultSubscriptions:                   defaultSubscriptions,
 		EnableModelFallback:                    settings.EnableModelFallback,
@@ -478,6 +479,7 @@ type UpdateSettingsRequest struct {
 	AffiliateSignupRewardAmount              *float64                          `json:"affiliate_signup_reward_amount"`
 	WeeklyQuotaEnabled                       *bool                             `json:"weekly_quota_enabled"`
 	WeeklyQuotaAmount                        *float64                          `json:"weekly_quota_amount"`
+	RechargeActivityEnabled                  *bool                             `json:"recharge_activity_enabled"`
 	DefaultUserRPMLimit                      int                               `json:"default_user_rpm_limit"`
 	DefaultSubscriptions                     []dto.DefaultSubscriptionSetting  `json:"default_subscriptions"`
 	AuthSourceDefaultEmailBalance            *float64                          `json:"auth_source_default_email_balance"`
@@ -1311,6 +1313,10 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	if req.WeeklyQuotaEnabled != nil {
 		weeklyQuotaEnabled = *req.WeeklyQuotaEnabled
 	}
+	rechargeActivityEnabled := previousSettings.RechargeActivityEnabled
+	if req.RechargeActivityEnabled != nil {
+		rechargeActivityEnabled = *req.RechargeActivityEnabled
+	}
 	weeklyQuotaAmount := previousSettings.WeeklyQuotaAmount
 	if req.WeeklyQuotaAmount != nil {
 		weeklyQuotaAmount = *req.WeeklyQuotaAmount
@@ -1438,6 +1444,9 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			}
 			return previousSettings.AffiliateSignupRewardAmount
 		}(),
+		WeeklyQuotaEnabled:          weeklyQuotaEnabled,
+		WeeklyQuotaAmount:           weeklyQuotaAmount,
+		RechargeActivityEnabled:     rechargeActivityEnabled,
 		DefaultUserRPMLimit:         req.DefaultUserRPMLimit,
 		DefaultSubscriptions:        defaultSubscriptions,
 		EnableModelFallback:         req.EnableModelFallback,
@@ -1827,6 +1836,9 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		AffiliateRebatePerInviteeCap:           updatedSettings.AffiliateRebatePerInviteeCap,
 		AffiliateSignupRewardEnabled:           updatedSettings.AffiliateSignupRewardEnabled,
 		AffiliateSignupRewardAmount:            updatedSettings.AffiliateSignupRewardAmount,
+		WeeklyQuotaEnabled:                     updatedSettings.WeeklyQuotaEnabled,
+		WeeklyQuotaAmount:                      updatedSettings.WeeklyQuotaAmount,
+		RechargeActivityEnabled:                updatedSettings.RechargeActivityEnabled,
 		DefaultUserRPMLimit:                    updatedSettings.DefaultUserRPMLimit,
 		DefaultSubscriptions:                   updatedDefaultSubscriptions,
 		EnableModelFallback:                    updatedSettings.EnableModelFallback,
@@ -2300,6 +2312,9 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.AvailableChannelsEnabled != after.AvailableChannelsEnabled {
 		changed = append(changed, "available_channels_enabled")
+	}
+	if before.RechargeActivityEnabled != after.RechargeActivityEnabled {
+		changed = append(changed, "recharge_activity_enabled")
 	}
 	if before.AffiliateEnabled != after.AffiliateEnabled {
 		changed = append(changed, "affiliate_enabled")

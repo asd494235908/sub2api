@@ -348,6 +348,10 @@ func (r *oauthEmailAffiliateRepoStub) BindInviter(_ context.Context, userID, inv
 	return true, nil
 }
 
+func (r *oauthEmailAffiliateRepoStub) AdminSetInviteRelation(context.Context, int64, int64, bool) (*service.AffiliateInviteRelationChange, error) {
+	panic("unexpected AdminSetInviteRelation call")
+}
+
 func (r *oauthEmailAffiliateRepoStub) AccrueQuota(context.Context, int64, int64, float64, int, *int64) (bool, error) {
 	panic("unexpected AccrueQuota call")
 }

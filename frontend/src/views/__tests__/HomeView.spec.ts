@@ -2,6 +2,9 @@ import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import HomeView from '../HomeView.vue'
+import enMessages from '@/i18n/locales/en'
+import zhMessages from '@/i18n/locales/zh'
+import { TOKEN_DOC_URL } from '@/constants/externalLinks'
 
 const authState = {
   isAuthenticated: false,
@@ -35,12 +38,20 @@ vi.mock('vue-i18n', () => ({
     t: (key: string) => ({
       'home.landing.nav.gpshop': '格品购物',
       'home.landing.nav.gpci': '格品生图',
-      'home.landing.footer.columns.links.gpshop': '格品购物',
-      'home.landing.footer.columns.links.gpci': '格品生图',
       'home.landing.nav.community': '技术社群',
       'home.landing.footer.columns.links.title': '链接',
-      'home.landing.hero.subtitle': 'AI API接口服务 | 企业级安全接入 | 国内稳定快速响应'
-    }[key] ?? key)
+      'home.landing.footer.columns.company.title': '公司',
+      'home.landing.footer.columns.company.about': '关于我们',
+      'home.landing.footer.columns.company.contact': '联系我们',
+      'home.landing.footer.columns.company.terms': '服务条款',
+      'home.landing.footer.columns.company.privacy': '隐私政策',
+      'home.landing.hero.badge': '稳定 · 安全 · 高效的 OpenAI 中转服务',
+      'home.landing.hero.titleLead': '让 ',
+      'home.landing.hero.titleHighlight': 'AI 开发',
+      'home.landing.hero.titleSuffix': '更简单',
+      'home.landing.hero.subtitle': '企业级安全接入',
+      'home.landing.console.enter': '进入控制台'
+    }[key] ?? (key.startsWith('home.landing.') ? key.split('.').at(-1) || key : key))
   })
 }))
 
@@ -106,9 +117,10 @@ describe('HomeView', () => {
       }
     })
 
-    expect(wrapper.text()).toContain('home.landing.hero.badge')
-    expect(wrapper.text()).toContain('home.landing.overview.title')
-    expect(wrapper.text()).toContain('AI API接口服务 | 企业级安全接入 | 国内稳定快速响应')
+    expect(wrapper.text()).toContain('稳定 · 安全 · 高效的 OpenAI 中转服务')
+    expect(wrapper.text()).toContain('让 AI 开发更简单')
+    expect(wrapper.text()).toContain('企业级安全接入')
+    expect(wrapper.text()).not.toContain('home.landing.')
     expect(wrapper.find('[data-test="locale-switcher"]').exists()).toBe(true)
   })
 
@@ -129,6 +141,7 @@ describe('HomeView', () => {
 
     expect(text).toContain('GPT-5.4')
     expect(text).not.toContain('GPT-5.4 mini')
+    expect(text).toContain('GPT-5.4 nano')
     expect(text).toContain('GPT Image 2')
 
     expect(text).toContain('格品购物')
@@ -138,6 +151,11 @@ describe('HomeView', () => {
     expect(links.some((link) => link.text().includes('技术社群') && link.attributes('href') === '#footer')).toBe(true)
 
     expect(text).toContain('链接')
+    expect(text).toContain('公司')
+    expect(text).toContain('关于我们')
+    expect(text).toContain('联系我们')
+    expect(text).toContain('服务条款')
+    expect(text).toContain('隐私政策')
     expect(text).toContain('格品购物')
     expect(text).toContain('格品生图')
     expect(text).not.toContain('home.landing.footer.columns.support.title')
@@ -205,7 +223,7 @@ describe('HomeView', () => {
 
     const links = wrapper.findAll('a')
     expect(links.some((link) => link.attributes('href') === '/admin/dashboard')).toBe(true)
-    expect(wrapper.text()).toContain('home.landing.console.enter')
+    expect(wrapper.text()).toContain('进入控制台')
   })
 
   it('renders homepage contact items as plain text when configured', () => {
@@ -214,6 +232,7 @@ describe('HomeView', () => {
       site_logo: '/brand.svg',
       qq_group: '123456789',
       wechat_contact: 'sub2api_support',
+      contact_info: 'qq群: 123456789 微信:sub2api_support',
       home_links: []
     }
 
@@ -228,10 +247,12 @@ describe('HomeView', () => {
       }
     })
 
-    expect(wrapper.text()).toContain('home.landing.community.qrLabels.qq')
+    expect(wrapper.text()).toContain('qq')
     expect(wrapper.text()).toContain('123456789')
-    expect(wrapper.text()).toContain('home.landing.community.qrLabels.wechat')
+    expect(wrapper.text()).toContain('wechat')
     expect(wrapper.text()).toContain('sub2api_support')
+    expect(wrapper.text()).not.toContain('common.contact')
+    expect(wrapper.text()).not.toContain('qq群: 123456789 微信:sub2api_support')
     expect(wrapper.find('img[alt="home.landing.community.qrAlt.qq"]').exists()).toBe(false)
   })
 
@@ -353,5 +374,66 @@ describe('HomeView', () => {
     const links = wrapper.findAll('a')
     expect(links.some((link) => link.text().includes('格品购物') && link.attributes('href') === 'https://card.gepinkeji.com')).toBe(true)
     expect(links.some((link) => link.text().includes('格品生图') && link.attributes('href') === 'https://chat.gepinkeji.com/')).toBe(true)
+  })
+
+  it('routes homepage documentation links to the token documentation page', () => {
+    appState.cachedPublicSettings = {
+      home_content: '',
+      site_logo: '/brand.svg',
+      qq_group: '',
+      wechat_contact: '',
+      doc_url: '',
+      home_links: []
+    }
+
+    const wrapper = mount(HomeView, {
+      global: {
+        stubs: {
+          RouterLink: {
+            props: ['to'],
+            template: '<a :href="typeof to === \'string\' ? to : to?.path"><slot /></a>'
+          }
+        }
+      }
+    })
+
+    const docLinks = wrapper.findAll('a').filter((link) => link.text().includes('docs') || link.text().includes('API 文档'))
+    expect(docLinks.length).toBeGreaterThan(0)
+    expect(docLinks.every((link) => link.attributes('href') === TOKEN_DOC_URL)).toBe(true)
+  })
+
+  it('routes homepage company footer links to their section targets', () => {
+    const wrapper = mount(HomeView, {
+      global: {
+        stubs: {
+          RouterLink: {
+            props: ['to'],
+            template: '<a :href="typeof to === \'string\' ? to : to?.path"><slot /></a>'
+          }
+        }
+      }
+    })
+
+    const links = wrapper.findAll('a')
+    expect(links.find((link) => link.text().includes('关于我们'))?.attributes('href')).toBe('#overview')
+    expect(links.find((link) => link.text().includes('联系我们'))?.attributes('href')).toBe('#footer')
+    expect(links.find((link) => link.text().includes('服务条款'))?.attributes('href')).toBe(TOKEN_DOC_URL)
+    expect(links.find((link) => link.text().includes('隐私政策'))?.attributes('href')).toBe(TOKEN_DOC_URL)
+  })
+
+  it('defines every home landing key used by the homepage in both locales', async () => {
+    const source = await import('../HomeView.vue?raw')
+    const keys = Array.from(source.default.matchAll(/t\('([^']+)'\)/g))
+      .map((match) => match[1])
+      .filter((key) => key.startsWith('home.landing.'))
+
+    function lookup(messages: Record<string, any>, key: string) {
+      return key.split('.').reduce<any>((value, part) => value?.[part], messages)
+    }
+
+    for (const key of new Set(keys)) {
+      expect(lookup(zhMessages, key), `missing zh translation for ${key}`).toBeTruthy()
+      expect(lookup(enMessages, key), `missing en translation for ${key}`).toBeTruthy()
+    }
   })
 })

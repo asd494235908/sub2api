@@ -17,7 +17,7 @@ ARG GOSUMDB=sum.golang.google.cn
 # -----------------------------------------------------------------------------
 # Stage 1: Frontend Builder
 # -----------------------------------------------------------------------------
-FROM ${NODE_IMAGE} AS frontend-builder
+FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS frontend-builder
 
 WORKDIR /app/frontend
 
@@ -35,7 +35,7 @@ RUN pnpm run build
 # -----------------------------------------------------------------------------
 # Stage 2: Backend Builder
 # -----------------------------------------------------------------------------
-FROM ${GOLANG_IMAGE} AS backend-builder
+FROM --platform=$BUILDPLATFORM ${GOLANG_IMAGE} AS backend-builder
 
 # Build arguments for version info (set by CI)
 ARG VERSION=
@@ -43,6 +43,8 @@ ARG COMMIT=docker
 ARG DATE
 ARG GOPROXY
 ARG GOSUMDB
+ARG TARGETOS
+ARG TARGETARCH
 
 ENV GOPROXY=${GOPROXY}
 ENV GOSUMDB=${GOSUMDB}
@@ -67,7 +69,7 @@ COPY --from=frontend-builder /app/backend/internal/web/dist ./internal/web/dist
 RUN VERSION_VALUE="${VERSION}" && \
     if [ -z "${VERSION_VALUE}" ]; then VERSION_VALUE="$(tr -d '\r\n' < ./cmd/server/VERSION)"; fi && \
     DATE_VALUE="${DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" && \
-    CGO_ENABLED=0 GOOS=linux go build \
+    CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build \
     -tags embed \
     -ldflags="-s -w -X main.Version=${VERSION_VALUE} -X main.Commit=${COMMIT} -X main.Date=${DATE_VALUE} -X main.BuildType=release" \
     -trimpath \

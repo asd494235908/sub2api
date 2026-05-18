@@ -10,6 +10,220 @@ export default {
     login: 'Login',
     getStarted: 'Get Started',
     goToDashboard: 'Go to Dashboard',
+    landing: {
+      seo: {
+        title: 'AI API Platform - Enterprise Secure Access',
+        description:
+          'GPTK provides an AI API platform for developers and businesses, with secure enterprise access, stable response paths, and straightforward integration for development, testing, and production.'
+      },
+      logoTagline: 'Enterprise OpenAI API Relay',
+      brand: 'GPTK',
+      nav: {
+        home: 'Home',
+        pricing: 'Pricing',
+        docs: 'API Docs',
+        community: 'Community',
+        gpshop: 'GPShop',
+        gpci: 'GPCI'
+      },
+      console: {
+        enter: 'Use Now',
+        login: 'Use Now'
+      },
+      hero: {
+        badge: 'Stable · Secure · Efficient OpenAI relay service',
+        titlePrefix: 'GPTK',
+        titleLead: 'Make ',
+        titleHighlight: 'AI development',
+        titleSuffix: ' easier',
+        subtitle: 'Enterprise secure access',
+        primaryCtaGuest: 'Start Integration',
+        primaryCtaAuthed: 'Use Now',
+        secondaryCta: 'View Docs',
+        checks: {
+          availability: 'Full-link acceleration',
+          latency: 'Elastic routing',
+          security: 'TLS encryption'
+        },
+        stats: {
+          calls: 'API Calls',
+          developers: 'Developers Trust Us',
+          sla: 'Availability Guarantee',
+          support: 'Technical Support'
+        }
+      },
+      overview: {
+        kicker: 'Why GPTK',
+        title: 'Fast, stable, and secure AI access',
+        subtitle: 'We provide a stable, fast, and secure OpenAI API relay service so your business can focus on product innovation.',
+        benefits: {
+          security: {
+            title: 'Enterprise Security',
+            description: 'End-to-end TLS encryption and isolated channel design balance security and compliance.'
+          },
+          easy: {
+            title: 'Simple to Use',
+            description: 'Compatible with OpenAI API conventions. Replace the Base URL and start integrating.'
+          },
+          stability: {
+            title: 'Fast and Stable',
+            description: 'Full-link acceleration and elastic routing keep responses stable during peak traffic.'
+          }
+        }
+      },
+      products: {
+        kicker: 'Core Capability Matrix',
+        title: 'One entry point for AI business growth',
+        subtitle: 'Designed around real production environments, from access and routing to delivery and security, for individual developers, startups, and enterprise projects.',
+        cards: {
+          infrastructure: {
+            title: 'Unified Model Access',
+            description: 'Centralize multi-model capabilities so teams access reasoning, image, and extended abilities in one consistent way.'
+          },
+          integration: {
+            title: 'Low-Cost Migration',
+            description: 'Keep familiar OpenAI request patterns, reduce migration cost, and complete integration and delivery faster.'
+          },
+          delivery: {
+            title: 'Stable Delivery',
+            description: 'Designed for peak calls and production usage, supporting integration, testing, launch, and long-term maintenance.'
+          },
+          security: {
+            title: 'Secure Access Control',
+            description: 'Use isolated channels, key management, and access controls to keep production usage manageable.'
+          }
+        }
+      },
+      models: {
+        kicker: 'Access OpenAI frontier models',
+        cardTitle: 'Covering mainstream reasoning, lightweight, and image scenarios available through the current API.',
+        cardSubtitle: 'Choose high-performance, balanced, low-cost, or image capabilities by scenario and access them through GPTK.',
+        badges: {
+          latest: 'Current Latest'
+        },
+        items: {
+          gpt55: 'OpenAI latest supported model, suitable for complex reasoning, coding, and professional workflows.',
+          gpt54: 'A stable and balanced frontier model for coding, tool use, and general production tasks.',
+          gpt54nano: 'An ultra-low-cost version for high-frequency and basic tasks.',
+          gptImage2: 'OpenAI current image generation model for image creation and editing scenarios.'
+        }
+      },
+      pricing: {
+        kicker: 'Flexible Pricing Plans',
+        title: 'Flexible plans for on-demand choice',
+        subtitle: 'Usage-based billing, lightweight subscriptions, and enterprise-level plans are all covered.',
+        viewDetails: 'View Detailed Pricing',
+        plans: {
+          standard: {
+            plan: 'Standard Plan',
+            badge: 'Light',
+            description: 'For lightweight projects by individual developers',
+            price: 'From ¥19.9/month'
+          },
+          pro: {
+            plan: 'Professional Plan',
+            badge: 'Recommended',
+            description: 'For mid-sized teams and stable projects',
+            price: '¥135/month'
+          },
+          enterprise: {
+            plan: 'Enterprise Plan',
+            badge: 'Enterprise',
+            description: 'For large enterprises and custom requirements',
+            price: 'Custom Pricing'
+          }
+        }
+      },
+      showcase: {
+        kicker: 'Trust and Case Highlights',
+        title: 'Closer to production needs, from integration efficiency to stable operation',
+        subtitle: 'The new homepage keeps real business messaging and uses a modern presentation for platform strengths, customer perception, and future case content.',
+        stats: {
+          developers: 'Developers Trust Us',
+          sla: 'Service Availability',
+          support: 'Support Response'
+        },
+        quoteMarks: {
+          open: '"',
+          close: '"'
+        },
+        quotes: {
+          team: {
+            quote: 'The integration method barely needed rewriting, so the team spent more time on product features instead of compatibility and network issues.',
+            author: 'Product Team Feedback',
+            role: 'Enterprise Integration Scenario'
+          },
+          engineer: {
+            quote: 'The path from testing to launch became smoother. Once the API stabilized, frontend and backend collaboration costs dropped significantly.',
+            author: 'Engineering Perspective',
+            role: 'Engineering Practice Experience'
+          },
+          ops: {
+            quote: 'For us, stability and support response speed matter most, and they are the foundation for long-term usage.',
+            author: 'Operations Collaboration Feedback',
+            role: 'Production Availability Focus'
+          }
+        }
+      },
+      cta: {
+        badge: 'Start now, integrate quickly',
+        title: 'Ready to bring your AI application to production faster?',
+        subtitle: 'Keep familiar calling patterns and existing development habits, while a more stable path supports integration, testing, launch, and long-term maintenance.',
+        trust: {
+          freeTrial: 'Trial and quick experience supported',
+          noCard: 'No complex migration process',
+          fastSupport: 'More direct technical support response'
+        }
+      },
+      footer: {
+        about: 'Enterprise OpenAI API relay service that makes AI development easier.',
+        follow: 'Follow Us',
+        copyrightOwner: 'Chengdu Gepin Technology Co., Ltd. All rights reserved',
+        filing: 'Shu ICP No. 17044249-1',
+        columns: {
+          product: {
+            title: 'Product',
+            pricing: 'Pricing',
+            docs: 'API Docs',
+            platforms: 'Supported Platforms',
+            changelog: 'Changelog'
+          },
+          developer: {
+            title: 'Developers',
+            quickstart: 'Quick Start',
+            sdk: 'SDK & Tools',
+            bestPractices: 'Best Practices',
+            status: 'API Status'
+          },
+          links: {
+            title: 'Links'
+          },
+          company: {
+            title: 'Company',
+            about: 'About Us',
+            contact: 'Contact Us',
+            terms: 'Terms of Service',
+            privacy: 'Privacy Policy'
+          }
+        }
+      },
+      community: {
+        qrLabels: {
+          qq: 'QQ Group',
+          wechat: 'WeChat'
+        },
+        qrAlt: {
+          qq: 'QQ group QR code',
+          wechat: 'WeChat QR code'
+        },
+        socialDots: {
+          wechat: 'Weibo',
+          blog: 'Video',
+          video: 'Know',
+          qa: 'Company'
+        }
+      }
+    },
     // User-focused value proposition
     heroSubtitle: 'One Key, All AI Models',
     heroDescription: 'No need to manage multiple subscriptions. Access Claude, GPT, Gemini and more with a single API key',
@@ -376,6 +590,8 @@ export default {
     myOrders: 'My Orders',
     luckyWheel: 'Lucky Wheel',
     luckyWheelAdmin: 'Lucky Wheel Activity',
+    rechargeActivity: 'Recharge Activity',
+    rechargeActivityAdmin: 'Recharge Activity',
     orderManagement: 'Orders',
     paymentDashboard: 'Payment Dashboard',
     paymentConfig: 'Payment Config',
@@ -484,6 +700,78 @@ export default {
     adminValidationOpenTier: 'Only the last tier can be open ended',
     adminValidationInviteBonus: 'Invite bonus per invitee must be greater than 0',
     adminValidationGoldenQuota: 'Golden window daily quota must be greater than 0',
+    adminCopyTitle: 'Page Copy',
+    adminCopyHint: 'Configure the user-facing activity introduction and rule text.',
+    adminIntroTextLabel: 'Activity Introduction',
+    adminRulesTitleLabel: 'Rules Title',
+    adminRulesItemsLabel: 'Rule Items',
+    adminAddRuleItem: 'Add Rule',
+  },
+
+  rechargeActivity: {
+    heroTag: 'Recharge Activity',
+    heroDescription: 'Completed payment orders grant draw chances. Eligible prizes are filtered by paid amount, and rewards are fulfilled manually by admins.',
+    pendingChances: 'Pending Chances',
+    currentChance: 'Current Chance',
+    noChanceShort: 'No Chance',
+    noChance: 'No draw chance is available right now. Complete a recharge or subscription purchase and try again.',
+    disabled: 'This activity is currently unavailable',
+    refresh: 'Refresh',
+    drawNow: 'Draw Now',
+    prizeList: 'Prize List',
+    rulesTitle: 'Rules',
+    defaultRule: 'Each completed payment order grants one draw chance.',
+    payAmount: 'Paid Amount',
+    sourceOrder: 'Source Order',
+    minPay: 'Minimum Paid',
+    historyTitle: 'Win History',
+    noRecords: 'No win records yet',
+    subscriptionOrder: 'Subscription Order',
+    balanceOrder: 'Recharge Order',
+    toastWin: 'You won {name}',
+    resultTitle: 'Draw Result',
+    fulfillmentPending: 'Pending fulfillment',
+    fulfillmentFulfilled: 'Fulfilled',
+    adminDescription: 'Configure the recharge activity switch, eligible order types, prize descriptions, probabilities, and minimum paid thresholds.',
+    adminEnabledTitle: 'Activity Switch',
+    adminEnabledHint: 'When disabled, no new chances are granted and draws are blocked.',
+    adminOrderTypesTitle: 'Eligible Order Types',
+    adminCopyTitle: 'Page Copy',
+    adminIntroTextLabel: 'Activity Introduction',
+    adminRulesTitleLabel: 'Rules Title',
+    adminRulesItemsLabel: 'Rule Items',
+    adminAddRuleItem: 'Add Rule',
+    adminPrizesTitle: 'Prize Configuration',
+    adminPrizesHint: 'Prize count is expandable. Draws filter by paid amount and normalize eligible probabilities automatically.',
+    adminAddPrize: 'Add Prize',
+    adminPrizeIdLabel: 'Prize ID',
+    adminPrizeNameLabel: 'Prize Name',
+    adminRewardDescriptionLabel: 'Reward Description',
+    adminProbabilityLabel: 'Probability',
+    adminMinPayLabel: 'Minimum Paid',
+    adminTotalChances: 'Total Chances',
+    adminPendingChances: 'Pending Chances',
+    adminDrawnChances: 'Drawn Chances',
+    adminPendingFulfillments: 'Pending Fulfillments',
+    adminFulfilledRecords: 'Fulfilled Records',
+    adminRecentRecordsTitle: 'Recent Wins',
+    adminRecentRecordsHint: 'Rewards are fulfilled manually by admins. Mark status and leave notes here.',
+    adminWinningUser: 'Winning User',
+    adminSearchUserPlaceholder: 'Search user email, username, or ID',
+    adminFulfillmentStatus: 'Fulfillment Status',
+    adminFulfillmentNote: 'Fulfillment Note',
+    adminFulfillmentNoteRequired: 'Enter a fulfillment note before marking fulfilled.',
+    markFulfilled: 'Mark Fulfilled',
+    markPending: 'Mark Pending',
+    adminValidationTitle: 'Fix these issues before saving',
+    adminValidationOrderTypes: 'Select at least one eligible order type',
+    adminValidationPrizes: 'At least one prize is required',
+    adminValidationPrizeId: 'Prize ID is required',
+    adminValidationPrizeDuplicate: 'Prize IDs must be unique',
+    adminValidationProbability: 'Prize probability must be greater than 0',
+    adminValidationProbabilityTotal: 'Enabled prize probabilities must add up to 100',
+    adminValidationMinPay: 'Minimum paid amount cannot be negative',
+    adminValidationEnabledPrize: 'At least one prize must be enabled',
   },
 
   // Auth
@@ -802,19 +1090,23 @@ export default {
         'Add the following environment variables to your terminal profile or run directly in terminal to configure API access.',
       copy: 'Copy',
       copied: 'Copied',
+      download: 'Download',
       note: 'These environment variables will be active in the current terminal session. For permanent configuration, add them to ~/.bashrc, ~/.zshrc, or the appropriate configuration file.',
       noGroupTitle: 'Please assign a group first',
       noGroupDescription: 'This API key has not been assigned to a group. Please click the group column in the key list to assign one before viewing the configuration.',
       openai: {
-        description: 'Add the following configuration files to your Codex CLI config directory.',
+        description: 'Copy and run the script for your system, then enter the API Key manually to configure Codex CLI and Codex App.',
         configTomlHint: 'Make sure the following content is at the beginning of the config.toml file',
-        note: 'Make sure the config directory exists. macOS/Linux users can run mkdir -p ~/.codex to create it.',
-        noteWindows: 'Press Win+R and enter %userprofile%\\.codex to open the config directory. Create it manually if it does not exist.',
+        setupScriptHint: 'Intel and Apple Silicon Macs use the same ~/.codex config path. The script backs up existing config, writes Codex CLI / App config, and verifies it with /v1/models.',
+        setupScriptHintWindows: 'Run this in PowerShell. The script backs up existing config, writes Codex CLI / App config, and verifies it with /v1/models.',
+        note: 'After the script finishes, restart Codex App if it is already open so it reloads ~/.codex.',
+        noteWindows: 'The script writes to %userprofile%\\.codex. After it finishes, restart Codex App if it is already open.',
       },
       cliTabs: {
         claudeCode: 'Claude Code',
         geminiCli: 'Gemini CLI',
         codexCli: 'Codex CLI',
+        codexOneClick: 'One-click Setup',
         codexCliWs: 'Codex CLI (WebSocket)',
         opencode: 'OpenCode',
       },
@@ -1205,6 +1497,8 @@ export default {
     weeklyQuotaClaimSuccess: 'Weekly quota claimed successfully!',
     weeklyQuotaClaimFailed: 'Failed to claim weekly quota. Please try again later.',
     weeklyQuotaHistoryTitle: 'Weekly Quota Claim',
+    weeklyQuotaPhoneRequired: 'Bind a phone number before claiming weekly quota.',
+    weeklyQuotaBindPhoneFirst: 'Please bind a phone number before claiming weekly quota.',
     luckyWheelBonusTitle: 'Lucky Wheel Bonus',
     systemGrant: 'System Grant'
   },
@@ -1805,6 +2099,19 @@ export default {
       searchPlaceholder: 'Search inviter email or username',
       empty: 'No affiliate relationship data yet',
       viewInvitees: 'View invitees',
+      manualAdd: 'Add relation manually',
+      manualDialogTitle: 'Add Affiliate Relation',
+      manualHint: 'Existing inviter attribution may be overwritten. Historical recharge rebates are not recalculated; only future top-ups use this relation.',
+      manualInviter: 'Inviter',
+      manualInvitee: 'Invitee',
+      manualSearchPlaceholder: 'Search user email, username, or ID',
+      manualNoOptions: 'No matching users',
+      manualSelectedUser: 'Selected',
+      manualSubmit: 'Save Relation',
+      manualSubmitting: 'Saving...',
+      manualSameUserError: 'Inviter and invitee cannot be the same user',
+      manualMissingUserError: 'Please select both inviter and invitee',
+      manualSuccess: 'Affiliate relation saved',
       totalLabel: '{total} total',
       inviteesTitle: 'Invitees of {email}',
       inviteesDescription: 'Shows the users currently attributed to this inviter.',
@@ -4247,7 +4554,9 @@ export default {
         invitation: 'Invitation',
         // Admin adjustment types (created when admin modifies user balance/concurrency)
         admin_balance: 'Balance (Admin)',
-        admin_concurrency: 'Concurrency (Admin)'
+        admin_concurrency: 'Concurrency (Admin)',
+        weekly_balance: 'Weekly Quota Claim',
+        lucky_wheel_bonus: 'Lucky Wheel Bonus'
       },
       selectGroup: 'Select Group',
       selectGroupPlaceholder: 'Choose a subscription group',
@@ -5299,6 +5608,13 @@ export default {
           amount: 'Weekly Amount',
           amountHint: 'Balance amount users can claim in each 7-day window.',
           amountRequired: 'Enter a weekly amount greater than 0 when weekly quota is enabled.',
+        },
+        rechargeActivity: {
+          title: 'Recharge Activity',
+          description: 'Completed payment orders grant independent draw chances. Configure prizes, probabilities, and minimum paid thresholds under Orders.',
+          configureLink: 'Configure prizes in Orders > Recharge Activity',
+          enabled: 'Enable Recharge Activity',
+          enabledHint: 'When off, the user entry is hidden and new payment orders grant no recharge activity chances.',
         },
         affiliate: {
           title: 'Affiliate (Invite Rebate)',

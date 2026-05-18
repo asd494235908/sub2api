@@ -132,6 +132,19 @@ export interface SimpleUser {
   username: string
 }
 
+export interface CreateInviteRelationRequest {
+  inviter_user_id: number
+  invitee_user_id: number
+  overwrite: boolean
+}
+
+export interface CreateInviteRelationResponse {
+  inviter_user_id: number
+  invitee_user_id: number
+  overwritten: boolean
+  previous_inviter_user_id?: number | null
+}
+
 export async function listUsers(
   params: ListAffiliateUsersParams = {},
 ): Promise<PaginatedResponse<AffiliateAdminEntry>> {
@@ -177,6 +190,16 @@ export async function listInviterInvitees(
 ): Promise<AffiliateInvitee[]> {
   const { data } = await apiClient.get<AffiliateInvitee[]>(
     `/admin/affiliates/inviters/${userId}/invitees`,
+  )
+  return data
+}
+
+export async function createInviteRelation(
+  payload: CreateInviteRelationRequest,
+): Promise<CreateInviteRelationResponse> {
+  const { data } = await apiClient.post<CreateInviteRelationResponse>(
+    '/admin/affiliates/invites',
+    payload,
   )
   return data
 }
@@ -265,6 +288,7 @@ export async function getUserOverview(
 
 export const affiliatesAPI = {
   listUsers,
+  createInviteRelation,
   listInviters,
   listInviterInvitees,
   lookupUsers,

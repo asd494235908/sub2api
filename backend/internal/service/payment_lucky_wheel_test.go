@@ -655,3 +655,44 @@ func TestGetLuckyWheelSummary_ReturnsPendingAndHistorySessions(t *testing.T) {
 	require.Len(t, updated.HistorySessions, 1)
 	require.True(t, updated.HistorySessions[0].Settled)
 }
+
+func TestGetLuckyWheelSummary_OrdersHistoryBySettledAtDesc(t *testing.T) {
+	ctx := context.Background()
+	svc, repo, _ := newLuckyWheelPaymentService(t)
+	saveLuckyWheelConfig(t, repo, defaultLuckyWheelConfig())
+	require.NoError(t, svc.ensureLuckyWheelTables(ctx))
+
+	createdNewer := time.Date(2026, 5, 13, 12, 0, 0, 0, time.UTC)
+	createdOlder := createdNewer.Add(-time.Hour)
+	settledNewer := createdNewer.Add(2 * time.Hour)
+	settledOlder := createdNewer.Add(-30 * time.Minute)
+
+	_, err := svc.entClient.ExecContext(ctx, `
+INSERT INTO lucky_wheel_sessions (
+  user_id, source_order_id, source_order_type, source_pay_amount,
+  matched_tier_id, matched_tier_name, min_multiplier, max_multiplier,
+  total_draws, completed_draws, best_multiplier, invite_bonus_multiplier,
+  golden_window_extra_draws, settled, settled_bonus_amount, settled_at,
+  created_at, updated_at
+) VALUES
+  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?),
+  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		int64(1), int64(701), payment.OrderTypeBalance, 50.0,
+		"tier_20_50", "older settlement", 1.1, 2.0,
+		2, 2, 1.5, 0.0,
+		0, true, 75.0, settledOlder,
+		createdNewer, createdNewer,
+		int64(1), int64(702), payment.OrderTypeBalance, 50.0,
+		"tier_20_50", "newer settlement", 1.1, 2.0,
+		2, 2, 1.8, 0.0,
+		0, true, 90.0, settledNewer,
+		createdOlder, createdOlder,
+	)
+	require.NoError(t, err)
+
+	summary, err := svc.GetLuckyWheelSummary(ctx, 1)
+	require.NoError(t, err)
+	require.Len(t, summary.HistorySessions, 2)
+	require.EqualValues(t, 702, summary.HistorySessions[0].SourceOrderID)
+	require.EqualValues(t, 701, summary.HistorySessions[1].SourceOrderID)
+}

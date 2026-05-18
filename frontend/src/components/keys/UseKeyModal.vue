@@ -88,21 +88,31 @@
               <!-- Code Header -->
               <div class="flex items-center justify-between px-4 py-2 bg-gray-800 dark:bg-dark-800 border-b border-gray-700 dark:border-dark-700">
                 <span class="text-xs text-gray-400 font-mono">{{ file.path }}</span>
-                <button
-                  @click="copyContent(file.content, index)"
-                  class="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg transition-colors"
-                  :class="copiedIndex === index
-                    ? 'bg-green-500/20 text-green-400'
-                    : 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white'"
-                >
-                  <svg v-if="copiedIndex === index" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
-                  </svg>
-                  {{ copiedIndex === index ? t('keys.useKeyModal.copied') : t('keys.useKeyModal.copy') }}
-                </button>
+                <div class="flex items-center gap-2">
+                  <button
+                    v-if="file.downloadName"
+                    @click="downloadContent(file)"
+                    class="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-700 text-gray-300 transition-colors hover:bg-gray-600 hover:text-white"
+                  >
+                    <Icon name="download" size="xs" />
+                    {{ t('keys.useKeyModal.download') }}
+                  </button>
+                  <button
+                    @click="copyContent(file.content, index)"
+                    class="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg transition-colors"
+                    :class="copiedIndex === index
+                      ? 'bg-green-500/20 text-green-400'
+                      : 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white'"
+                  >
+                    <svg v-if="copiedIndex === index" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+                    </svg>
+                    {{ copiedIndex === index ? t('keys.useKeyModal.copied') : t('keys.useKeyModal.copy') }}
+                  </button>
+                </div>
               </div>
               <!-- Code Content -->
               <pre class="p-4 text-sm font-mono text-gray-100 overflow-x-auto"><code v-if="file.highlighted" v-html="file.highlighted"></code><code v-else v-text="file.content"></code></pre>
@@ -164,6 +174,7 @@ interface FileConfig {
   content: string
   hint?: string  // Optional hint message for this file
   highlighted?: string
+  downloadName?: string
 }
 
 const props = defineProps<Props>()
@@ -269,6 +280,7 @@ const clientTabs = computed((): TabConfig[] => {
     case 'openai': {
       const tabs: TabConfig[] = [
         { id: 'codex', label: t('keys.useKeyModal.cliTabs.codexCli'), icon: TerminalIcon },
+        { id: 'codex-one-click', label: t('keys.useKeyModal.cliTabs.codexOneClick'), icon: TerminalIcon },
         { id: 'codex-ws', label: t('keys.useKeyModal.cliTabs.codexCliWs'), icon: TerminalIcon },
       ]
       if (props.allowMessagesDispatch) {
@@ -313,7 +325,7 @@ const showShellTabs = computed(() => activeClientTab.value !== 'opencode')
 
 const currentTabs = computed(() => {
   if (!showShellTabs.value) return []
-  if (activeClientTab.value === 'codex' || activeClientTab.value === 'codex-ws') {
+  if (activeClientTab.value === 'codex' || activeClientTab.value === 'codex-one-click' || activeClientTab.value === 'codex-ws') {
     return openaiTabs
   }
   return shellTabs
@@ -356,6 +368,14 @@ const platformNote = computed(() => {
 })
 
 const showPlatformNote = computed(() => activeClientTab.value !== 'opencode')
+
+const CODEX_BASE_URL = 'https://token.gepinkeji.com/v1'
+const CODEX_MODEL = 'gpt-5.4'
+
+const ensureOpenAIV1BaseUrl = (value: string) => {
+  const trimmed = value.replace(/\/+$/, '')
+  return trimmed.endsWith('/v1') ? trimmed : `${trimmed}/v1`
+}
 
 const escapeHtml = (value: string) => value
   .replace(/&/g, '&amp;')
@@ -419,6 +439,9 @@ const currentFiles = computed((): FileConfig[] => {
       }
       if (activeClientTab.value === 'codex-ws') {
         return generateOpenAIWsFiles(baseUrl, apiKey)
+      }
+      if (activeClientTab.value === 'codex-one-click') {
+        return [generateOpenAISetupScript()]
       }
       return generateOpenAIFiles(baseUrl, apiKey)
     case 'gemini':
@@ -525,14 +548,11 @@ ${keyword('$env:')}${variable('GEMINI_MODEL')}${operator('=')}${string(`"${model
   return { path, content, highlighted }
 }
 
-function generateOpenAIFiles(baseUrl: string, apiKey: string): FileConfig[] {
-  const isWindows = activeTab.value === 'windows'
-  const configDir = isWindows ? '%userprofile%\\.codex' : '~/.codex'
-
-  // config.toml content
-  const configContent = `model_provider = "OpenAI"
-model = "gpt-5.4"
-review_model = "gpt-5.4"
+function generateCodexConfigContent(baseUrl = CODEX_BASE_URL): string {
+  const normalizedBaseUrl = ensureOpenAIV1BaseUrl(baseUrl)
+  return `model_provider = "OpenAI"
+model = "${CODEX_MODEL}"
+review_model = "${CODEX_MODEL}"
 model_reasoning_effort = "xhigh"
 disable_response_storage = true
 network_access = "enabled"
@@ -542,11 +562,15 @@ model_auto_compact_token_limit = 900000
 
 [model_providers.OpenAI]
 name = "OpenAI"
-base_url = "${baseUrl}"
+base_url = "${normalizedBaseUrl}"
 wire_api = "responses"
 requires_openai_auth = true`
+}
 
-  // auth.json content
+function generateOpenAIFiles(baseUrl: string, apiKey: string): FileConfig[] {
+  const isWindows = activeTab.value === 'windows'
+  const configDir = isWindows ? '%userprofile%\\.codex' : '~/.codex'
+
   const authContent = `{
   "OPENAI_API_KEY": "${apiKey}"
 }`
@@ -554,7 +578,7 @@ requires_openai_auth = true`
   return [
     {
       path: `${configDir}/config.toml`,
-      content: configContent,
+      content: generateCodexConfigContent(baseUrl),
       hint: t('keys.useKeyModal.openai.configTomlHint')
     },
     {
@@ -564,27 +588,142 @@ requires_openai_auth = true`
   ]
 }
 
+function generateOpenAISetupScript(): FileConfig {
+  return activeTab.value === 'windows'
+    ? generateOpenAIWindowsSetupScript()
+    : generateOpenAIMacSetupScript()
+}
+
+function generateOpenAIMacSetupScript(): FileConfig {
+  const configContent = generateCodexConfigContent()
+  const content = `#!/usr/bin/env bash
+set -euo pipefail
+
+VERIFY_URL="${CODEX_BASE_URL}/models"
+CODEX_DIR="$HOME/.codex"
+CONFIG_FILE="$CODEX_DIR/config.toml"
+AUTH_FILE="$CODEX_DIR/auth.json"
+TIMESTAMP="$(date +%Y%m%d%H%M%S)"
+ARCH="$(uname -m)"
+
+echo "Configuring Codex CLI / App for macOS ($ARCH)."
+echo "Apple Silicon and Intel Macs use the same ~/.codex configuration path."
+echo "Config files: $HOME/.codex/config.toml and $HOME/.codex/auth.json"
+mkdir -p "$HOME/.codex"
+
+read -rsp "Enter your API Key: " OPENAI_API_KEY
+echo
+
+if [ -z "$OPENAI_API_KEY" ]; then
+  echo "API Key is empty. Aborting."
+  exit 1
+fi
+
+for file in "$CONFIG_FILE" "$AUTH_FILE"; do
+  if [ -f "$file" ]; then
+    cp "$file" "$file.$TIMESTAMP.bak"
+    echo "Backed up $file to $file.$TIMESTAMP.bak"
+  fi
+done
+
+cat > "$CONFIG_FILE" <<'EOF_CONFIG'
+${configContent}
+EOF_CONFIG
+
+cat > "$AUTH_FILE" <<EOF_AUTH
+{
+  "OPENAI_API_KEY": "$OPENAI_API_KEY"
+}
+EOF_AUTH
+
+chmod 600 "$AUTH_FILE"
+
+echo "Verifying API Key with $VERIFY_URL ..."
+if curl -fsS -H "Authorization: Bearer $OPENAI_API_KEY" "$VERIFY_URL" >/dev/null; then
+  echo "Codex configuration verified successfully."
+  echo "If Codex App is open, restart it so it reloads ~/.codex."
+else
+  echo "Verification failed. Please check your API Key and network, then run this script again."
+  exit 1
+fi`
+
+  return {
+    path: 'macOS Terminal (Bash/Zsh)',
+    content,
+    hint: t('keys.useKeyModal.openai.setupScriptHint'),
+    downloadName: 'codex-gepin-setup.sh'
+  }
+}
+
+function generateOpenAIWindowsSetupScript(): FileConfig {
+  const configContent = generateCodexConfigContent().replace(/\r?\n/g, '\r\n')
+  const content = `$ErrorActionPreference = "Stop"
+
+$VerifyUrl = "${CODEX_BASE_URL}/models"
+$CodexDir = Join-Path $env:USERPROFILE ".codex"
+$ConfigFile = Join-Path $CodexDir "config.toml"
+$AuthFile = Join-Path $CodexDir "auth.json"
+$Timestamp = Get-Date -Format "yyyyMMddHHmmss"
+
+Write-Host "Configuring Codex CLI / App for Windows."
+Write-Host "Config files: $env:USERPROFILE\\.codex\\config.toml and $env:USERPROFILE\\.codex\\auth.json"
+New-Item -ItemType Directory -Force -Path $CodexDir | Out-Null
+
+$SecureKey = Read-Host -AsSecureString "Enter your API Key"
+$Bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureKey)
+try {
+  $ApiKey = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($Bstr)
+} finally {
+  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($Bstr)
+}
+
+if ([string]::IsNullOrWhiteSpace($ApiKey)) {
+  Write-Host "API Key is empty. Aborting."
+  exit 1
+}
+
+foreach ($File in @($ConfigFile, $AuthFile)) {
+  if (Test-Path $File) {
+    $BackupFile = "$File.$Timestamp.bak"
+    Copy-Item $File $BackupFile -Force
+    Write-Host "Backed up $File to $BackupFile"
+  }
+}
+
+@'
+${configContent}
+'@ | Set-Content -Path $ConfigFile -Encoding utf8
+
+$AuthJson = @{
+  OPENAI_API_KEY = $ApiKey
+} | ConvertTo-Json
+$AuthJson | Set-Content -Path $AuthFile -Encoding utf8
+
+Write-Host "Verifying API Key with $VerifyUrl ..."
+try {
+  Invoke-RestMethod -Uri $VerifyUrl -Headers @{ Authorization = "Bearer $ApiKey" } -Method Get | Out-Null
+  Write-Host "Codex configuration verified successfully."
+  Write-Host "If Codex App is open, restart it so it reloads $CodexDir."
+} catch {
+  Write-Host "Verification failed. Please check your API Key and network, then run this script again."
+  exit 1
+}`
+
+  return {
+    path: 'Windows PowerShell',
+    content,
+    hint: t('keys.useKeyModal.openai.setupScriptHintWindows'),
+    downloadName: 'codex-gepin-setup.ps1'
+  }
+}
+
 function generateOpenAIWsFiles(baseUrl: string, apiKey: string): FileConfig[] {
   const isWindows = activeTab.value === 'windows'
   const configDir = isWindows ? '%userprofile%\\.codex' : '~/.codex'
 
   // config.toml content with WebSocket v2
-  const configContent = `model_provider = "OpenAI"
-model = "gpt-5.4"
-review_model = "gpt-5.4"
-model_reasoning_effort = "xhigh"
-disable_response_storage = true
-network_access = "enabled"
-windows_wsl_setup_acknowledged = true
-model_context_window = 1000000
-model_auto_compact_token_limit = 900000
-
-[model_providers.OpenAI]
-name = "OpenAI"
-base_url = "${baseUrl}"
-wire_api = "responses"
+  const configContent = `${generateCodexConfigContent(baseUrl)}
 supports_websockets = true
-requires_openai_auth = true
 
 [features]
 responses_websockets_v2 = true`
@@ -1049,5 +1188,19 @@ const copyContent = async (content: string, index: number) => {
       copiedIndex.value = null
     }, 2000)
   }
+}
+
+const downloadContent = (file: FileConfig) => {
+  if (!file.downloadName) return
+
+  const blob = new Blob([file.content], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = file.downloadName
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
 }
 </script>

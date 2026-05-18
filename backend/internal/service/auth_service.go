@@ -883,7 +883,7 @@ func (s *AuthService) bindAffiliateAndApplySignupBonus(ctx context.Context, user
 	}
 	if code := strings.TrimSpace(affiliateCode); code != "" {
 		if err := s.affiliateService.BindInviterByCode(ctx, userID, code); err != nil {
-			logger.LegacyPrintf("service.auth", "[Auth] Failed to bind affiliate inviter for user %d: %v", userID, err)
+			logger.LegacyPrintf("service.auth", "[Auth] Failed to bind affiliate inviter for user %d with affiliate_code %q: %v", userID, code, err)
 		}
 	}
 	if _, _, err := s.affiliateService.ApplySignupBonus(ctx, userID); err != nil {

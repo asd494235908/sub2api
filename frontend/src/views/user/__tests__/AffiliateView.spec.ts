@@ -122,6 +122,7 @@ function createAffiliateDetail(): UserAffiliateDetail {
 
 describe('AffiliateView', () => {
   beforeEach(() => {
+    vi.stubEnv('BASE_URL', '/portal/')
     getAffiliateDetailMock.mockReset()
     transferAffiliateQuotaMock.mockReset()
     copyToClipboardMock.mockReset()
@@ -157,5 +158,20 @@ describe('AffiliateView', () => {
     expect(wrapper.text()).toContain('line3')
     expect(wrapper.text()).toContain('返利转余额')
     expect(wrapper.text()).toContain('转入余额')
+  })
+
+  it('builds invite links with the configured router base path and aff parameter', async () => {
+    const wrapper = mount(AffiliateView, {
+      global: {
+        stubs: {
+          AppLayout: { template: '<div><slot /></div>' },
+          Icon: true,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('http://localhost:3000/portal/register?aff=AFF123')
   })
 })

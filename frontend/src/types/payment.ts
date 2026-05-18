@@ -349,3 +349,89 @@ export interface LuckyWheelStats {
   golden_window_used_today: number
   golden_window_daily_quota: number
 }
+
+export interface RechargeActivityPrize {
+  id: string
+  name: string
+  reward_amount: number
+  reward_description: string
+  probability: number
+  min_pay_amount: number
+  enabled: boolean
+  sort_order: number
+}
+
+export interface RechargeActivityConfig {
+  eligible_order_types: OrderType[]
+  intro_text: string
+  rules_title: string
+  rules_items: string[]
+  prizes: RechargeActivityPrize[]
+}
+
+export interface RechargeActivityChance {
+  id: number
+  user_id: number
+  source_order_id: number
+  source_order_type: OrderType
+  source_pay_amount: number
+  drawn: boolean
+  drawn_at?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface RechargeActivityDrawRecord {
+  id: number
+  chance_id: number
+  user_id: number
+  user_email?: string
+  user_name?: string
+  source_order_id: number
+  prize_id: string
+  prize_name: string
+  reward_amount: number
+  reward_description: string
+  probability: number
+  min_pay_amount: number
+  prize_snapshot: string
+  eligible_prize_ids: string[]
+  fulfillment_status: 'pending' | 'fulfilled'
+  fulfillment_note: string
+  fulfilled_at?: string | null
+  fulfilled_by?: number | null
+  created_at: string
+}
+
+export interface RechargeActivitySummary {
+  enabled: boolean
+  config: RechargeActivityConfig
+  pending_chances: RechargeActivityChance[]
+  history_records: RechargeActivityDrawRecord[]
+}
+
+export interface RechargeActivityDrawResult {
+  chance_id: number
+  record: RechargeActivityDrawRecord
+  chance?: RechargeActivityChance | null
+}
+
+export interface AdminRechargeActivityConfigResponse {
+  enabled: boolean
+  config: RechargeActivityConfig
+}
+
+export interface RechargeActivityStats {
+  enabled: boolean
+  total_chances: number
+  pending_chances: number
+  drawn_chances: number
+  pending_fulfillments: number
+  fulfilled_records: number
+  total_reward_amount: number
+  recent_records: RechargeActivityDrawRecord[]
+  recent_records_total: number
+  recent_records_page: number
+  recent_records_page_size: number
+  recent_records_keyword: string
+}

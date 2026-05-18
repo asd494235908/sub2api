@@ -1031,6 +1031,17 @@ func (s *adminServiceImpl) GetUserBalanceHistory(ctx context.Context, userID int
 		}
 		return codes, total, totalRecharged, nil
 	}
+	if codeType == RedeemTypeLuckyWheelBonus {
+		codes, total, err := s.listLuckyWheelBalanceHistory(ctx, userID, params)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+		totalRecharged, err := s.redeemCodeRepo.SumPositiveBalanceByUser(ctx, userID)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+		return codes, total, totalRecharged, nil
+	}
 
 	if codeType == "" {
 		return s.getAllUserBalanceHistory(ctx, userID, params)
@@ -1063,13 +1074,17 @@ func (s *adminServiceImpl) getAllUserBalanceHistory(ctx context.Context, userID 
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	codes := mergeBalanceHistoryCodes(redeemCodes, affiliateCodes, params)
+	luckyWheelCodes, luckyWheelTotal, err := s.listLuckyWheelBalanceHistoryForMerge(ctx, userID, needed)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	codes := mergeBalanceHistoryCodes(redeemCodes, affiliateCodes, luckyWheelCodes, params)
 
 	totalRecharged, err := s.redeemCodeRepo.SumPositiveBalanceByUser(ctx, userID)
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	return codes, redeemTotal + affiliateTotal, totalRecharged, nil
+	return codes, redeemTotal + affiliateTotal + luckyWheelTotal, totalRecharged, nil
 }
 
 func (s *adminServiceImpl) listRedeemBalanceHistoryForMerge(ctx context.Context, userID int64, needed int) ([]RedeemCode, int64, error) {
@@ -1180,6 +1195,75 @@ LIMIT $3`, userID, params.Offset(), params.Limit())
 	return codes, total, nil
 }
 
+func (s *adminServiceImpl) listLuckyWheelBalanceHistoryForMerge(ctx context.Context, userID int64, needed int) ([]RedeemCode, int64, error) {
+	if needed <= 0 {
+		return nil, 0, nil
+	}
+	return s.listLuckyWheelBalanceHistory(ctx, userID, pagination.PaginationParams{Page: 1, PageSize: needed})
+}
+
+func (s *adminServiceImpl) listLuckyWheelBalanceHistory(ctx context.Context, userID int64, params pagination.PaginationParams) ([]RedeemCode, int64, error) {
+	if s == nil || s.entClient == nil || userID <= 0 {
+		return nil, 0, nil
+	}
+
+	rows, err := s.entClient.QueryContext(ctx, luckyWheelBindVars(s.entClient.Driver().Dialect(), `
+SELECT id, source_order_id, settled_bonus_amount, settled_at, created_at, matched_tier_name
+FROM lucky_wheel_sessions
+WHERE user_id = ? AND settled = ? AND settled_bonus_amount IS NOT NULL AND settled_bonus_amount > 0
+ORDER BY COALESCE(settled_at, updated_at, created_at) DESC, id DESC
+LIMIT ?
+OFFSET ?`), userID, true, params.Limit(), params.Offset())
+	if err != nil {
+		if isMissingLuckyWheelTableError(err) {
+			return nil, 0, nil
+		}
+		return nil, 0, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	codes := make([]RedeemCode, 0, params.Limit())
+	for rows.Next() {
+		var (
+			id            int64
+			sourceOrderID int64
+			value         float64
+			usedAt        time.Time
+			createdAt     time.Time
+			tierName      sql.NullString
+		)
+		if err := rows.Scan(&id, &sourceOrderID, &value, &usedAt, &createdAt, &tierName); err != nil {
+			return nil, 0, err
+		}
+		usedAtCopy := usedAt
+		notes := ""
+		if tierName.Valid {
+			notes = tierName.String
+		}
+		codes = append(codes, RedeemCode{
+			ID:        -id,
+			Code:      fmt.Sprintf("LUCKY-%d", sourceOrderID),
+			Type:      RedeemTypeLuckyWheelBonus,
+			Value:     value,
+			Status:    StatusUsed,
+			UsedBy:    &userID,
+			UsedAt:    &usedAtCopy,
+			Notes:     notes,
+			CreatedAt: createdAt,
+			Source:    "lucky_wheel",
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	total, err := countLuckyWheelBalanceHistory(ctx, s.entClient, userID)
+	if err != nil {
+		return nil, 0, err
+	}
+	return codes, total, nil
+}
+
 func countAffiliateBalanceHistory(ctx context.Context, client *dbent.Client, userID int64) (int64, error) {
 	rows, err := client.QueryContext(ctx, `
 SELECT COUNT(*)
@@ -1206,8 +1290,45 @@ WHERE user_id = $1
 	return total.Int64, nil
 }
 
-func mergeBalanceHistoryCodes(redeemCodes, affiliateCodes []RedeemCode, params pagination.PaginationParams) []RedeemCode {
-	combined := append(append([]RedeemCode{}, redeemCodes...), affiliateCodes...)
+func countLuckyWheelBalanceHistory(ctx context.Context, client *dbent.Client, userID int64) (int64, error) {
+	rows, err := client.QueryContext(ctx, luckyWheelBindVars(client.Driver().Dialect(), `
+SELECT COUNT(*)
+FROM lucky_wheel_sessions
+WHERE user_id = ? AND settled = ? AND settled_bonus_amount IS NOT NULL AND settled_bonus_amount > 0`), userID, true)
+	if err != nil {
+		if isMissingLuckyWheelTableError(err) {
+			return 0, nil
+		}
+		return 0, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var total sql.NullInt64
+	if rows.Next() {
+		if err := rows.Scan(&total); err != nil {
+			return 0, err
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	if !total.Valid {
+		return 0, nil
+	}
+	return total.Int64, nil
+}
+
+func isMissingLuckyWheelTableError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	return (strings.Contains(message, "lucky_wheel_sessions") && strings.Contains(message, "does not exist")) ||
+		strings.Contains(message, "no such table")
+}
+
+func mergeBalanceHistoryCodes(redeemCodes, affiliateCodes, luckyWheelCodes []RedeemCode, params pagination.PaginationParams) []RedeemCode {
+	combined := append(append(append([]RedeemCode{}, redeemCodes...), affiliateCodes...), luckyWheelCodes...)
 	sort.SliceStable(combined, func(i, j int) bool {
 		return redeemCodeHistoryTime(combined[i]).After(redeemCodeHistoryTime(combined[j]))
 	})
@@ -2960,11 +3081,254 @@ func (s *adminServiceImpl) CheckProxyExists(ctx context.Context, host string, po
 // Redeem code management implementations
 func (s *adminServiceImpl) ListRedeemCodes(ctx context.Context, page, pageSize int, codeType, status, search string, sortBy, sortOrder string) ([]RedeemCode, int64, error) {
 	params := pagination.PaginationParams{Page: page, PageSize: pageSize, SortBy: sortBy, SortOrder: sortOrder}
+	if codeType == RedeemTypeLuckyWheelBonus {
+		return s.listLuckyWheelRedeemCodes(ctx, params, status, search)
+	}
+	if codeType == "" && (status == "" || status == StatusUsed) {
+		needed := params.Offset() + params.Limit()
+		if needed < params.Limit() {
+			needed = params.Limit()
+		}
+		mergeSortBy := normalizeRedeemCodeMergeSortBy(sortBy)
+		mergeParams := pagination.PaginationParams{Page: 1, PageSize: needed, SortBy: mergeSortBy, SortOrder: sortOrder}
+		redeemCodes, result, err := s.redeemCodeRepo.ListWithFilters(ctx, mergeParams, codeType, status, search)
+		if err != nil {
+			return nil, 0, err
+		}
+		luckyCodes, luckyTotal, err := s.listLuckyWheelRedeemCodes(ctx, mergeParams, status, search)
+		if err != nil {
+			return nil, 0, err
+		}
+		total := luckyTotal
+		if result != nil {
+			total += result.Total
+		}
+		return mergeRedeemCodeAdminList(redeemCodes, luckyCodes, params, mergeSortBy, sortOrder), total, nil
+	}
 	codes, result, err := s.redeemCodeRepo.ListWithFilters(ctx, params, codeType, status, search)
 	if err != nil {
 		return nil, 0, err
 	}
 	return codes, result.Total, nil
+}
+
+func normalizeRedeemCodeMergeSortBy(sortBy string) string {
+	sortBy = strings.ToLower(strings.TrimSpace(sortBy))
+	if sortBy == "" || sortBy == "id" {
+		return "used_at"
+	}
+	return sortBy
+}
+
+func (s *adminServiceImpl) listLuckyWheelRedeemCodes(ctx context.Context, params pagination.PaginationParams, status, search string) ([]RedeemCode, int64, error) {
+	if s == nil || s.entClient == nil {
+		return nil, 0, nil
+	}
+	if status != "" && status != StatusUsed {
+		return nil, 0, nil
+	}
+
+	search = strings.ToLower(strings.TrimSpace(search))
+	where := "WHERE s.settled = ? AND s.settled_bonus_amount IS NOT NULL AND s.settled_bonus_amount > 0"
+	args := []any{true}
+	if search != "" {
+		where += " AND (LOWER('lucky-' || CAST(s.source_order_id AS TEXT)) LIKE ? OR LOWER(COALESCE(s.matched_tier_name, '')) LIKE ? OR LOWER(COALESCE(u.email, '')) LIKE ?)"
+		like := "%" + search + "%"
+		args = append(args, like, like, like)
+	}
+
+	countArgs := append([]any{}, args...)
+	countQuery := luckyWheelBindVars(s.entClient.Driver().Dialect(), `
+SELECT COUNT(*)
+FROM lucky_wheel_sessions s
+LEFT JOIN users u ON u.id = s.user_id
+`+where)
+	countRows, err := s.entClient.QueryContext(ctx, countQuery, countArgs...)
+	if err != nil {
+		if isMissingLuckyWheelTableError(err) {
+			return nil, 0, nil
+		}
+		return nil, 0, err
+	}
+	var total sql.NullInt64
+	if countRows.Next() {
+		if err := countRows.Scan(&total); err != nil {
+			_ = countRows.Close()
+			return nil, 0, err
+		}
+	}
+	if err := countRows.Err(); err != nil {
+		_ = countRows.Close()
+		return nil, 0, err
+	}
+	_ = countRows.Close()
+
+	orderBy := luckyWheelRedeemCodeOrderBy(params.SortBy, params.SortOrder)
+	args = append(args, params.Limit(), params.Offset())
+	query := luckyWheelBindVars(s.entClient.Driver().Dialect(), `
+SELECT s.id, s.source_order_id, s.settled_bonus_amount, s.settled_at, s.created_at, s.matched_tier_name,
+       s.user_id, u.email, u.username
+FROM lucky_wheel_sessions s
+LEFT JOIN users u ON u.id = s.user_id
+`+where+`
+`+orderBy+`
+LIMIT ?
+OFFSET ?`)
+	rows, err := s.entClient.QueryContext(ctx, query, args...)
+	if err != nil {
+		if isMissingLuckyWheelTableError(err) {
+			return nil, 0, nil
+		}
+		return nil, 0, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	codes := make([]RedeemCode, 0, params.Limit())
+	for rows.Next() {
+		var (
+			id            int64
+			sourceOrderID int64
+			value         float64
+			usedAt        time.Time
+			createdAt     time.Time
+			tierName      sql.NullString
+			userID        int64
+			email         sql.NullString
+			username      sql.NullString
+		)
+		if err := rows.Scan(&id, &sourceOrderID, &value, &usedAt, &createdAt, &tierName, &userID, &email, &username); err != nil {
+			return nil, 0, err
+		}
+		usedAtCopy := usedAt
+		userSummary := &User{ID: userID}
+		if email.Valid {
+			userSummary.Email = email.String
+		}
+		if username.Valid {
+			userSummary.Username = username.String
+		}
+		notes := ""
+		if tierName.Valid {
+			notes = tierName.String
+		}
+		codes = append(codes, RedeemCode{
+			ID:        -id,
+			Code:      fmt.Sprintf("LUCKY-%d", sourceOrderID),
+			Type:      RedeemTypeLuckyWheelBonus,
+			Value:     value,
+			Status:    StatusUsed,
+			UsedBy:    &userID,
+			UsedAt:    &usedAtCopy,
+			Notes:     notes,
+			CreatedAt: createdAt,
+			User:      userSummary,
+			Source:    "lucky_wheel",
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	if !total.Valid {
+		return codes, 0, nil
+	}
+	return codes, total.Int64, nil
+}
+
+func luckyWheelRedeemCodeOrderBy(sortBy, sortOrder string) string {
+	desc := strings.ToLower(strings.TrimSpace(sortOrder)) != pagination.SortOrderAsc
+	direction := "DESC"
+	if !desc {
+		direction = "ASC"
+	}
+
+	switch strings.ToLower(strings.TrimSpace(sortBy)) {
+	case "type":
+		return "ORDER BY s.id " + direction
+	case "value":
+		return "ORDER BY s.settled_bonus_amount " + direction + ", s.id " + direction
+	case "status":
+		return "ORDER BY s.id " + direction
+	case "used_at":
+		return "ORDER BY s.settled_at " + direction + ", s.id " + direction
+	case "created_at":
+		return "ORDER BY s.created_at " + direction + ", s.id " + direction
+	case "code":
+		return "ORDER BY s.source_order_id " + direction + ", s.id " + direction
+	default:
+		return "ORDER BY s.id " + direction
+	}
+}
+
+func mergeRedeemCodeAdminList(redeemCodes, luckyWheelCodes []RedeemCode, params pagination.PaginationParams, sortBy, sortOrder string) []RedeemCode {
+	combined := append(append([]RedeemCode{}, redeemCodes...), luckyWheelCodes...)
+	sort.SliceStable(combined, func(i, j int) bool {
+		cmp := compareRedeemCodeForAdminList(combined[i], combined[j], sortBy)
+		if cmp == 0 {
+			cmp = compareInt64(combined[i].ID, combined[j].ID)
+		}
+		if strings.ToLower(strings.TrimSpace(sortOrder)) == pagination.SortOrderAsc {
+			return cmp < 0
+		}
+		return cmp > 0
+	})
+	offset := params.Offset()
+	if offset >= len(combined) {
+		return []RedeemCode{}
+	}
+	end := offset + params.Limit()
+	if end > len(combined) {
+		end = len(combined)
+	}
+	return combined[offset:end]
+}
+
+func compareRedeemCodeForAdminList(left, right RedeemCode, sortBy string) int {
+	switch strings.ToLower(strings.TrimSpace(sortBy)) {
+	case "type":
+		return strings.Compare(left.Type, right.Type)
+	case "value":
+		return compareFloat64(left.Value, right.Value)
+	case "status":
+		return strings.Compare(left.Status, right.Status)
+	case "used_at":
+		return compareTime(redeemCodeHistoryTime(left), redeemCodeHistoryTime(right))
+	case "created_at":
+		return compareTime(left.CreatedAt, right.CreatedAt)
+	case "code":
+		return strings.Compare(left.Code, right.Code)
+	default:
+		return compareInt64(left.ID, right.ID)
+	}
+}
+
+func compareFloat64(left, right float64) int {
+	if left < right {
+		return -1
+	}
+	if left > right {
+		return 1
+	}
+	return 0
+}
+
+func compareInt64(left, right int64) int {
+	if left < right {
+		return -1
+	}
+	if left > right {
+		return 1
+	}
+	return 0
+}
+
+func compareTime(left, right time.Time) int {
+	if left.Before(right) {
+		return -1
+	}
+	if left.After(right) {
+		return 1
+	}
+	return 0
 }
 
 func (s *adminServiceImpl) GetRedeemCode(ctx context.Context, id int64) (*RedeemCode, error) {

@@ -17,13 +17,14 @@ import (
 )
 
 var (
-	ErrRedeemCodeNotFound  = infraerrors.NotFound("REDEEM_CODE_NOT_FOUND", "redeem code not found")
-	ErrRedeemCodeUsed      = infraerrors.Conflict("REDEEM_CODE_USED", "redeem code already used")
-	ErrInsufficientBalance = infraerrors.BadRequest("INSUFFICIENT_BALANCE", "insufficient balance")
-	ErrRedeemRateLimited   = infraerrors.TooManyRequests("REDEEM_RATE_LIMITED", "too many failed attempts, please try again later")
-	ErrRedeemCodeLocked    = infraerrors.Conflict("REDEEM_CODE_LOCKED", "redeem code is being processed, please try again")
-	ErrWeeklyQuotaDisabled = infraerrors.Forbidden("WEEKLY_QUOTA_DISABLED", "weekly quota is disabled")
-	ErrWeeklyQuotaClaimed  = infraerrors.Conflict("WEEKLY_QUOTA_ALREADY_CLAIMED", "weekly quota already claimed for current window")
+	ErrRedeemCodeNotFound       = infraerrors.NotFound("REDEEM_CODE_NOT_FOUND", "redeem code not found")
+	ErrRedeemCodeUsed           = infraerrors.Conflict("REDEEM_CODE_USED", "redeem code already used")
+	ErrInsufficientBalance      = infraerrors.BadRequest("INSUFFICIENT_BALANCE", "insufficient balance")
+	ErrRedeemRateLimited        = infraerrors.TooManyRequests("REDEEM_RATE_LIMITED", "too many failed attempts, please try again later")
+	ErrRedeemCodeLocked         = infraerrors.Conflict("REDEEM_CODE_LOCKED", "redeem code is being processed, please try again")
+	ErrWeeklyQuotaDisabled      = infraerrors.Forbidden("WEEKLY_QUOTA_DISABLED", "weekly quota is disabled")
+	ErrWeeklyQuotaClaimed       = infraerrors.Conflict("WEEKLY_QUOTA_ALREADY_CLAIMED", "weekly quota already claimed for current window")
+	ErrWeeklyQuotaPhoneRequired = infraerrors.Forbidden("WEEKLY_QUOTA_PHONE_REQUIRED", "bind phone number before claiming weekly quota")
 )
 
 const (
@@ -772,6 +773,9 @@ func (s *RedeemService) ClaimWeeklyQuota(ctx context.Context, userID int64) (*We
 	if err != nil {
 		return nil, fmt.Errorf("get user: %w", err)
 	}
+	if settings.PhoneVerifyEnabled && strings.TrimSpace(user.PhoneNumber) == "" {
+		return nil, ErrWeeklyQuotaPhoneRequired
+	}
 
 	now := time.Now().UTC()
 	windowStart, windowEnd := weeklyQuotaWindowForUser(user.CreatedAt, now)
@@ -812,7 +816,6 @@ func (s *RedeemService) ClaimWeeklyQuota(ctx context.Context, userID int64) (*We
 		UsedAt:       &now,
 		CreatedAt:    now,
 		ValidityDays: 7,
-		Notes:        fmt.Sprintf("weekly quota claim for window starting %s", windowStart.Format(time.RFC3339)),
 	}
 	if err := s.redeemRepo.Create(txCtx, redeemRecord); err != nil {
 		return nil, fmt.Errorf("create weekly quota redeem record: %w", err)

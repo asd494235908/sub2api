@@ -10,6 +10,220 @@ export default {
     login: '登录',
     getStarted: '立即开始',
     goToDashboard: '进入控制台',
+    landing: {
+      seo: {
+        title: 'AI API接口服务平台 - 企业级安全接入',
+        description:
+          'GPTK 提供面向开发者与企业的 AI API 接口服务，支持企业级安全接入、国内稳定快速响应与便捷集成，适合 AI 应用开发、测试与生产环境落地。'
+      },
+      logoTagline: '企业级 OpenAI API 中转服务',
+      brand: 'GPTK',
+      nav: {
+        home: '首页',
+        pricing: '定价',
+        docs: 'API 文档',
+        community: '技术社群',
+        gpshop: '格品购物',
+        gpci: '格品生图'
+      },
+      console: {
+        enter: '立即使用',
+        login: '立即使用'
+      },
+      hero: {
+        badge: '稳定 · 安全 · 高效的 OpenAI 中转服务',
+        titlePrefix: 'GPTK',
+        titleLead: '让 ',
+        titleHighlight: 'AI 开发',
+        titleSuffix: '更简单',
+        subtitle: '企业级安全接入',
+        primaryCtaGuest: '立即开始接入',
+        primaryCtaAuthed: '立即使用',
+        secondaryCta: '查看文档',
+        checks: {
+          availability: '全链路加速',
+          latency: '弹性调度',
+          security: 'TLS 加密'
+        },
+        stats: {
+          calls: 'API 调用次数',
+          developers: '开发者信赖',
+          sla: '可用性保障',
+          support: '技术支持'
+        }
+      },
+      overview: {
+        kicker: '为什么选择 GPTK',
+        title: '快速、稳定、安全的 AI 接入体验',
+        subtitle: '我们提供稳定、快速、安全的 OpenAI API 中转服务，让业务专注于产品创新。',
+        benefits: {
+          security: {
+            title: '企业级安全',
+            description: '全程 TLS 加密与独立通道设计，兼顾安全与合规。'
+          },
+          easy: {
+            title: '简单易用',
+            description: '兼容 OpenAI 接口规范，替换 Base URL 即可接入。'
+          },
+          stability: {
+            title: '高速稳定',
+            description: '全链路加速与弹性调度，保障高峰期也能稳定返回。'
+          }
+        }
+      },
+      products: {
+        kicker: '核心能力矩阵',
+        title: '一套入口，承接你的 AI 业务增长',
+        subtitle: '从接入、路由到交付与安全，围绕真实生产环境设计，适合个人开发者、创业团队与企业项目逐步扩展。',
+        cards: {
+          infrastructure: {
+            title: '统一模型接入',
+            description: '集中承接多模型能力，让团队用一致方式访问推理、图像与扩展能力。'
+          },
+          integration: {
+            title: '低成本迁移上线',
+            description: '沿用熟悉的 OpenAI 请求方式，把改造成本降到更低，快速完成联调与交付。'
+          },
+          delivery: {
+            title: '稳定交付保障',
+            description: '围绕高峰调用与生产场景设计，持续支撑接入、测试、上线和长期维护。'
+          },
+          security: {
+            title: '安全接入控制',
+            description: '配合独立通道、密钥管理与访问控制，让生产使用更可控。'
+          }
+        }
+      },
+      models: {
+        kicker: '接入 OpenAI 前沿模型',
+        cardTitle: '覆盖当前 API 可用的主流推理、轻量与图像场景。',
+        cardSubtitle: '按场景选择高性能、均衡、低成本或图像能力，统一通过 GPTK 接入。',
+        badges: {
+          latest: '当前最新'
+        },
+        items: {
+          gpt55: 'OpenAI 最新支持模型，适合复杂推理、编码与专业工作流。',
+          gpt54: '稳定均衡的前沿模型版本，适合编码、工具调用与通用生产任务。',
+          gpt54nano: '面向高频与基础任务的超低成本版本。',
+          gptImage2: 'OpenAI 当前图像生成模型，适合图片生成与编辑场景。'
+        }
+      },
+      pricing: {
+        kicker: '灵活的计费方案',
+        title: '灵活套餐，按需选择',
+        subtitle: '按量计费、轻量订阅与企业级方案都能覆盖。',
+        viewDetails: '查看详细价格',
+        plans: {
+          standard: {
+            plan: '标准套餐',
+            badge: '轻量版',
+            description: '适合个人开发者的轻度项目',
+            price: '¥19.9/月起'
+          },
+          pro: {
+            plan: '专业套餐',
+            badge: '推荐',
+            description: '适合中型团队和稳定项目',
+            price: '¥135/月'
+          },
+          enterprise: {
+            plan: '企业套餐',
+            badge: '企业版',
+            description: '适合大型企业和定制化需求',
+            price: '定制价格'
+          }
+        }
+      },
+      showcase: {
+        kicker: '信任与案例展示',
+        title: '从接入效率到稳定运行，都更贴近生产需求',
+        subtitle: '新版官网保留真实业务表达，用更现代的展示方式承接你的平台优势、客户感知与后续案例内容。',
+        stats: {
+          developers: '开发者信赖',
+          sla: '服务可用性',
+          support: '支持响应'
+        },
+        quoteMarks: {
+          open: '“',
+          close: '”'
+        },
+        quotes: {
+          team: {
+            quote: '接入方式几乎不用重写，团队把更多时间放在产品功能上，而不是处理兼容和网络问题。',
+            author: '产品团队反馈',
+            role: '企业接入场景'
+          },
+          engineer: {
+            quote: '从测试到上线节奏更顺，接口稳定之后，前后端协作成本明显下降。',
+            author: '研发视角',
+            role: '工程实践体验'
+          },
+          ops: {
+            quote: '对我们来说，更重要的是稳定与支持响应速度，这也是长期使用的基础。',
+            author: '运维协作反馈',
+            role: '生产可用性关注'
+          }
+        }
+      },
+      cta: {
+        badge: '立即开始，快速接入',
+        title: '准备好把你的 AI 应用更快推向生产了吗？',
+        subtitle: '沿用熟悉的调用方式，保留现有开发习惯，用更稳定的链路支撑接入、测试、上线和长期维护。',
+        trust: {
+          freeTrial: '支持试用与快速体验',
+          noCard: '无需复杂迁移流程',
+          fastSupport: '技术支持响应更直接'
+        }
+      },
+      footer: {
+        about: '企业级 OpenAI API 中转服务，让 AI 开发更简单。',
+        follow: '关注我们',
+        copyrightOwner: '成都格品科技有限公司版权所有',
+        filing: '蜀ICP备17044249号-1',
+        columns: {
+          product: {
+            title: '产品',
+            pricing: '定价',
+            docs: 'API 文档',
+            platforms: '支持的平台',
+            changelog: '更新日志'
+          },
+          developer: {
+            title: '开发者',
+            quickstart: '快速开始',
+            sdk: 'SDK & 工具',
+            bestPractices: '最佳实践',
+            status: 'API 状态'
+          },
+          links: {
+            title: '链接'
+          },
+          company: {
+            title: '公司',
+            about: '关于我们',
+            contact: '联系我们',
+            terms: '服务条款',
+            privacy: '隐私政策'
+          }
+        }
+      },
+      community: {
+        qrLabels: {
+          qq: 'QQ 群',
+          wechat: '微信'
+        },
+        qrAlt: {
+          qq: 'QQ 群二维码',
+          wechat: '微信二维码'
+        },
+        socialDots: {
+          wechat: '微博',
+          blog: '视',
+          video: '知',
+          qa: '公司'
+        }
+      }
+    },
     // 新增：面向用户的价值主张
     heroSubtitle: '一个密钥，畅用多个 AI 模型',
     heroDescription: '无需管理多个订阅账号，一站式接入 Claude、GPT、Gemini 等主流 AI 服务',
@@ -376,6 +590,8 @@ export default {
     myOrders: '我的订单',
     luckyWheel: '幸运转盘',
     luckyWheelAdmin: '转盘活动',
+    rechargeActivity: '充值活动',
+    rechargeActivityAdmin: '充值活动',
     orderManagement: '订单管理',
     paymentDashboard: '支付概览',
     paymentConfig: '支付配置',
@@ -484,6 +700,78 @@ export default {
     adminValidationOpenTier: '只有最后一个档位可以不设上限',
     adminValidationInviteBonus: '邀请单次加成必须大于 0',
     adminValidationGoldenQuota: '黄金窗口每日名额必须大于 0',
+    adminCopyTitle: '页面文案',
+    adminCopyHint: '配置用户端活动介绍和规则说明。',
+    adminIntroTextLabel: '活动介绍',
+    adminRulesTitleLabel: '规则标题',
+    adminRulesItemsLabel: '规则条目',
+    adminAddRuleItem: '新增规则',
+  },
+
+  rechargeActivity: {
+    heroTag: '充值活动',
+    heroDescription: '支付订单完成后获得抽奖机会，按实付金额匹配可中奖品，中奖后由管理员人工发放奖励。',
+    pendingChances: '待抽机会',
+    currentChance: '当前机会',
+    noChanceShort: '暂无机会',
+    noChance: '当前没有可抽奖机会，完成充值或订阅购买后再来试试。',
+    disabled: '活动暂未开启',
+    refresh: '刷新',
+    drawNow: '立即抽奖',
+    prizeList: '奖品列表',
+    rulesTitle: '活动规则',
+    defaultRule: '每笔成功支付订单获得 1 次抽奖机会。',
+    payAmount: '实付金额',
+    sourceOrder: '来源订单',
+    minPay: '最低实付',
+    historyTitle: '中奖记录',
+    noRecords: '暂无中奖记录',
+    subscriptionOrder: '订阅订单',
+    balanceOrder: '充值订单',
+    toastWin: '恭喜抽中 {name}',
+    resultTitle: '中奖结果',
+    fulfillmentPending: '待发放',
+    fulfillmentFulfilled: '已发放',
+    adminDescription: '配置充值活动开关、参与订单类型、奖品说明、中奖概率和最低充值门槛。',
+    adminEnabledTitle: '活动开关',
+    adminEnabledHint: '关闭后不发新机会，也不能继续抽奖。',
+    adminOrderTypesTitle: '参与订单类型',
+    adminCopyTitle: '页面文案',
+    adminIntroTextLabel: '活动介绍',
+    adminRulesTitleLabel: '规则标题',
+    adminRulesItemsLabel: '规则条目',
+    adminAddRuleItem: '新增规则',
+    adminPrizesTitle: '奖品配置',
+    adminPrizesHint: '奖品数量可扩展；抽奖时按订单实付金额过滤后自动重算概率。',
+    adminAddPrize: '新增奖品',
+    adminPrizeIdLabel: '奖品 ID',
+    adminPrizeNameLabel: '奖品名称',
+    adminRewardDescriptionLabel: '奖励说明',
+    adminProbabilityLabel: '概率',
+    adminMinPayLabel: '最低实付',
+    adminTotalChances: '总机会',
+    adminPendingChances: '待抽机会',
+    adminDrawnChances: '已抽机会',
+    adminPendingFulfillments: '待发放记录',
+    adminFulfilledRecords: '已发放记录',
+    adminRecentRecordsTitle: '最近中奖记录',
+    adminRecentRecordsHint: '奖励由管理员人工发放，可在这里标记发放状态并记录备注。',
+    adminWinningUser: '中奖用户',
+    adminSearchUserPlaceholder: '搜索用户邮箱、用户名或ID',
+    adminFulfillmentStatus: '发放状态',
+    adminFulfillmentNote: '发放备注',
+    adminFulfillmentNoteRequired: '标记已发放前请填写发放备注',
+    markFulfilled: '标记已发放',
+    markPending: '改为待发放',
+    adminValidationTitle: '保存前请先修正这些问题',
+    adminValidationOrderTypes: '至少选择一种参与订单类型',
+    adminValidationPrizes: '至少需要 1 个奖品',
+    adminValidationPrizeId: '奖品 ID 不能为空',
+    adminValidationPrizeDuplicate: '奖品 ID 不能重复',
+    adminValidationProbability: '中奖概率必须大于 0',
+    adminValidationProbabilityTotal: '启用奖品的中奖概率合计必须等于 100',
+    adminValidationMinPay: '最低实付金额不能小于 0',
+    adminValidationEnabledPrize: '至少需要启用 1 个奖品',
   },
 
   // Auth
@@ -800,21 +1088,28 @@ export default {
       description: '将以下环境变量添加到您的终端配置文件或直接在终端中运行。',
       copy: '复制',
       copied: '已复制',
+      download: '下载',
       note: '这些环境变量将在当前终端会话中生效。如需永久配置，请将其添加到 ~/.bashrc、~/.zshrc 或相应的配置文件中。',
       noGroupTitle: '请先分配分组',
       noGroupDescription:
         '此 API 密钥尚未分配分组，请先在密钥列表中点击分组列进行分配，然后才能查看使用配置。',
       openai: {
-        description: '将以下配置文件添加到 Codex CLI 配置目录中。',
+        description:
+          '复制并运行对应系统脚本，按提示手动输入 API Key，即可为 Codex CLI 与 Codex App 写入配置。',
         configTomlHint: '请确保以下内容位于 config.toml 文件的开头部分',
-        note: '请确保配置目录存在。macOS/Linux 用户可运行 mkdir -p ~/.codex 创建目录。',
+        setupScriptHint:
+          'macOS Intel 与 Apple Silicon 使用相同的 ~/.codex 配置路径。脚本会备份已有配置、写入 Codex CLI / App 配置，并调用 /v1/models 验证是否配置正确。',
+        setupScriptHintWindows:
+          '请在 PowerShell 中运行。脚本会备份已有配置、写入 Codex CLI / App 配置，并调用 /v1/models 验证是否配置正确。',
+        note: '脚本配置完成后，如 Codex App 已打开，请重启 Codex App 让它重新读取 ~/.codex 配置。',
         noteWindows:
-          '按 Win+R，输入 %userprofile%\\.codex 打开配置目录。如目录不存在，请先手动创建。'
+          '脚本会写入 %userprofile%\\.codex。配置完成后，如 Codex App 已打开，请重启 Codex App。'
       },
       cliTabs: {
         claudeCode: 'Claude Code',
         geminiCli: 'Gemini CLI',
         codexCli: 'Codex CLI',
+        codexOneClick: '一键配置',
         codexCliWs: 'Codex CLI (WebSocket)',
         opencode: 'OpenCode'
       },
@@ -1209,6 +1504,8 @@ export default {
     weeklyQuotaClaimSuccess: '周额度领取成功！',
     weeklyQuotaClaimFailed: '领取周额度失败，请稍后重试。',
     weeklyQuotaHistoryTitle: '周额度领取',
+    weeklyQuotaPhoneRequired: '领取周额度前需要先绑定手机号。',
+    weeklyQuotaBindPhoneFirst: '请先绑定手机号后再领取周额度。',
     luckyWheelBonusTitle: '转盘奖励',
     systemGrant: '系统发放'
   },
@@ -1826,6 +2123,19 @@ export default {
       searchPlaceholder: '搜索邀请人邮箱或用户名',
       empty: '暂无邀请关系数据',
       viewInvitees: '查看邀请用户',
+      manualAdd: '手动添加关系',
+      manualDialogTitle: '手动添加邀请关系',
+      manualHint: '允许覆盖已有上级，不补发历史充值返利；只影响被邀请用户之后的新充值返利。',
+      manualInviter: '邀请人',
+      manualInvitee: '被邀请人',
+      manualSearchPlaceholder: '搜索用户邮箱、用户名或 ID',
+      manualNoOptions: '暂无匹配用户',
+      manualSelectedUser: '已选择',
+      manualSubmit: '保存关系',
+      manualSubmitting: '保存中...',
+      manualSameUserError: '邀请人和被邀请人不能是同一用户',
+      manualMissingUserError: '请选择邀请人和被邀请人',
+      manualSuccess: '邀请关系已保存',
       totalLabel: '共 {total} 条',
       inviteesTitle: '{email} 邀请的用户',
       inviteesDescription: '展示该邀请人当前关联的被邀请用户明细。',
@@ -4331,7 +4641,9 @@ export default {
         invitation: '邀请码',
         // 管理员在用户管理页面调整余额/并发时产生的记录
         admin_balance: '余额（管理员）',
-        admin_concurrency: '并发数（管理员）'
+        admin_concurrency: '并发数（管理员）',
+        weekly_balance: '周额度领取',
+        lucky_wheel_bonus: '转盘奖励'
       },
       // 用于选择器和筛选器的直接键
       balance: '余额',
@@ -5462,6 +5774,13 @@ export default {
           amount: '每周领取额度',
           amountHint: '每个 7 天窗口可领取的余额金额。',
           amountRequired: '启用周额度领取时，请填写大于 0 的领取额度。',
+        },
+        rechargeActivity: {
+          title: '充值活动',
+          description: '成功支付订单发放独立抽奖机会，可在订单管理中配置奖品、概率和最低充值门槛。',
+          configureLink: '前往 订单管理 > 充值活动 配置奖品',
+          enabled: '启用充值活动',
+          enabledHint: '关闭后用户端入口隐藏，新支付订单不再发放充值活动抽奖机会。',
         },
         affiliate: {
           title: '邀请返利',

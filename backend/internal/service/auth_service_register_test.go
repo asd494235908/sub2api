@@ -526,6 +526,36 @@ func TestAuthService_Register_AppliesAffiliateSignupBonus(t *testing.T) {
 	require.Equal(t, inviterID, affiliateRepo.signupBonusCalls[0].inviterID)
 	require.Equal(t, user.ID, affiliateRepo.signupBonusCalls[0].inviteeUserID)
 	require.InDelta(t, 9.9, affiliateRepo.signupBonusCalls[0].amount, 1e-9)
+	require.NotNil(t, affiliateRepo.summaries[user.ID].InviterID)
+	require.Equal(t, inviterID, *affiliateRepo.summaries[user.ID].InviterID)
+}
+
+func TestAuthService_Register_BindsAffiliateInviterWhenSignupRewardDisabled(t *testing.T) {
+	repo := &userRepoStub{nextID: 102}
+	inviterID := int64(55)
+	affiliateRepo := &affiliateRepoStub{
+		summaries: map[int64]*AffiliateSummary{
+			inviterID: {UserID: inviterID, AffCode: "INVITER001"},
+		},
+	}
+	affiliateService := &AffiliateService{
+		repo: affiliateRepo,
+		settingService: NewSettingService(&settingRepoStub{values: map[string]string{
+			SettingKeyAffiliateEnabled:             "true",
+			SettingKeyAffiliateSignupRewardEnabled: "false",
+			SettingKeyAffiliateSignupRewardAmount:  "0",
+		}}, nil),
+	}
+	service := newAuthServiceWithAffiliate(repo, map[string]string{
+		SettingKeyRegistrationEnabled: "true",
+	}, nil, affiliateService)
+
+	_, user, err := service.RegisterWithVerification(context.Background(), "signup-bind@test.com", "+8613800138000", "password", "", "", "", "", "INVITER001")
+	require.NoError(t, err)
+	require.NotNil(t, user)
+	require.Empty(t, affiliateRepo.signupBonusCalls)
+	require.NotNil(t, affiliateRepo.summaries[user.ID].InviterID)
+	require.Equal(t, inviterID, *affiliateRepo.summaries[user.ID].InviterID)
 }
 
 func TestAuthService_SendVerifyCode_EmailSuffixNotAllowed(t *testing.T) {

@@ -841,6 +841,31 @@ func TestNormalizePhoneNumber(t *testing.T) {
 	require.Equal(t, "", NormalizePhoneNumber("abc", "86"))
 }
 
+func TestProvideUserServiceInjectsSMSServiceForPhoneBinding(t *testing.T) {
+	provider := &mockUserSMSProvider{}
+	svc := ProvideUserService(
+		&mockUserRepo{getByIDUser: &User{ID: 1, Email: "user@example.com"}},
+		&mockUserSettingRepo{values: map[string]string{SettingKeyPhoneVerifyEnabled: "true"}},
+		nil,
+		nil,
+		NewSMSService(&smsCacheStub{}, provider),
+	)
+
+	countdown, err := svc.SendPhoneBindingCode(context.Background(), 1, "13800138000")
+
+	require.NoError(t, err)
+	require.Equal(t, 60, countdown)
+	require.Equal(t, 1, provider.sent)
+}
+
+func TestProvideAuthServiceInjectsSMSService(t *testing.T) {
+	smsService := NewSMSService(&smsCacheStub{}, &mockUserSMSProvider{})
+
+	svc := ProvideAuthService(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, smsService)
+
+	require.Same(t, smsService, svc.SMSService())
+}
+
 func TestUserService_SendPhoneBindingCodeRejectsWhenPhoneVerifyDisabled(t *testing.T) {
 	provider := &mockUserSMSProvider{}
 	svc := NewUserService(

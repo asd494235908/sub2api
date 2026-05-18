@@ -50,6 +50,51 @@ func ProvideSMSService(settingRepo SettingRepository, cache SMSCache) *SMSServic
 	})
 }
 
+func ProvideAuthService(
+	entClient *dbent.Client,
+	userRepo UserRepository,
+	redeemRepo RedeemCodeRepository,
+	refreshTokenCache RefreshTokenCache,
+	cfg *config.Config,
+	settingService *SettingService,
+	emailService *EmailService,
+	turnstileService *TurnstileService,
+	emailQueueService AuthEmailQueue,
+	promoService *PromoService,
+	defaultSubAssigner DefaultSubscriptionAssigner,
+	affiliateService *AffiliateService,
+	smsService *SMSService,
+) *AuthService {
+	svc := NewAuthService(
+		entClient,
+		userRepo,
+		redeemRepo,
+		refreshTokenCache,
+		cfg,
+		settingService,
+		emailService,
+		turnstileService,
+		emailQueueService,
+		promoService,
+		defaultSubAssigner,
+		affiliateService,
+	)
+	svc.SetSMSService(smsService)
+	return svc
+}
+
+func ProvideUserService(
+	userRepo UserRepository,
+	settingRepo SettingRepository,
+	authCacheInvalidator APIKeyAuthCacheInvalidator,
+	billingCache BillingCache,
+	smsService *SMSService,
+) *UserService {
+	svc := NewUserService(userRepo, settingRepo, authCacheInvalidator, billingCache)
+	svc.SetSMSService(smsService)
+	return svc
+}
+
 // ProvideOAuthRefreshAPI creates OAuthRefreshAPI with the default lock TTL.
 func ProvideOAuthRefreshAPI(accountRepo AccountRepository, tokenCache GeminiTokenCache) *OAuthRefreshAPI {
 	return NewOAuthRefreshAPI(accountRepo, tokenCache)
@@ -448,8 +493,8 @@ func ProvideAPIKeyService(
 // ProviderSet is the Wire provider set for all services
 var ProviderSet = wire.NewSet(
 	// Core services
-	NewAuthService,
-	NewUserService,
+	ProvideAuthService,
+	ProvideUserService,
 	ProvideAPIKeyService,
 	ProvideAPIKeyAuthCacheInvalidator,
 	NewGroupService,
