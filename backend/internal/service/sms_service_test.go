@@ -4,7 +4,12 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -87,6 +92,18 @@ type smsProviderFunc func(context.Context, string, string) error
 
 func (f smsProviderFunc) SendVerificationCode(ctx context.Context, phoneNumber, code string) error {
 	return f(ctx, phoneNumber, code)
+}
+
+func (f smsProviderFunc) SendTextMessage(ctx context.Context, phoneNumber, message string) error {
+	return f(ctx, phoneNumber, message)
+}
+
+func (f smsProviderFunc) SendTemplateMessage(ctx context.Context, phoneNumber, templateID, message string) error {
+	return f(ctx, phoneNumber, message)
+}
+
+func (f smsProviderFunc) SendActivityTemplateMessage(ctx context.Context, phoneNumber, templateID string, vars []string) error {
+	return f(ctx, phoneNumber, strings.Join(vars, "|"))
 }
 
 func TestResolveIHuyiSMSProviderSettingsUsesDBSettings(t *testing.T) {
@@ -176,4 +193,79 @@ func TestSMSServiceSendVerifyCodeUsesLatestDBSettings(t *testing.T) {
 	require.Equal(t, "db-id-2", recorder.settings[1].Account)
 	require.Equal(t, "db-key-2", recorder.settings[1].Password)
 	require.Equal(t, "template-2", recorder.settings[1].TemplateID)
+}
+
+func TestIHuyiSMSProviderSendTemplateMessageUsesExplicitTemplateID(t *testing.T) {
+	var form url.Values
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.NoError(t, r.ParseForm())
+		form = r.PostForm
+		require.NoError(t, json.NewEncoder(w).Encode(iHuyiSMSResponse{Code: 2}))
+	}))
+	t.Cleanup(server.Close)
+
+	provider := NewIHuyiSMSProvider(SMSProviderSettings{
+		Enabled:    true,
+		Account:    "account",
+		Password:   "password",
+		TemplateID: "global-template",
+	}, server.Client())
+	provider.baseURL = server.URL
+
+	err := provider.SendTemplateMessage(context.Background(), "+8613800138000", "broadcast-template", "Hello Alice")
+
+	require.NoError(t, err)
+	require.Equal(t, "account", form.Get("account"))
+	require.Equal(t, "password", form.Get("password"))
+	require.Equal(t, "13800138000", form.Get("mobile"))
+	require.Equal(t, "broadcast-template", form.Get("templateid"))
+	require.Equal(t, "Hello Alice", form.Get("content"))
+}
+
+func TestIHuyiSMSProviderSendVerificationCodeKeepsGlobalTemplateID(t *testing.T) {
+	var form url.Values
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.NoError(t, r.ParseForm())
+		form = r.PostForm
+		require.NoError(t, json.NewEncoder(w).Encode(iHuyiSMSResponse{Code: 2}))
+	}))
+	t.Cleanup(server.Close)
+
+	provider := NewIHuyiSMSProvider(SMSProviderSettings{
+		Enabled:    true,
+		Account:    "account",
+		Password:   "password",
+		TemplateID: "global-template",
+	}, server.Client())
+	provider.baseURL = server.URL
+
+	err := provider.SendVerificationCode(context.Background(), "+8613800138000", "123456")
+
+	require.NoError(t, err)
+	require.Equal(t, "global-template", form.Get("templateid"))
+	require.Equal(t, "123456", form.Get("content"))
+}
+
+func TestIHuyiSMSProviderSendActivityTemplateMessageJoinsVarsInOrder(t *testing.T) {
+	var form url.Values
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.NoError(t, r.ParseForm())
+		form = r.PostForm
+		require.NoError(t, json.NewEncoder(w).Encode(iHuyiSMSResponse{Code: 2}))
+	}))
+	t.Cleanup(server.Close)
+
+	provider := NewIHuyiSMSProvider(SMSProviderSettings{
+		Enabled:    true,
+		Account:    "account",
+		Password:   "password",
+		TemplateID: "global-template",
+	}, server.Client())
+	provider.baseURL = server.URL
+
+	err := provider.SendActivityTemplateMessage(context.Background(), "+8613800138000", "broadcast-template", []string{"20180515006", "张三", "100元"})
+
+	require.NoError(t, err)
+	require.Equal(t, "broadcast-template", form.Get("templateid"))
+	require.Equal(t, "20180515006|张三|100元", form.Get("content"))
 }

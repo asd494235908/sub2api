@@ -557,6 +557,7 @@ export default {
   nav: {
     dashboard: '仪表盘',
     announcements: '公告',
+    smsBroadcasts: '群发短信',
     apiKeys: 'API 密钥',
     usage: '使用记录',
     redeem: '兑换',
@@ -4802,6 +4803,76 @@ export default {
       failedToDelete: '删除公告失败',
       failedToLoadReadStatus: '加载已读情况失败',
       deleteConfirm: '确定要删除该公告吗？此操作无法撤销。'
+    },
+
+    smsBroadcasts: {
+      title: '群发短信',
+      description: '向选定用户发送可追踪的短信',
+      create: '创建群发',
+      search: '搜索短信活动...',
+      preview: '预览受众',
+      previewEmpty: '发送前请选择收件人。',
+      previewCount: '已选择 {count} 个收件人。',
+      sendNow: '立即发送',
+      modes: {
+        freeform: '自由编辑',
+        template: '模板变量'
+      },
+      statusLabels: {
+        draft: '草稿',
+        queued: '排队中',
+        running: '发送中',
+        succeeded: '已完成',
+        failed: '失败',
+        canceled: '已取消'
+      },
+      form: {
+        title: '标题',
+        mode: '模式',
+        audience: '收件人',
+        resetFilters: '重置筛选',
+        availableUsers: '可选用户',
+        usersLoadedSummary: '已显示 {shown} / 共 {total}',
+        pageSize: '每页',
+        addAllPhoneUsers: '添加全部已绑定手机号用户',
+        addingAllPhoneUsers: '正在添加...',
+        loadMoreUsers: '加载更多',
+        allUsersLoaded: '已加载全部',
+        selectedUsers: '已选收件人',
+        selectedCount: '已选 {count} 个',
+        clearSelected: '清空已选',
+        noUsers: '没有找到用户',
+        noSelectedUsers: '尚未选择收件人',
+        noPhone: '未绑定手机号',
+        selectedUsersRequired: '请至少选择一个收件人。',
+        failedToLoadUsers: '加载用户失败',
+        failedToAddAllPhoneUsers: '添加全部已绑定手机号用户失败',
+        search: '搜索',
+        searchPlaceholder: '搜索用户...',
+        role: '角色',
+        allRoles: '全部角色',
+        roleUser: '用户',
+        roleAdmin: '管理员',
+        status: '状态',
+        allStatus: '全部状态',
+        statusActive: '启用',
+        statusDisabled: '禁用',
+        group: '分组',
+        allGroups: '全部分组',
+        templateId: '模板 ID',
+        templateIdPlaceholder: '互亿模板 ID',
+        body: '内容模板',
+        variables: '短信变量',
+        addVariable: '添加变量',
+        variableKey: '变量名',
+        variableValue: '变量值'
+      },
+      columns: {
+        title: '标题',
+        status: '状态',
+        summary: '收件人 / 成功 / 失败',
+        createdAt: '创建时间'
+      }
     },
 
     // Promo Codes

@@ -116,9 +116,6 @@
                 >
                   <div class="font-semibold text-slate-900 dark:text-white">{{ prize.name }}</div>
                   <div v-if="prize.reward_description" class="mt-1 text-sm leading-5 text-slate-600 dark:text-slate-300">{{ prize.reward_description }}</div>
-                  <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                    {{ t('rechargeActivity.minPay') }} {{ prize.min_pay_amount.toFixed(2) }} · {{ prize.probability }}%
-                  </div>
                 </div>
               </div>
             </div>

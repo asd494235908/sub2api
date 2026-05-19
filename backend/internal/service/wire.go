@@ -95,6 +95,10 @@ func ProvideUserService(
 	return svc
 }
 
+func ProvideSMSBroadcastService(userRepo UserRepository, smsService *SMSService, repo SMSBroadcastRepository) *SMSBroadcastService {
+	return NewSMSBroadcastServiceWithSMSService(userRepo, smsService, repo)
+}
+
 // ProvideOAuthRefreshAPI creates OAuthRefreshAPI with the default lock TTL.
 func ProvideOAuthRefreshAPI(accountRepo AccountRepository, tokenCache GeminiTokenCache) *OAuthRefreshAPI {
 	return NewOAuthRefreshAPI(accountRepo, tokenCache)
@@ -508,6 +512,7 @@ var ProviderSet = wire.NewSet(
 	NewBillingService,
 	ProvideBillingCacheService,
 	NewAnnouncementService,
+	ProvideSMSBroadcastService,
 	NewAdminService,
 	NewGatewayService,
 	NewOpenAIGatewayService,

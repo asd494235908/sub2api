@@ -44,6 +44,22 @@ func (s *UserRepoSuite) TestListWithFilters_SortByEmailAsc() {
 	s.Require().Equal("z-last@example.com", users[1].Email)
 }
 
+func (s *UserRepoSuite) TestListWithFilters_SortByPhoneNumberAsc() {
+	s.mustCreateUser(&service.User{Email: "phone-z@test.com", PhoneNumber: "+8613900139000"})
+	s.mustCreateUser(&service.User{Email: "phone-a@test.com", PhoneNumber: "+8613800138000"})
+
+	users, _, err := s.repo.ListWithFilters(s.ctx, pagination.PaginationParams{
+		Page:      1,
+		PageSize:  10,
+		SortBy:    "phone_number",
+		SortOrder: "asc",
+	}, service.UserListFilters{})
+	s.Require().NoError(err)
+	s.Require().Len(users, 2)
+	s.Require().Equal("+8613800138000", users[0].PhoneNumber)
+	s.Require().Equal("+8613900139000", users[1].PhoneNumber)
+}
+
 func (s *UserRepoSuite) TestList_DefaultSortByNewestFirst() {
 	first := s.mustCreateUser(&service.User{Email: "first@example.com"})
 	second := s.mustCreateUser(&service.User{Email: "second@example.com"})

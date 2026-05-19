@@ -87,6 +87,7 @@ const DataTableStub = {
   template: `
     <div>
       <div data-test="columns">{{ columns.map(col => col.key).join(',') }}</div>
+      <button data-test="sort-phone" @click="$emit('sort', 'phone_number', 'asc')">sort phone</button>
       <button data-test="sort-last-used" @click="$emit('sort', 'last_used_at', 'desc')">sort</button>
       <div v-for="row in data" :key="row.id">
         <slot name="cell-last_used_at" :value="row.last_used_at" :row="row" />
@@ -202,6 +203,66 @@ describe('admin UsersView', () => {
     const visibleColumns = wrapper.get('[data-test="columns"]').text().split(',')
     expect(visibleColumns).toContain('phone_number')
     expect(visibleColumns).toContain('email')
+  })
+
+  it('allows sorting by phone_number and passes phone search terms through', async () => {
+    const wrapper = mount(UsersView, {
+      global: {
+        stubs: {
+          AppLayout: { template: '<div><slot /></div>' },
+          TablePageLayout: {
+            template: '<div><slot name="filters" /><slot name="table" /><slot name="pagination" /></div>'
+          },
+          DataTable: DataTableStub,
+          Pagination: true,
+          ConfirmDialog: true,
+          EmptyState: true,
+          GroupBadge: true,
+          Select: true,
+          UserAttributesConfigModal: true,
+          UserConcurrencyCell: true,
+          UserCreateModal: true,
+          UserEditModal: true,
+          UserApiKeysModal: true,
+          UserAllowedGroupsModal: true,
+          UserBalanceModal: true,
+          UserBalanceHistoryModal: true,
+          GroupReplaceModal: true,
+          Icon: true,
+          Teleport: true
+        }
+      }
+    })
+
+    await flushPromises()
+
+    await wrapper.get('[data-test="sort-phone"]').trigger('click')
+    await flushPromises()
+
+    expect(listUsers).toHaveBeenLastCalledWith(
+      1,
+      20,
+      expect.objectContaining({
+        sort_by: 'phone_number',
+        sort_order: 'asc'
+      }),
+      expect.any(Object)
+    )
+
+    const searchInput = wrapper.find('input[placeholder="admin.users.searchUsers"]')
+    await searchInput.setValue('138001380')
+    await wrapper.vm.$nextTick()
+    await new Promise((resolve) => setTimeout(resolve, 350))
+    await flushPromises()
+
+    expect(listUsers).toHaveBeenLastCalledWith(
+      1,
+      20,
+      expect.objectContaining({
+        search: '138001380'
+      }),
+      expect.any(Object)
+    )
   })
 
   it('uses localized phone label for the phone_number column', async () => {

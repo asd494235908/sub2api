@@ -19,6 +19,7 @@ describe('useAppStore', () => {
     localStorage.clear()
     // 清除 window.__APP_CONFIG__
     delete (window as any).__APP_CONFIG__
+    vi.mocked(getPublicSettings).mockReset()
   })
 
   afterEach(() => {
@@ -331,6 +332,65 @@ describe('useAppStore', () => {
       expect((window as any).__APP_CONFIG__.table_page_size_options).toEqual([20, 100, 1000])
       expect(localStorage.getItem('table-page-size')).toBeNull()
       expect(localStorage.getItem('table-page-size-source')).toBeNull()
+    })
+
+    it('公共设置变更信号会触发强制刷新', async () => {
+      vi.mocked(getPublicSettings).mockResolvedValue({
+        registration_enabled: false,
+        email_verify_enabled: false,
+        phone_verify_enabled: false,
+        force_email_on_third_party_signup: false,
+        registration_email_suffix_whitelist: [],
+        promo_code_enabled: true,
+        password_reset_enabled: false,
+        invitation_code_enabled: false,
+        turnstile_enabled: false,
+        turnstile_site_key: '',
+        site_name: 'Signal Site',
+        site_logo: '',
+        site_subtitle: '',
+        api_base_url: '',
+        contact_info: '',
+        qq_group: '',
+        wechat_contact: '',
+        doc_url: '',
+        home_links: [],
+        home_content: '',
+        hide_ccs_import_button: false,
+        payment_enabled: false,
+        table_default_page_size: 20,
+        table_page_size_options: [10, 20],
+        custom_menu_items: [],
+        custom_endpoints: [],
+        linuxdo_oauth_enabled: false,
+        wechat_oauth_enabled: false,
+        wechat_oauth_open_enabled: false,
+        wechat_oauth_mp_enabled: false,
+        wechat_oauth_mobile_enabled: false,
+        oidc_oauth_enabled: false,
+        oidc_oauth_provider_name: 'OIDC',
+        github_oauth_enabled: false,
+        google_oauth_enabled: false,
+        backend_mode_enabled: false,
+        version: '1.0.0',
+        balance_low_notify_enabled: false,
+        account_quota_notify_enabled: false,
+        balance_low_notify_threshold: 0,
+        channel_monitor_enabled: true,
+        channel_monitor_default_interval_seconds: 60,
+        available_channels_enabled: false,
+        risk_control_enabled: false,
+        affiliate_enabled: false,
+        weekly_quota_enabled: false,
+        lucky_wheel_enabled: false,
+        recharge_activity_enabled: true,
+      })
+
+      const store = useAppStore()
+      store.initFromInjectedConfig()
+      store.signalPublicSettingsChanged()
+
+      expect(getPublicSettings).toHaveBeenCalledTimes(1)
     })
   })
 })

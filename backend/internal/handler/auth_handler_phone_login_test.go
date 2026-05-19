@@ -85,6 +85,18 @@ func (s *authHandlerPhoneSMSProviderStub) SendVerificationCode(context.Context, 
 	return nil
 }
 
+func (s *authHandlerPhoneSMSProviderStub) SendTextMessage(context.Context, string, string) error {
+	return nil
+}
+
+func (s *authHandlerPhoneSMSProviderStub) SendTemplateMessage(context.Context, string, string, string) error {
+	return nil
+}
+
+func (s *authHandlerPhoneSMSProviderStub) SendActivityTemplateMessage(context.Context, string, string, []string) error {
+	return nil
+}
+
 func newAuthHandlerForPhoneTests(t *testing.T, repo *userHandlerRepoStub, settings map[string]string) *AuthHandler {
 	t.Helper()
 

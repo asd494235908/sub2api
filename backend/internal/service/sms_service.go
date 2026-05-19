@@ -26,6 +26,7 @@ var (
 	ErrSMSQuotaExceeded     = infraerrors.TooManyRequests("SMS_QUOTA_EXCEEDED", "sms quota exceeded")
 	ErrSMSSendFailed        = infraerrors.ServiceUnavailable("SMS_SEND_FAILED", "failed to send sms verification code")
 	ErrSMSProviderDisabled  = infraerrors.BadRequest("SMS_PROVIDER_DISABLED", "sms provider is disabled")
+	ErrSMSTextTooLong       = infraerrors.BadRequest("SMS_TEXT_TOO_LONG", "sms text is too long")
 )
 
 const (
@@ -46,6 +47,9 @@ type SMSCache interface {
 
 type SMSProvider interface {
 	SendVerificationCode(ctx context.Context, phoneNumber, code string) error
+	SendTextMessage(ctx context.Context, phoneNumber, message string) error
+	SendTemplateMessage(ctx context.Context, phoneNumber, templateID, message string) error
+	SendActivityTemplateMessage(ctx context.Context, phoneNumber, templateID string, vars []string) error
 }
 
 type SMSProviderFactory func(settings SMSProviderSettings) SMSProvider
@@ -118,6 +122,52 @@ func (s *SMSService) SendVerifyCode(ctx context.Context, phoneNumber string) err
 		return fmt.Errorf("save phone verify code: %w", err)
 	}
 	if err := provider.SendVerificationCode(ctx, phoneNumber, code); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *SMSService) SendTextMessage(ctx context.Context, phoneNumber, message string) error {
+	return s.SendTemplateMessage(ctx, phoneNumber, "", message)
+}
+
+func (s *SMSService) SendTemplateMessage(ctx context.Context, phoneNumber, templateID, message string) error {
+	if s == nil || s.cache == nil {
+		return ErrSMSNotConfigured
+	}
+	provider := s.resolveProvider()
+	if provider == nil {
+		return ErrSMSNotConfigured
+	}
+	phoneNumber = NormalizePhoneNumber(phoneNumber, "86")
+	if phoneNumber == "" {
+		return ErrSMSPhoneInvalid
+	}
+	if strings.TrimSpace(message) == "" {
+		return ErrSMSTextTooLong
+	}
+	if err := provider.SendTemplateMessage(ctx, phoneNumber, templateID, message); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *SMSService) SendActivityTemplateMessage(ctx context.Context, phoneNumber, templateID string, vars []string) error {
+	if s == nil || s.cache == nil {
+		return ErrSMSNotConfigured
+	}
+	provider := s.resolveProvider()
+	if provider == nil {
+		return ErrSMSNotConfigured
+	}
+	phoneNumber = NormalizePhoneNumber(phoneNumber, "86")
+	if phoneNumber == "" {
+		return ErrSMSPhoneInvalid
+	}
+	if strings.TrimSpace(templateID) == "" {
+		return ErrSMSNotConfigured
+	}
+	if err := provider.SendActivityTemplateMessage(ctx, phoneNumber, templateID, vars); err != nil {
 		return err
 	}
 	return nil
@@ -254,6 +304,63 @@ func (p *IHuyiSMSProvider) SendVerificationCode(ctx context.Context, phoneNumber
 	return mapIHuyiSMSResponseError(payload)
 }
 
+func (p *IHuyiSMSProvider) SendTextMessage(ctx context.Context, phoneNumber, message string) error {
+	return p.SendTemplateMessage(ctx, phoneNumber, p.templateID, message)
+}
+
+func (p *IHuyiSMSProvider) SendTemplateMessage(ctx context.Context, phoneNumber, templateID, message string) error {
+	if p == nil {
+		return ErrSMSNotConfigured
+	}
+	if !p.enabled {
+		return ErrSMSProviderDisabled
+	}
+	if strings.TrimSpace(p.account) == "" || strings.TrimSpace(p.password) == "" {
+		return ErrSMSNotConfigured
+	}
+	templateID = strings.TrimSpace(templateID)
+	if templateID == "" {
+		templateID = p.templateID
+	}
+
+	form := url.Values{}
+	form.Set("account", p.account)
+	form.Set("password", p.password)
+	form.Set("mobile", normalizeIHuyiMobile(phoneNumber))
+	form.Set("templateid", templateID)
+	form.Set("content", message)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.baseURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return ErrSMSSendFailed.WithCause(err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return ErrSMSSendFailed.WithCause(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return ErrSMSSendFailed.WithCause(err)
+	}
+
+	var payload iHuyiSMSResponse
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return ErrSMSSendFailed.WithCause(err)
+	}
+	if payload.Code == 2 {
+		return nil
+	}
+	return mapIHuyiSMSResponseError(payload)
+}
+
+func (p *IHuyiSMSProvider) SendActivityTemplateMessage(ctx context.Context, phoneNumber, templateID string, vars []string) error {
+	return p.SendTemplateMessage(ctx, phoneNumber, templateID, strings.Join(vars, "|"))
+}
+
 func mapIHuyiSMSResponseError(payload iHuyiSMSResponse) error {
 	md := map[string]string{
 		"provider": "ihuyi",
@@ -284,6 +391,21 @@ type PlaceholderSMSProvider struct{}
 
 func (p *PlaceholderSMSProvider) SendVerificationCode(ctx context.Context, phoneNumber, code string) error {
 	slog.Warn("placeholder sms provider used", "phone_number", phoneNumber, "code", code)
+	return nil
+}
+
+func (p *PlaceholderSMSProvider) SendTextMessage(ctx context.Context, phoneNumber, message string) error {
+	slog.Warn("placeholder sms provider used", "phone_number", phoneNumber, "message", message)
+	return nil
+}
+
+func (p *PlaceholderSMSProvider) SendTemplateMessage(ctx context.Context, phoneNumber, templateID, message string) error {
+	slog.Warn("placeholder sms provider used", "phone_number", phoneNumber, "template_id", templateID, "message", message)
+	return nil
+}
+
+func (p *PlaceholderSMSProvider) SendActivityTemplateMessage(ctx context.Context, phoneNumber, templateID string, vars []string) error {
+	slog.Warn("placeholder sms provider used", "phone_number", phoneNumber, "template_id", templateID, "vars", vars)
 	return nil
 }
 

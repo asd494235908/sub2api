@@ -8353,6 +8353,7 @@ async function saveSettings() {
     await savePromptArchiveConfig();
     // Refresh cached settings so sidebar/header update immediately
     await appStore.fetchPublicSettings(true);
+    appStore.signalPublicSettingsChanged();
     await adminSettingsStore.fetch(true);
     if (wsOk) {
       appStore.showSuccess(t("admin.settings.settingsSaved"));

@@ -103,8 +103,9 @@ onMounted(async () => {
     // If setup endpoint fails, assume normal mode and continue
   }
 
-  // Load public settings into appStore (will be cached for other components)
-  await appStore.fetchPublicSettings()
+  // Refresh public settings after mount to ensure the sidebar sees the latest
+  // feature flags even if the injected HTML snapshot was stale.
+  await appStore.fetchPublicSettings(true)
 
   // Re-resolve document title now that siteName is available
   syncDocumentHead(route.meta, appStore.siteName)

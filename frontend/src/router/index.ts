@@ -504,6 +504,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/sms-broadcasts',
+    name: 'AdminSMSBroadcasts',
+    component: () => import('@/views/admin/SMSBroadcastsView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'SMS Broadcasts',
+      titleKey: 'admin.smsBroadcasts.title',
+      descriptionKey: 'admin.smsBroadcasts.description'
+    }
+  },
+  {
     path: '/admin/proxies',
     name: 'AdminProxies',
     component: () => import('@/views/admin/ProxiesView.vue'),

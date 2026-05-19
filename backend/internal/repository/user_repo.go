@@ -461,6 +461,7 @@ func (r *userRepository) ListWithFilters(ctx context.Context, params pagination.
 			dbuser.Or(
 				dbuser.EmailContainsFold(filters.Search),
 				dbuser.UsernameContainsFold(filters.Search),
+				dbuser.PhoneNumberContainsFold(filters.Search),
 				dbuser.NotesContainsFold(filters.Search),
 				dbuser.HasAPIKeysWith(apikey.KeyContainsFold(filters.Search)),
 			),
@@ -573,6 +574,9 @@ func userListOrder(params pagination.PaginationParams) []func(*entsql.Selector) 
 		defaultField = false
 	case "username":
 		field = dbuser.FieldUsername
+		defaultField = false
+	case "phone_number":
+		field = dbuser.FieldPhoneNumber
 		defaultField = false
 	case "role":
 		field = dbuser.FieldRole

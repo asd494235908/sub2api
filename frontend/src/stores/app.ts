@@ -32,6 +32,8 @@ export const useAppStore = defineStore('app', () => {
   const apiBaseUrl = ref<string>('')
   const docUrl = ref<string>('')
   const cachedPublicSettings = ref<PublicSettings | null>(null)
+  const PUBLIC_SETTINGS_SYNC_STORAGE_KEY = 'sub2api_public_settings_updated_at'
+  let publicSettingsSyncInitialized = false
 
   // Version cache state
   const versionLoaded = ref<boolean>(false)
@@ -301,6 +303,33 @@ export const useAppStore = defineStore('app', () => {
     publicSettingsLoaded.value = true
   }
 
+  function initializePublicSettingsSync(): void {
+    if (publicSettingsSyncInitialized || typeof window === 'undefined') {
+      return
+    }
+
+    publicSettingsSyncInitialized = true
+    window.addEventListener('storage', (event) => {
+      if (event.key !== PUBLIC_SETTINGS_SYNC_STORAGE_KEY) {
+        return
+      }
+      void fetchPublicSettings(true)
+    })
+  }
+
+  function signalPublicSettingsChanged(): void {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    try {
+      localStorage.setItem(PUBLIC_SETTINGS_SYNC_STORAGE_KEY, String(Date.now()))
+    } catch {
+      // ignore localStorage failures
+    }
+    void fetchPublicSettings(true)
+  }
+
   /**
    * Fetch public settings (uses cache unless force=true)
    * @param force - Force refresh from API
@@ -408,6 +437,10 @@ export const useAppStore = defineStore('app', () => {
     return false
   }
 
+  if (typeof window !== 'undefined') {
+    initializePublicSettingsSync()
+  }
+
   // ==================== Return Store API ====================
 
   return {
@@ -464,6 +497,7 @@ export const useAppStore = defineStore('app', () => {
     // Public settings actions
     fetchPublicSettings,
     clearPublicSettingsCache,
-    initFromInjectedConfig
+    initFromInjectedConfig,
+    signalPublicSettingsChanged
   }
 })

@@ -93,6 +93,21 @@ func (m *mockUserSMSProvider) SendVerificationCode(context.Context, string, stri
 	return nil
 }
 
+func (m *mockUserSMSProvider) SendTextMessage(context.Context, string, string) error {
+	m.sent++
+	return nil
+}
+
+func (m *mockUserSMSProvider) SendTemplateMessage(context.Context, string, string, string) error {
+	m.sent++
+	return nil
+}
+
+func (m *mockUserSMSProvider) SendActivityTemplateMessage(context.Context, string, string, []string) error {
+	m.sent++
+	return nil
+}
+
 func (m *mockUserSettingRepo) Get(context.Context, string) (*Setting, error) {
 	panic("unexpected Get call")
 }

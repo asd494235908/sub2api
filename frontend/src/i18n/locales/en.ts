@@ -557,6 +557,7 @@ export default {
   nav: {
     dashboard: 'Dashboard',
     announcements: 'Announcements',
+    smsBroadcasts: 'SMS Broadcasts',
     apiKeys: 'API Keys',
     usage: 'Usage',
     redeem: 'Redeem',
@@ -4643,6 +4644,76 @@ export default {
       failedToDelete: 'Failed to delete announcement',
       failedToLoadReadStatus: 'Failed to load read status',
       deleteConfirm: 'Are you sure you want to delete this announcement? This action cannot be undone.'
+    },
+
+    smsBroadcasts: {
+      title: 'SMS Broadcasts',
+      description: 'Send tracked SMS messages to selected users',
+      create: 'Create Broadcast',
+      search: 'Search broadcasts...',
+      preview: 'Preview Audience',
+      previewEmpty: 'Select recipients before sending.',
+      previewCount: '{count} selected recipients.',
+      sendNow: 'Send Now',
+      modes: {
+        freeform: 'Freeform text',
+        template: 'Template'
+      },
+      statusLabels: {
+        draft: 'Draft',
+        queued: 'Queued',
+        running: 'Running',
+        succeeded: 'Succeeded',
+        failed: 'Failed',
+        canceled: 'Canceled'
+      },
+      form: {
+        title: 'Title',
+        mode: 'Mode',
+        audience: 'Recipients',
+        resetFilters: 'Reset filters',
+        availableUsers: 'Available users',
+        usersLoadedSummary: '{shown} / {total} shown',
+        pageSize: 'Per page',
+        addAllPhoneUsers: 'Add all with phones',
+        addingAllPhoneUsers: 'Adding...',
+        loadMoreUsers: 'Load more',
+        allUsersLoaded: 'All users loaded',
+        selectedUsers: 'Selected recipients',
+        selectedCount: '{count} selected',
+        clearSelected: 'Clear selected',
+        noUsers: 'No users found',
+        noSelectedUsers: 'No recipients selected',
+        noPhone: 'No phone',
+        selectedUsersRequired: 'Select at least one recipient.',
+        failedToLoadUsers: 'Failed to load users',
+        failedToAddAllPhoneUsers: 'Failed to add all phone-bound users',
+        search: 'Search',
+        searchPlaceholder: 'Search users...',
+        role: 'Role',
+        allRoles: 'All Roles',
+        roleUser: 'User',
+        roleAdmin: 'Admin',
+        status: 'Status',
+        allStatus: 'All Status',
+        statusActive: 'Active',
+        statusDisabled: 'Disabled',
+        group: 'Group',
+        allGroups: 'All Groups',
+        templateId: 'Template ID',
+        templateIdPlaceholder: 'IHuyi template ID',
+        body: 'Content template',
+        variables: 'SMS variables',
+        addVariable: 'Add variable',
+        variableKey: 'Variable key',
+        variableValue: 'Variable value'
+      },
+      columns: {
+        title: 'Title',
+        status: 'Status',
+        summary: 'Recipients / Sent / Failed',
+        createdAt: 'Created At'
+      }
     },
 
     // Promo Codes

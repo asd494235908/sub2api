@@ -32,6 +32,9 @@ func RegisterAdminRoutes(
 		// 公告管理
 		registerAnnouncementRoutes(admin, h)
 
+		// 群发短信
+		registerSMSBroadcastRoutes(admin, h)
+
 		// OpenAI OAuth
 		registerOpenAIOAuthRoutes(admin, h)
 
@@ -338,6 +341,17 @@ func registerAnnouncementRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		announcements.PUT("/:id", h.Admin.Announcement.Update)
 		announcements.DELETE("/:id", h.Admin.Announcement.Delete)
 		announcements.GET("/:id/read-status", h.Admin.Announcement.ListReadStatus)
+	}
+}
+
+func registerSMSBroadcastRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	broadcasts := admin.Group("/sms-broadcasts")
+	{
+		broadcasts.GET("", h.Admin.SMSBroadcast.List)
+		broadcasts.POST("", h.Admin.SMSBroadcast.Create)
+		broadcasts.POST("/preview", h.Admin.SMSBroadcast.Preview)
+		broadcasts.GET("/:id", h.Admin.SMSBroadcast.Get)
+		broadcasts.POST("/:id/cancel", h.Admin.SMSBroadcast.Cancel)
 	}
 }
 
