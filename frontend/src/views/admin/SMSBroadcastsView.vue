@@ -44,12 +44,14 @@
             <div class="flex items-center gap-1">
               <button
                 v-if="canCancel(row)"
-                class="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                class="btn btn-secondary btn-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                 :title="t('common.cancel')"
                 @click="handleCancel(row)"
               >
-                <Icon name="x" size="sm" />
+                <Icon name="x" size="sm" class="mr-1" />
+                {{ t('common.cancel') }}
               </button>
+              <span v-else class="text-sm text-gray-400 dark:text-dark-500">-</span>
             </div>
           </template>
         </DataTable>

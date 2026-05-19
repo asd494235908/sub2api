@@ -89,6 +89,11 @@ const mountView = () =>
               <div v-for="row in data" :key="row.id">
                 <slot name="cell-title" :row="row" />
                 <slot name="cell-created_at" :row="row" />
+                <slot
+                  v-if="columns.some(column => column.key === 'actions')"
+                  name="cell-actions"
+                  :row="row"
+                />
               </div>
             </div>
           `
@@ -196,6 +201,42 @@ describe('admin SMSBroadcastsView', () => {
     await flushPromises()
 
     expect(wrapper.get('[data-test="table-columns"]').text()).toContain('actions')
+  })
+
+  it('renders a visible cancel action for cancellable broadcasts', async () => {
+    listBroadcasts.mockResolvedValue({
+      items: [
+        {
+          id: 10,
+          title: 'Queued campaign',
+          template_id: '309190',
+          status: 'queued',
+          total_recipients: 1,
+          sent_count: 0,
+          failed_count: 0,
+          created_at: '2026-05-19T00:00:00Z'
+        },
+        {
+          id: 11,
+          title: 'Done campaign',
+          template_id: '309190',
+          status: 'succeeded',
+          total_recipients: 1,
+          sent_count: 1,
+          failed_count: 0,
+          created_at: '2026-05-19T00:00:00Z'
+        }
+      ],
+      total: 2,
+      page: 1,
+      page_size: 20,
+      pages: 1
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('common.cancel')
   })
 
   it('adds and removes selected users and creates broadcasts with explicit user ids', async () => {
