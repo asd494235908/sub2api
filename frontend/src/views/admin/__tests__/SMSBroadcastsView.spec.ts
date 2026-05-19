@@ -82,9 +82,10 @@ const mountView = () =>
           template: '<div><slot name="filters" /><slot name="table" /></div>'
         },
         DataTable: {
-          props: ['data'],
+          props: ['columns', 'data'],
           template: `
             <div>
+              <div data-test="table-columns">{{ columns.map(column => column.key).join(',') }}</div>
               <div v-for="row in data" :key="row.id">
                 <slot name="cell-title" :row="row" />
                 <slot name="cell-created_at" :row="row" />
@@ -149,6 +150,54 @@ describe('admin SMSBroadcastsView', () => {
     expect(wrapper.text()).toContain('FMT:2026-05-19T00:00:00Z')
   })
 
+  it('hides the actions column when loaded broadcasts have no available actions', async () => {
+    listBroadcasts.mockResolvedValue({
+      items: [{
+        id: 9,
+        title: 'Done campaign',
+        template_id: '309190',
+        status: 'succeeded',
+        total_recipients: 1,
+        sent_count: 1,
+        failed_count: 0,
+        created_at: '2026-05-19T00:00:00Z'
+      }],
+      total: 1,
+      page: 1,
+      page_size: 20,
+      pages: 1
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-test="table-columns"]').text()).not.toContain('actions')
+  })
+
+  it('shows the actions column when a loaded broadcast can be canceled', async () => {
+    listBroadcasts.mockResolvedValue({
+      items: [{
+        id: 10,
+        title: 'Queued campaign',
+        template_id: '309190',
+        status: 'queued',
+        total_recipients: 1,
+        sent_count: 0,
+        failed_count: 0,
+        created_at: '2026-05-19T00:00:00Z'
+      }],
+      total: 1,
+      page: 1,
+      page_size: 20,
+      pages: 1
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-test="table-columns"]').text()).toContain('actions')
+  })
+
   it('adds and removes selected users and creates broadcasts with explicit user ids', async () => {
     const wrapper = mountView()
     await flushPromises()
@@ -160,7 +209,8 @@ describe('admin SMSBroadcastsView', () => {
       status: 'active',
       role: 'user',
       search: undefined,
-      include_subscriptions: false
+      include_subscriptions: false,
+      has_phone: true
     }, expect.any(Object))
 
     await wrapper.get('[data-test="sms-title"]').setValue('Maintenance')
@@ -233,13 +283,15 @@ describe('admin SMSBroadcastsView', () => {
       status: 'active',
       role: 'user',
       search: undefined,
-      include_subscriptions: false
+      include_subscriptions: false,
+      has_phone: true
     }, expect.any(Object))
     expect(listUsers).toHaveBeenNthCalledWith(2, 2, 20, {
       status: 'active',
       role: 'user',
       search: undefined,
-      include_subscriptions: false
+      include_subscriptions: false,
+      has_phone: true
     }, expect.any(Object))
     expect(wrapper.findAll('[data-test="sms-add-user-2"]')).toHaveLength(1)
     expect(wrapper.find('[data-test="sms-add-user-3"]').exists()).toBe(true)
@@ -285,7 +337,8 @@ describe('admin SMSBroadcastsView', () => {
       status: 'active',
       role: 'admin',
       search: undefined,
-      include_subscriptions: false
+      include_subscriptions: false,
+      has_phone: true
     }, expect.any(Object))
     expect(wrapper.find('[data-test="sms-add-user-1"]').exists()).toBe(false)
     expect(wrapper.find('[data-test="sms-add-user-2"]').exists()).toBe(false)
@@ -305,7 +358,8 @@ describe('admin SMSBroadcastsView', () => {
       status: 'active',
       role: 'user',
       search: undefined,
-      include_subscriptions: false
+      include_subscriptions: false,
+      has_phone: true
     }, expect.any(Object))
   })
 
@@ -355,13 +409,15 @@ describe('admin SMSBroadcastsView', () => {
       status: 'active',
       role: 'user',
       search: undefined,
-      include_subscriptions: false
+      include_subscriptions: false,
+      has_phone: true
     }, expect.any(Object))
     expect(listUsers).toHaveBeenNthCalledWith(3, 2, 20, {
       status: 'active',
       role: 'user',
       search: undefined,
-      include_subscriptions: false
+      include_subscriptions: false,
+      has_phone: true
     }, expect.any(Object))
     expect(wrapper.text()).toContain('2 selected')
     expect(wrapper.find('[data-test="sms-remove-user-1"]').exists()).toBe(true)

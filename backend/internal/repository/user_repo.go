@@ -467,6 +467,14 @@ func (r *userRepository) ListWithFilters(ctx context.Context, params pagination.
 			),
 		)
 	}
+	if filters.HasPhone {
+		q = q.Where(
+			dbuser.PhoneNumberNEQ(""),
+			func(s *entsql.Selector) {
+				s.Where(entsql.ExprP("btrim(phone_number) <> ''"))
+			},
+		)
+	}
 
 	if filters.GroupName != "" {
 		q = q.Where(dbuser.HasAllowedGroupsWith(

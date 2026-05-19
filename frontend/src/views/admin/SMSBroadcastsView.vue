@@ -333,13 +333,18 @@ const audienceHasMore = computed(() => (
   audiencePagination.page < audiencePagination.pages
 ))
 
-const columns = computed<Column[]>(() => [
-  { key: 'title', label: t('admin.smsBroadcasts.columns.title') },
-  { key: 'status', label: t('admin.smsBroadcasts.columns.status') },
-  { key: 'summary', label: t('admin.smsBroadcasts.columns.summary') },
-  { key: 'created_at', label: t('admin.smsBroadcasts.columns.createdAt') },
-  { key: 'actions', label: t('common.actions'), sortable: false }
-])
+const columns = computed<Column[]>(() => {
+  const baseColumns: Column[] = [
+    { key: 'title', label: t('admin.smsBroadcasts.columns.title') },
+    { key: 'status', label: t('admin.smsBroadcasts.columns.status') },
+    { key: 'summary', label: t('admin.smsBroadcasts.columns.summary') },
+    { key: 'created_at', label: t('admin.smsBroadcasts.columns.createdAt') }
+  ]
+  if (items.value.some(canCancel)) {
+    baseColumns.push({ key: 'actions', label: t('common.actions'), sortable: false })
+  }
+  return baseColumns
+})
 
 async function load() {
   loading.value = true
@@ -515,7 +520,8 @@ function audienceListFilters() {
     status: audienceFilters.status || undefined,
     role: audienceFilters.role || undefined,
     search: audienceFilters.search.trim() || undefined,
-    include_subscriptions: false
+    include_subscriptions: false,
+    has_phone: true
   }
 }
 

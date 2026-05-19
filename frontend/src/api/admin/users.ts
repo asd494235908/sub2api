@@ -62,6 +62,7 @@ export async function list(
     group_name?: string         // fuzzy filter by allowed group name
     attributes?: Record<number, string>  // attributeId -> value
     include_subscriptions?: boolean
+    has_phone?: boolean
     sort_by?: string
     sort_order?: 'asc' | 'desc'
   },
@@ -78,6 +79,7 @@ export async function list(
     search: filters?.search,
     group_name: filters?.group_name,
     include_subscriptions: filters?.include_subscriptions,
+    has_phone: filters?.has_phone,
     sort_by: filters?.sort_by,
     sort_order: filters?.sort_order
   }

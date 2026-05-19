@@ -202,6 +202,33 @@ func (s *UserRepoSuite) TestListWithFilters_SearchByPhoneNumber() {
 	s.Require().Equal(matched.ID, users[0].ID)
 }
 
+func (s *UserRepoSuite) TestListWithFilters_HasPhoneOnlyReturnsBoundPhones() {
+	matched := s.mustCreateUser(&service.User{
+		Email:       "phone-filter-match@test.com",
+		PhoneNumber: "+8613800138000",
+		Username:    "phone-filter-match",
+	})
+	s.mustCreateUser(&service.User{
+		Email:       "phone-filter-empty@test.com",
+		PhoneNumber: "",
+		Username:    "phone-filter-empty",
+	})
+	s.mustCreateUser(&service.User{
+		Email:       "phone-filter-space@test.com",
+		PhoneNumber: "   ",
+		Username:    "phone-filter-space",
+	})
+
+	users, page, err := s.repo.ListWithFilters(s.ctx, pagination.PaginationParams{Page: 1, PageSize: 10}, service.UserListFilters{
+		HasPhone: true,
+	})
+	s.Require().NoError(err)
+	s.Require().Equal(int64(1), page.Total)
+	s.Require().Len(users, 1)
+	s.Require().Equal(matched.ID, users[0].ID)
+	s.Require().Equal("+8613800138000", users[0].PhoneNumber)
+}
+
 func (s *UserRepoSuite) TestUpdateIgnoresNoRowsFromConflictingEmailIdentityUpsert() {
 	user := s.mustCreateUser(&service.User{Email: "update-existing-identity@test.com", Username: "original"})
 

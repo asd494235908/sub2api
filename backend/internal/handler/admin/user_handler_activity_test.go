@@ -68,6 +68,22 @@ func TestUserHandlerListIncludesActivityFieldsAndSortParams(t *testing.T) {
 	require.WithinDuration(t, lastUsedAt, *resp.Data.Items[0].LastUsedAt, time.Second)
 }
 
+func TestUserHandlerListParsesHasPhoneFilter(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	adminSvc := newStubAdminService()
+	handler := NewUserHandler(adminSvc, nil)
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/admin/users?has_phone=true", nil)
+
+	handler.List(c)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.True(t, adminSvc.lastListUsers.filters.HasPhone)
+}
+
 func TestUserHandlerGetByIDIncludesActivityFields(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

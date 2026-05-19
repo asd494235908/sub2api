@@ -94,6 +94,7 @@ type BindUserAuthIdentityChannelRequest struct {
 //   - search: search in email, username
 //   - attr[{id}]: filter by custom attribute value, e.g. attr[1]=company
 //   - group_name: fuzzy filter by allowed group name
+//   - has_phone: when true, only include users with a bound phone number
 func (h *UserHandler) List(c *gin.Context) {
 	page, pageSize := response.ParsePagination(c)
 
@@ -116,6 +117,9 @@ func (h *UserHandler) List(c *gin.Context) {
 	if raw, ok := c.GetQuery("include_subscriptions"); ok {
 		includeSubscriptions := parseBoolQueryWithDefault(raw, true)
 		filters.IncludeSubscriptions = &includeSubscriptions
+	}
+	if raw, ok := c.GetQuery("has_phone"); ok {
+		filters.HasPhone = parseBoolQueryWithDefault(raw, false)
 	}
 
 	users, total, err := h.adminService.ListUsers(c.Request.Context(), page, pageSize, filters, sortBy, sortOrder)

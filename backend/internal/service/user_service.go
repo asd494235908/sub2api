@@ -70,6 +70,7 @@ type UserListFilters struct {
 	Role       string           // User role filter
 	Search     string           // Search in email, username
 	GroupName  string           // Filter by allowed group name (fuzzy match)
+	HasPhone   bool             // Only include users with a bound phone number
 	Attributes map[int64]string // Custom attribute filters: attributeID -> value
 	// IncludeSubscriptions controls whether ListWithFilters should load active subscriptions.
 	// For large datasets this can be expensive; admin list pages should enable it on demand.
