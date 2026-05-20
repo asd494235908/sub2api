@@ -20,7 +20,7 @@
           <template #cell-title="{ row }">
             <div>
               <div class="font-medium text-gray-900 dark:text-gray-100">{{ campaignTitle(row) }}</div>
-              <div class="mt-1 max-w-xl truncate text-xs text-gray-500 dark:text-dark-400">{{ campaignBody(row) }}</div>
+              <div class="mt-1 max-w-xl truncate text-xs text-gray-500 dark:text-dark-400">{{ campaignSummary(row) }}</div>
             </div>
           </template>
 
@@ -43,6 +43,15 @@
           <template #cell-actions="{ row }">
             <div class="flex items-center gap-1">
               <button
+                data-test="sms-broadcast-detail"
+                class="btn btn-secondary btn-sm"
+                :title="t('admin.smsBroadcasts.details.title')"
+                @click="openDetailDialog(row.id)"
+              >
+                <Icon name="eye" size="sm" class="mr-1" />
+                {{ t('admin.smsBroadcasts.details.title') }}
+              </button>
+              <button
                 v-if="canCancel(row)"
                 class="btn btn-secondary btn-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                 :title="t('common.cancel')"
@@ -51,7 +60,6 @@
                 <Icon name="x" size="sm" class="mr-1" />
                 {{ t('common.cancel') }}
               </button>
-              <span v-else class="text-sm text-gray-400 dark:text-dark-500">-</span>
             </div>
           </template>
         </DataTable>
@@ -243,14 +251,18 @@
                 :data-test="`sms-var-key-${index}`"
                 class="input"
                 :placeholder="t('admin.smsBroadcasts.form.variableKey')"
-                :required="hasVariableValue(variable)"
+                :required="hasVariableSource(variable)"
               />
-              <input
-                v-model="variable.value"
+              <select
+                v-model="variable.source"
                 :data-test="`sms-var-value-${index}`"
                 class="input"
-                :placeholder="t('admin.smsBroadcasts.form.variableValue')"
-              />
+              >
+                <option value="">{{ t('admin.smsBroadcasts.form.variableValuePlaceholder') }}</option>
+                <option v-for="option in variableSourceOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
               <button
                 type="button"
                 :data-test="`sms-remove-var-${index}`"
@@ -275,6 +287,12 @@
         </div>
       </template>
     </BaseDialog>
+
+    <SMSBroadcastDetailDialog
+      :show="showDetail"
+      :campaign-id="detailCampaignId"
+      @close="closeDetailDialog"
+    />
   </AppLayout>
 </template>
 
@@ -285,13 +303,14 @@ import { useAppStore } from '@/stores/app'
 import { adminAPI } from '@/api/admin'
 import { formatDateTime } from '@/utils/format'
 import type { Column } from '@/components/common/types'
-import type { SMSBroadcastAudience, SMSBroadcastCampaign, SMSBroadcastTemplateVarRow } from '@/api/admin/smsBroadcasts'
+import type { SMSBroadcastAudience, SMSBroadcastCampaign, SMSBroadcastTemplateVarRow, SMSBroadcastTemplateVarSource } from '@/api/admin/smsBroadcasts'
 import type { AdminUser } from '@/types'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import Icon from '@/components/icons/Icon.vue'
+import SMSBroadcastDetailDialog from './SMSBroadcastDetailDialog.vue'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -301,6 +320,8 @@ const creating = ref(false)
 const audienceLoading = ref(false)
 const addingAllPhoneUsers = ref(false)
 const showCreate = ref(false)
+const showDetail = ref(false)
+const detailCampaignId = ref<number | null>(null)
 const items = ref<SMSBroadcastCampaign[]>([])
 const audienceUsers = ref<AdminUser[]>([])
 const selectedUsers = ref<AdminUser[]>([])
@@ -311,7 +332,7 @@ let variableID = 0
 const form = reactive({
   title: '',
   template_id: '',
-  variables: [{ id: variableID++, key: '', value: '' }]
+  variables: [{ id: variableID++, key: '', source: '' as SMSBroadcastTemplateVarSource | '' }]
 })
 
 const audienceFilters = reactive({
@@ -328,6 +349,11 @@ const audiencePagination = reactive({
 })
 
 const audiencePageSizeOptions = [20, 50, 100]
+const variableSourceOptions: Array<{ value: SMSBroadcastTemplateVarSource; label: string }> = [
+  { value: 'phone_number', label: t('admin.smsBroadcasts.form.variableSourcePhone') },
+  { value: 'email', label: t('admin.smsBroadcasts.form.variableSourceEmail') },
+  { value: 'username', label: t('admin.smsBroadcasts.form.variableSourceUsername') }
+]
 const audienceBusy = computed(() => audienceLoading.value || addingAllPhoneUsers.value)
 
 const audienceHasMore = computed(() => (
@@ -342,9 +368,7 @@ const columns = computed<Column[]>(() => {
     { key: 'summary', label: t('admin.smsBroadcasts.columns.summary') },
     { key: 'created_at', label: t('admin.smsBroadcasts.columns.createdAt') }
   ]
-  if (items.value.some(canCancel)) {
-    baseColumns.push({ key: 'actions', label: t('common.actions'), sortable: false })
-  }
+  baseColumns.push({ key: 'actions', label: t('common.actions'), sortable: false })
   return baseColumns
 })
 
@@ -367,6 +391,16 @@ function openCreateDialog() {
 function closeCreate() {
   showCreate.value = false
   audienceAbortController?.abort()
+}
+
+function openDetailDialog(campaignID: number) {
+  detailCampaignId.value = campaignID
+  showDetail.value = true
+}
+
+function closeDetailDialog() {
+  showDetail.value = false
+  detailCampaignId.value = null
 }
 
 async function loadAudienceUsers(options: { reset?: boolean; page?: number } = {}) {
@@ -459,7 +493,7 @@ async function submitCreate() {
 }
 
 function addVariable() {
-  form.variables.push({ id: variableID++, key: '', value: '' })
+  form.variables.push({ id: variableID++, key: '', source: '' })
 }
 
 function removeVariable(index: number) {
@@ -467,8 +501,8 @@ function removeVariable(index: number) {
   form.variables.splice(index, 1)
 }
 
-function hasVariableValue(variable: { key: string; value: string }) {
-  return variable.value.trim() !== ''
+function hasVariableSource(variable: { key: string; source: string }) {
+  return variable.source.trim() !== ''
 }
 
 function buildVarsPayload(): SMSBroadcastTemplateVarRow[] | null {
@@ -476,13 +510,33 @@ function buildVarsPayload(): SMSBroadcastTemplateVarRow[] | null {
   const seen = new Set<string>()
   for (const variable of form.variables) {
     const key = variable.key.trim()
-    const value = variable.value.trim()
-    if (!key && !value) continue
-    if (!key || !value || seen.has(key)) return null
+    const source = variable.source.trim() as SMSBroadcastTemplateVarSource
+    if (!key && !source) continue
+    if (!key || !source || seen.has(key)) return null
     seen.add(key)
-    vars.push({ key, value })
+    vars.push({ key, source })
   }
+  if (!validateSelectedUsersHaveVariableSources(vars)) return null
   return vars
+}
+
+function validateSelectedUsersHaveVariableSources(vars: SMSBroadcastTemplateVarRow[]) {
+  for (const variable of vars) {
+    if (!variable.source) continue
+    const missingUser = selectedUsers.value.find((user) => !userVariableSourceValue(user, variable.source as SMSBroadcastTemplateVarSource))
+    if (missingUser) {
+      appStore.showError(t('admin.smsBroadcasts.form.variableSourceMissingUserField'))
+      return false
+    }
+  }
+  return true
+}
+
+function userVariableSourceValue(user: AdminUser, source: SMSBroadcastTemplateVarSource) {
+  if (source === 'phone_number') return user.phone_number?.trim() || ''
+  if (source === 'email') return user.email?.trim() || ''
+  if (source === 'username') return user.username?.trim() || ''
+  return ''
 }
 
 function buildAudiencePayload(): SMSBroadcastAudience | null {
@@ -577,9 +631,23 @@ function campaignTitle(row: SMSBroadcastCampaign) {
   return row.title || '-'
 }
 
-function campaignBody(row: SMSBroadcastCampaign) {
-  if (row.template_id) return row.template_id
-  return row.body || ''
+function campaignSummary(row: SMSBroadcastCampaign) {
+  if (row.template_id) return `${t('admin.smsBroadcasts.details.templateId')}: ${row.template_id}`
+  const vars = row.template_var_rows || []
+  if (vars.length > 0) {
+    return vars.map((item) => `${item.key}=${templateVarDisplayValue(item)}`).join(' · ')
+  }
+  if (row.body) return row.body
+  return ''
+}
+
+function templateVarDisplayValue(row: SMSBroadcastTemplateVarRow) {
+  if (row.source) return variableSourceLabel(row.source)
+  return row.value || ''
+}
+
+function variableSourceLabel(source: SMSBroadcastTemplateVarSource) {
+  return variableSourceOptions.find((option) => option.value === source)?.label || source
 }
 
 function countOf(row: SMSBroadcastCampaign, key: keyof SMSBroadcastCampaign) {

@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
@@ -414,6 +416,77 @@ func (r *smsBroadcastRepository) ListRecipients(ctx context.Context, campaignID 
 		return nil, err
 	}
 	return items, nil
+}
+
+func (r *smsBroadcastRepository) ListRecipientsPaginated(ctx context.Context, campaignID int64, params pagination.PaginationParams, status string) ([]service.SMSBroadcastRecipient, *pagination.PaginationResult, error) {
+	exec := r.exec(ctx)
+	if exec == nil {
+		return nil, nil, errors.New("sms broadcast repository is not configured")
+	}
+	where := "WHERE campaign_id = $1"
+	args := []any{campaignID}
+	if strings.TrimSpace(status) != "" {
+		where += " AND status = $2"
+		args = append(args, strings.TrimSpace(status))
+	}
+	var total int64
+	countQuery := "SELECT COUNT(*) FROM sms_broadcast_recipients " + where
+	if err := scanSingleRow(ctx, exec, countQuery, args, &total); err != nil {
+		return nil, nil, err
+	}
+	page := params.Page
+	if page < 1 {
+		page = 1
+	}
+	pageSize := params.PageSize
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	offset := (page - 1) * pageSize
+	listArgs := append(append([]any(nil), args...), pageSize, offset)
+	query := `
+		SELECT user_id, phone_number, raw_phone, rendered_body, status, error_message, sent_at, created_at, updated_at
+		FROM sms_broadcast_recipients
+		` + where + `
+		ORDER BY id ASC
+		LIMIT $` + strconv.Itoa(len(args)+1) + ` OFFSET $` + strconv.Itoa(len(args)+2)
+	rows, err := exec.QueryContext(ctx, query, listArgs...)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	items := make([]service.SMSBroadcastRecipient, 0)
+	for rows.Next() {
+		var item service.SMSBroadcastRecipient
+		var errMsg sql.NullString
+		var sentAt sql.NullTime
+		if err := rows.Scan(
+			&item.UserID,
+			&item.PhoneNumber,
+			&item.RawPhone,
+			&item.RenderedBody,
+			&item.Status,
+			&errMsg,
+			&sentAt,
+			&item.CreatedAt,
+			&item.UpdatedAt,
+		); err != nil {
+			return nil, nil, err
+		}
+		if errMsg.Valid {
+			item.ErrorMessage = &errMsg.String
+		}
+		if sentAt.Valid {
+			item.SentAt = &sentAt.Time
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, nil, err
+	}
+	result := paginationResultFromTotal(total, params)
+	return items, result, nil
 }
 
 func (r *smsBroadcastRepository) UpdateRecipient(ctx context.Context, campaignID int64, recipient *service.SMSBroadcastRecipient) error {

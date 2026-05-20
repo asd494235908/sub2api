@@ -3,6 +3,7 @@ package admin
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
@@ -37,8 +38,9 @@ type SMSBroadcastCreateRequest struct {
 }
 
 type SMSBroadcastTemplateVarRowRequest struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
+	Key    string `json:"key"`
+	Value  string `json:"value"`
+	Source string `json:"source"`
 }
 
 type SMSBroadcastPreviewRequest struct {
@@ -46,16 +48,26 @@ type SMSBroadcastPreviewRequest struct {
 }
 
 type SMSBroadcastRecipientResponse struct {
-	UserID      int64   `json:"user_id"`
-	PhoneNumber string  `json:"phone_number"`
-	RawPhone    string  `json:"raw_phone"`
-	Status      string  `json:"status,omitempty"`
-	Error       *string `json:"error_message,omitempty"`
+	UserID       int64   `json:"user_id"`
+	PhoneNumber  string  `json:"phone_number"`
+	RawPhone     string  `json:"raw_phone"`
+	RenderedBody string  `json:"rendered_body"`
+	Status       string  `json:"status,omitempty"`
+	Error        *string `json:"error_message,omitempty"`
+	SentAt       *string `json:"sent_at,omitempty"`
 }
 
 type SMSBroadcastPreviewResponse struct {
 	Total  int64                           `json:"total"`
 	Sample []SMSBroadcastRecipientResponse `json:"sample"`
+}
+
+type SMSBroadcastRecipientListResponse struct {
+	Items    []SMSBroadcastRecipientResponse `json:"items"`
+	Total    int64                           `json:"total"`
+	Page     int                             `json:"page"`
+	PageSize int                             `json:"page_size"`
+	Pages    int                             `json:"pages"`
 }
 
 // POST /api/v1/admin/sms-broadcasts/preview
@@ -150,6 +162,38 @@ func (h *SMSBroadcastHandler) Get(c *gin.Context) {
 	response.Success(c, campaign)
 }
 
+// GET /api/v1/admin/sms-broadcasts/:id/recipients
+func (h *SMSBroadcastHandler) ListRecipients(c *gin.Context) {
+	if h == nil || h.service == nil {
+		response.ErrorFrom(c, service.ErrSMSBroadcastServiceUnavailable)
+		return
+	}
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id <= 0 {
+		response.BadRequest(c, "Invalid sms broadcast ID")
+		return
+	}
+	page, pageSize := response.ParsePagination(c)
+	status := strings.TrimSpace(c.Query("status"))
+	items, pageResult, err := h.service.ListRecipientsPaginated(c.Request.Context(), id, pagination.PaginationParams{
+		Page:      page,
+		PageSize:  pageSize,
+		SortBy:    "id",
+		SortOrder: "asc",
+	}, status)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, SMSBroadcastRecipientListResponse{
+		Items:    smsRecipientsToResponse(items),
+		Total:    pageResult.Total,
+		Page:     pageResult.Page,
+		PageSize: pageResult.PageSize,
+		Pages:    pageResult.Pages,
+	})
+}
+
 // POST /api/v1/admin/sms-broadcasts/:id/cancel
 func (h *SMSBroadcastHandler) Cancel(c *gin.Context) {
 	if h == nil || h.service == nil {
@@ -182,7 +226,11 @@ func smsAudienceFromRequest(req SMSBroadcastAudienceRequest) service.SMSBroadcas
 func smsVarRowsFromRequest(rows []SMSBroadcastTemplateVarRowRequest) []service.SMSBroadcastTemplateVarRow {
 	out := make([]service.SMSBroadcastTemplateVarRow, 0, len(rows))
 	for _, row := range rows {
-		out = append(out, service.SMSBroadcastTemplateVarRow{Key: row.Key, Value: row.Value})
+		out = append(out, service.SMSBroadcastTemplateVarRow{
+			Key:    row.Key,
+			Value:  row.Value,
+			Source: service.SMSBroadcastTemplateVarSource(row.Source),
+		})
 	}
 	return out
 }
@@ -190,12 +238,19 @@ func smsVarRowsFromRequest(rows []SMSBroadcastTemplateVarRowRequest) []service.S
 func smsRecipientsToResponse(items []service.SMSBroadcastRecipient) []SMSBroadcastRecipientResponse {
 	out := make([]SMSBroadcastRecipientResponse, 0, len(items))
 	for i := range items {
+		var sentAt *string
+		if items[i].SentAt != nil {
+			v := items[i].SentAt.UTC().Format(time.RFC3339)
+			sentAt = &v
+		}
 		out = append(out, SMSBroadcastRecipientResponse{
-			UserID:      items[i].UserID,
-			PhoneNumber: items[i].PhoneNumber,
-			RawPhone:    items[i].RawPhone,
-			Status:      items[i].Status,
-			Error:       items[i].ErrorMessage,
+			UserID:       items[i].UserID,
+			PhoneNumber:  items[i].PhoneNumber,
+			RawPhone:     items[i].RawPhone,
+			RenderedBody: items[i].RenderedBody,
+			Status:       items[i].Status,
+			Error:        items[i].ErrorMessage,
+			SentAt:       sentAt,
 		})
 	}
 	return out

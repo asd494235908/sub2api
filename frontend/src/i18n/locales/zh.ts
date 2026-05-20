@@ -4865,13 +4865,41 @@ export default {
         variables: '短信变量',
         addVariable: '添加变量',
         variableKey: '变量名',
-        variableValue: '变量值'
+        variableValue: '变量值',
+        variableValuePlaceholder: '选择用户字段',
+        variableSourcePhone: '手机号',
+        variableSourceEmail: '邮箱',
+        variableSourceUsername: '用户名',
+        variableSourceMissingUserField: '已选收件人缺少所选变量字段，请调整收件人或变量。'
       },
       columns: {
         title: '标题',
         status: '状态',
         summary: '收件人 / 成功 / 失败',
         createdAt: '创建时间'
+      },
+      details: {
+        title: '发送详情',
+        templateId: '模板 ID',
+        totalRecipients: '总数',
+        sentCount: '成功',
+        failedCount: '失败',
+        skippedCount: '跳过',
+        statusFilter: '状态筛选',
+        statusQueued: '排队中',
+        statusSucceeded: '已成功',
+        statusFailed: '失败',
+        statusCanceled: '已取消',
+        recipient: '收件人',
+        phoneNumber: '手机号',
+        rawPhone: '原始手机号',
+        renderedBody: '渲染内容',
+        status: '状态',
+        failureReason: '失败原因',
+        sentAt: '发送时间',
+        noRecipients: '暂无收件人明细',
+        failedToLoad: '加载发送详情失败',
+        failedToLoadRecipients: '加载收件人明细失败'
       }
     },
 

@@ -351,6 +351,7 @@ func registerSMSBroadcastRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		broadcasts.POST("", h.Admin.SMSBroadcast.Create)
 		broadcasts.POST("/preview", h.Admin.SMSBroadcast.Preview)
 		broadcasts.GET("/:id", h.Admin.SMSBroadcast.Get)
+		broadcasts.GET("/:id/recipients", h.Admin.SMSBroadcast.ListRecipients)
 		broadcasts.POST("/:id/cancel", h.Admin.SMSBroadcast.Cancel)
 	}
 }

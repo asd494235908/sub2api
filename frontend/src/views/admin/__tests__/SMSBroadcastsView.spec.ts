@@ -9,12 +9,16 @@ const {
   createBroadcast,
   cancelBroadcast,
   listUsers,
+  getRecipients,
+  getBroadcastById,
   showError
 } = vi.hoisted(() => ({
   listBroadcasts: vi.fn(),
   createBroadcast: vi.fn(),
   cancelBroadcast: vi.fn(),
   listUsers: vi.fn(),
+  getRecipients: vi.fn(),
+  getBroadcastById: vi.fn(),
   showError: vi.fn()
 }))
 
@@ -23,7 +27,9 @@ vi.mock('@/api/admin', () => ({
     smsBroadcasts: {
       list: listBroadcasts,
       create: createBroadcast,
-      cancel: cancelBroadcast
+      cancel: cancelBroadcast,
+      getRecipients,
+      getById: getBroadcastById
     },
     users: {
       list: listUsers
@@ -38,6 +44,7 @@ vi.mock('vue-i18n', async () => {
     useI18n: () => ({
       t: (key: string, params?: Record<string, unknown>) => {
         if (key === 'admin.smsBroadcasts.form.selectedCount') return `${params?.count} selected`
+        if (key === 'admin.smsBroadcasts.details.title') return 'Details'
         return key
       }
     })
@@ -102,6 +109,11 @@ const mountView = () =>
           props: ['show'],
           template: '<div v-if="show"><slot /><slot name="footer" /></div>'
         },
+        SMSBroadcastDetailDialog: {
+          props: ['show', 'campaignId'],
+          template: '<div v-if="show" data-test="detail-dialog">detail {{ campaignId }}</div>'
+        },
+        Pagination: true,
         Icon: true
       }
     }
@@ -113,6 +125,8 @@ describe('admin SMSBroadcastsView', () => {
     createBroadcast.mockReset()
     cancelBroadcast.mockReset()
     listUsers.mockReset()
+    getRecipients.mockReset()
+    getBroadcastById.mockReset()
     showError.mockReset()
 
     listBroadcasts.mockResolvedValue({ items: [], total: 0, page: 1, page_size: 20, pages: 0 })
@@ -127,6 +141,24 @@ describe('admin SMSBroadcastsView', () => {
       page: 1,
       page_size: 20,
       pages: 1
+    })
+    getRecipients.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      page_size: 20,
+      pages: 1
+    })
+    getBroadcastById.mockResolvedValue({
+      id: 9,
+      title: 'Template launch',
+      template_id: '309190',
+      status: 'succeeded',
+      total_recipients: 1,
+      sent_count: 1,
+      failed_count: 0,
+      skipped_count: 0,
+      created_at: '2026-05-19T00:00:00Z'
     })
   })
 
@@ -155,7 +187,7 @@ describe('admin SMSBroadcastsView', () => {
     expect(wrapper.text()).toContain('FMT:2026-05-19T00:00:00Z')
   })
 
-  it('hides the actions column when loaded broadcasts have no available actions', async () => {
+  it('shows the actions column even when loaded broadcasts have no cancel action', async () => {
     listBroadcasts.mockResolvedValue({
       items: [{
         id: 9,
@@ -176,7 +208,7 @@ describe('admin SMSBroadcastsView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    expect(wrapper.get('[data-test="table-columns"]').text()).not.toContain('actions')
+    expect(wrapper.get('[data-test="table-columns"]').text()).toContain('actions')
   })
 
   it('shows the actions column when a loaded broadcast can be canceled', async () => {
@@ -236,7 +268,64 @@ describe('admin SMSBroadcastsView', () => {
     const wrapper = mountView()
     await flushPromises()
 
+    expect(wrapper.text()).toContain('Details')
     expect(wrapper.text()).toContain('common.cancel')
+  })
+
+  it('opens the send detail dialog and loads overview plus recipient rows', async () => {
+    listBroadcasts.mockResolvedValueOnce({
+      items: [{
+        id: 10,
+        title: 'Queued campaign',
+        template_id: '309190',
+        status: 'queued',
+        total_recipients: 2,
+        sent_count: 1,
+        failed_count: 1,
+        skipped_count: 0,
+        created_at: '2026-05-19T00:00:00Z'
+      }],
+      total: 1,
+      page: 1,
+      page_size: 20,
+      pages: 1
+    })
+    getBroadcastById.mockResolvedValueOnce({
+      id: 10,
+      title: 'Queued campaign',
+      template_id: '309190',
+      status: 'queued',
+      total_recipients: 2,
+      sent_count: 1,
+      failed_count: 1,
+      skipped_count: 0,
+      template_var_rows: [{ key: 'window', value: 'tonight' }],
+      created_at: '2026-05-19T00:00:00Z'
+    })
+    getRecipients.mockResolvedValueOnce({
+      items: [{
+        user_id: 1,
+        phone_number: '+8613800138000',
+        raw_phone: '13800138000',
+        rendered_body: 'hello',
+        status: 'succeeded',
+        error_message: null,
+      sent_at: '2026-05-19T00:10:00Z'
+      }],
+      total: 1,
+      page: 1,
+      page_size: 20,
+      pages: 1
+    })
+    const wrapper = mountView()
+    await flushPromises()
+
+    const detailButton = wrapper.find('[data-test="sms-broadcast-detail"]')
+    expect(detailButton.exists()).toBe(true)
+    await detailButton.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="detail-dialog"]').exists()).toBe(true)
   })
 
   it('adds and removes selected users and creates broadcasts with explicit user ids', async () => {
@@ -257,10 +346,10 @@ describe('admin SMSBroadcastsView', () => {
     await wrapper.get('[data-test="sms-title"]').setValue('Maintenance')
     await wrapper.get('[data-test="sms-template-id"]').setValue('broadcast-template')
     await wrapper.get('[data-test="sms-var-key-0"]').setValue('window')
-    await wrapper.get('[data-test="sms-var-value-0"]').setValue('tonight')
+    await wrapper.get('[data-test="sms-var-value-0"]').setValue('phone_number')
     await wrapper.get('[data-test="sms-add-var"]').trigger('click')
     await wrapper.get('[data-test="sms-var-key-1"]').setValue('contact')
-    await wrapper.get('[data-test="sms-var-value-1"]').setValue('support')
+    await wrapper.get('[data-test="sms-var-value-1"]').setValue('email')
     await wrapper.get('[data-test="sms-remove-var-1"]').trigger('click')
 
     await wrapper.get('[data-test="sms-add-user-1"]').trigger('click')
@@ -276,7 +365,7 @@ describe('admin SMSBroadcastsView', () => {
       title: 'Maintenance',
       template_id: 'broadcast-template',
       vars: [
-        { key: 'window', value: 'tonight' }
+        { key: 'window', source: 'phone_number' }
       ],
       audience: { user_ids: [3] }
     }))
@@ -513,14 +602,44 @@ describe('admin SMSBroadcastsView', () => {
     await flushPromises()
     expect(createBroadcast).not.toHaveBeenCalled()
 
-    await wrapper.get('[data-test="sms-var-value-0"]').setValue('tonight')
+    await wrapper.get('[data-test="sms-var-value-0"]').setValue('phone_number')
     await wrapper.get('[data-test="sms-add-var"]').trigger('click')
     await wrapper.get('[data-test="sms-var-key-1"]').setValue('window')
-    await wrapper.get('[data-test="sms-var-value-1"]').setValue('tomorrow')
+    await wrapper.get('[data-test="sms-var-value-1"]').setValue('email')
 
     await wrapper.get('form').trigger('submit.prevent')
     await flushPromises()
     expect(createBroadcast).not.toHaveBeenCalled()
+  })
+
+  it('blocks submit when a selected recipient is missing the selected user field source', async () => {
+    listUsers.mockResolvedValueOnce({
+      items: [
+        user({ id: 1, username: '', email: 'alice@example.com', phone_number: '13800138000' })
+      ],
+      total: 1,
+      page: 1,
+      page_size: 20,
+      pages: 1
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('[data-test="sms-broadcast-create"]').trigger('click')
+    await flushPromises()
+
+    await wrapper.get('[data-test="sms-title"]').setValue('Maintenance')
+    await wrapper.get('[data-test="sms-template-id"]').setValue('broadcast-template')
+    await wrapper.get('[data-test="sms-var-key-0"]').setValue('name')
+    await wrapper.get('[data-test="sms-var-value-0"]').setValue('username')
+    await wrapper.get('[data-test="sms-add-user-1"]').trigger('click')
+
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(createBroadcast).not.toHaveBeenCalled()
+    expect(showError).toHaveBeenCalledWith('admin.smsBroadcasts.form.variableSourceMissingUserField')
   })
 
   it('blocks submit until at least one user is selected', async () => {

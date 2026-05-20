@@ -32,24 +32,33 @@ const (
 )
 
 var (
-	ErrSMSBroadcastNilInput                 = infraerrors.BadRequest("SMS_BROADCAST_INPUT_REQUIRED", "sms broadcast input is required")
-	ErrSMSBroadcastTitleRequired            = infraerrors.BadRequest("SMS_BROADCAST_TITLE_REQUIRED", "sms broadcast title is required")
-	ErrSMSBroadcastTemplateIDRequired       = infraerrors.BadRequest("SMS_BROADCAST_TEMPLATE_ID_REQUIRED", "sms broadcast template id is required")
-	ErrSMSBroadcastMessageRequired          = infraerrors.BadRequest("SMS_BROADCAST_MESSAGE_REQUIRED", "sms broadcast message is required")
-	ErrSMSBroadcastMessageTooLong           = infraerrors.BadRequest("SMS_BROADCAST_MESSAGE_TOO_LONG", "sms broadcast message is too long")
-	ErrSMSBroadcastInvalidMode              = infraerrors.BadRequest("SMS_BROADCAST_MODE_INVALID", "sms broadcast mode is invalid")
-	ErrSMSBroadcastTemplateVarKeyRequired   = infraerrors.BadRequest("SMS_BROADCAST_TEMPLATE_VAR_KEY_REQUIRED", "sms broadcast template variable key is required")
-	ErrSMSBroadcastTemplateVarValueRequired = infraerrors.BadRequest("SMS_BROADCAST_TEMPLATE_VAR_VALUE_REQUIRED", "sms broadcast template variable value is required")
-	ErrSMSBroadcastTemplateVarKeyDuplicate  = infraerrors.BadRequest("SMS_BROADCAST_TEMPLATE_VAR_KEY_DUPLICATE", "sms broadcast template variable key is duplicated")
-	ErrSMSBroadcastAudienceRequired         = infraerrors.BadRequest("SMS_BROADCAST_AUDIENCE_REQUIRED", "sms broadcast selected users are required")
-	ErrSMSBroadcastAudienceUserInvalid      = infraerrors.BadRequest("SMS_BROADCAST_AUDIENCE_USER_INVALID", "sms broadcast selected user is invalid")
-	ErrSMSBroadcastAudiencePhoneRequired    = infraerrors.BadRequest("SMS_BROADCAST_AUDIENCE_PHONE_REQUIRED", "sms broadcast selected user must have a valid phone number")
-	ErrSMSBroadcastCampaignNotFound         = infraerrors.NotFound("SMS_BROADCAST_CAMPAIGN_NOT_FOUND", "sms broadcast campaign not found")
-	ErrSMSBroadcastServiceUnavailable       = infraerrors.ServiceUnavailable("SMS_BROADCAST_SERVICE_UNAVAILABLE", "sms broadcast service unavailable")
+	ErrSMSBroadcastNilInput                  = infraerrors.BadRequest("SMS_BROADCAST_INPUT_REQUIRED", "sms broadcast input is required")
+	ErrSMSBroadcastTitleRequired             = infraerrors.BadRequest("SMS_BROADCAST_TITLE_REQUIRED", "sms broadcast title is required")
+	ErrSMSBroadcastTemplateIDRequired        = infraerrors.BadRequest("SMS_BROADCAST_TEMPLATE_ID_REQUIRED", "sms broadcast template id is required")
+	ErrSMSBroadcastMessageRequired           = infraerrors.BadRequest("SMS_BROADCAST_MESSAGE_REQUIRED", "sms broadcast message is required")
+	ErrSMSBroadcastMessageTooLong            = infraerrors.BadRequest("SMS_BROADCAST_MESSAGE_TOO_LONG", "sms broadcast message is too long")
+	ErrSMSBroadcastInvalidMode               = infraerrors.BadRequest("SMS_BROADCAST_MODE_INVALID", "sms broadcast mode is invalid")
+	ErrSMSBroadcastTemplateVarKeyRequired    = infraerrors.BadRequest("SMS_BROADCAST_TEMPLATE_VAR_KEY_REQUIRED", "sms broadcast template variable key is required")
+	ErrSMSBroadcastTemplateVarValueRequired  = infraerrors.BadRequest("SMS_BROADCAST_TEMPLATE_VAR_VALUE_REQUIRED", "sms broadcast template variable value is required")
+	ErrSMSBroadcastTemplateVarKeyDuplicate   = infraerrors.BadRequest("SMS_BROADCAST_TEMPLATE_VAR_KEY_DUPLICATE", "sms broadcast template variable key is duplicated")
+	ErrSMSBroadcastTemplateVarSourceInvalid  = infraerrors.BadRequest("SMS_BROADCAST_TEMPLATE_VAR_SOURCE_INVALID", "sms broadcast template variable source is invalid")
+	ErrSMSBroadcastTemplateVarUserFieldEmpty = infraerrors.BadRequest("SMS_BROADCAST_TEMPLATE_VAR_USER_FIELD_EMPTY", "sms broadcast template variable user field is empty")
+	ErrSMSBroadcastAudienceRequired          = infraerrors.BadRequest("SMS_BROADCAST_AUDIENCE_REQUIRED", "sms broadcast selected users are required")
+	ErrSMSBroadcastAudienceUserInvalid       = infraerrors.BadRequest("SMS_BROADCAST_AUDIENCE_USER_INVALID", "sms broadcast selected user is invalid")
+	ErrSMSBroadcastAudiencePhoneRequired     = infraerrors.BadRequest("SMS_BROADCAST_AUDIENCE_PHONE_REQUIRED", "sms broadcast selected user must have a valid phone number")
+	ErrSMSBroadcastCampaignNotFound          = infraerrors.NotFound("SMS_BROADCAST_CAMPAIGN_NOT_FOUND", "sms broadcast campaign not found")
+	ErrSMSBroadcastServiceUnavailable        = infraerrors.ServiceUnavailable("SMS_BROADCAST_SERVICE_UNAVAILABLE", "sms broadcast service unavailable")
 )
 
 type SMSBroadcastMode string
 type SMSBroadcastStatus string
+type SMSBroadcastTemplateVarSource string
+
+const (
+	SMSBroadcastTemplateVarSourcePhoneNumber SMSBroadcastTemplateVarSource = "phone_number"
+	SMSBroadcastTemplateVarSourceEmail       SMSBroadcastTemplateVarSource = "email"
+	SMSBroadcastTemplateVarSourceUsername    SMSBroadcastTemplateVarSource = "username"
+)
 
 type SMSBroadcastAudienceFilters struct {
 	UserIDs              []int64          `json:"user_ids,omitempty"`
@@ -69,8 +78,9 @@ type SMSBroadcastRenderInput struct {
 }
 
 type SMSBroadcastTemplateVarRow struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
+	Key    string                        `json:"key"`
+	Value  string                        `json:"value,omitempty"`
+	Source SMSBroadcastTemplateVarSource `json:"source,omitempty"`
 }
 
 type SMSBroadcastRecipient struct {
@@ -110,6 +120,11 @@ type SMSBroadcastCampaign struct {
 	ErrorMessage    *string                      `json:"error_message,omitempty"`
 }
 
+type SMSBroadcastRecipientPage struct {
+	Items []SMSBroadcastRecipient
+	Page  *pagination.PaginationResult
+}
+
 type SMSBroadcastCampaignInput struct {
 	Title      string
 	Mode       SMSBroadcastMode
@@ -128,6 +143,7 @@ type SMSBroadcastRepository interface {
 	ListCampaigns(ctx context.Context, params pagination.PaginationParams) ([]SMSBroadcastCampaign, *pagination.PaginationResult, error)
 	AppendRecipients(ctx context.Context, campaignID int64, recipients []SMSBroadcastRecipient) error
 	ListRecipients(ctx context.Context, campaignID int64) ([]SMSBroadcastRecipient, error)
+	ListRecipientsPaginated(ctx context.Context, campaignID int64, params pagination.PaginationParams, status string) ([]SMSBroadcastRecipient, *pagination.PaginationResult, error)
 	UpdateRecipient(ctx context.Context, campaignID int64, recipient *SMSBroadcastRecipient) error
 }
 
@@ -206,28 +222,46 @@ func (s *SMSBroadcastService) RenderMessage(input SMSBroadcastRenderInput) (stri
 func NormalizeSMSBroadcastTemplateVarRows(rows []SMSBroadcastTemplateVarRow) ([]SMSBroadcastTemplateVarRow, map[string]string, error) {
 	normalizedRows := make([]SMSBroadcastTemplateVarRow, 0, len(rows))
 	vars := make(map[string]string, len(rows))
+	seen := make(map[string]struct{}, len(rows))
 	for _, row := range rows {
 		key := strings.TrimSpace(row.Key)
 		value := strings.TrimSpace(row.Value)
-		if key == "" && value == "" {
+		source := SMSBroadcastTemplateVarSource(strings.TrimSpace(string(row.Source)))
+		if key == "" && value == "" && source == "" {
 			continue
 		}
 		if key == "" {
 			return nil, nil, ErrSMSBroadcastTemplateVarKeyRequired
 		}
-		if value == "" {
+		if source != "" {
+			if !isValidSMSBroadcastTemplateVarSource(source) {
+				return nil, nil, ErrSMSBroadcastTemplateVarSourceInvalid
+			}
+		} else if value == "" {
 			return nil, nil, ErrSMSBroadcastTemplateVarValueRequired
 		}
-		if _, exists := vars[key]; exists {
+		if _, exists := seen[key]; exists {
 			return nil, nil, ErrSMSBroadcastTemplateVarKeyDuplicate
 		}
-		normalizedRows = append(normalizedRows, SMSBroadcastTemplateVarRow{Key: key, Value: value})
-		vars[key] = value
+		seen[key] = struct{}{}
+		normalizedRows = append(normalizedRows, SMSBroadcastTemplateVarRow{Key: key, Value: value, Source: source})
+		if source == "" {
+			vars[key] = value
+		}
 	}
 	if vars == nil {
 		vars = map[string]string{}
 	}
 	return normalizedRows, vars, nil
+}
+
+func isValidSMSBroadcastTemplateVarSource(source SMSBroadcastTemplateVarSource) bool {
+	switch source {
+	case SMSBroadcastTemplateVarSourcePhoneNumber, SMSBroadcastTemplateVarSourceEmail, SMSBroadcastTemplateVarSourceUsername:
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *SMSBroadcastService) ListRecipients(ctx context.Context, filters SMSBroadcastAudienceFilters) ([]SMSBroadcastRecipient, error) {
@@ -390,6 +424,9 @@ func (s *SMSBroadcastService) CreateAndQueueCampaign(ctx context.Context, input 
 	if err != nil {
 		return nil, err
 	}
+	if err := validateSMSBroadcastRecipientTemplateVarSources(input.VarRows, recipients); err != nil {
+		return nil, err
+	}
 	input.Audience.UserIDs = normalizedUserIDs
 	campaign, err := s.CreateCampaign(ctx, input)
 	if err != nil {
@@ -458,6 +495,13 @@ func (s *SMSBroadcastService) GetCampaignByID(ctx context.Context, id int64) (*S
 	return s.repo.GetCampaignByID(ctx, id)
 }
 
+func (s *SMSBroadcastService) ListRecipientsPaginated(ctx context.Context, campaignID int64, params pagination.PaginationParams, status string) ([]SMSBroadcastRecipient, *pagination.PaginationResult, error) {
+	if s == nil || s.repo == nil {
+		return nil, nil, ErrSMSBroadcastServiceUnavailable
+	}
+	return s.repo.ListRecipientsPaginated(ctx, campaignID, params, strings.TrimSpace(status))
+}
+
 func (s *SMSBroadcastService) PreviewAudience(ctx context.Context, filters SMSBroadcastAudienceFilters) (int64, []SMSBroadcastRecipient, error) {
 	recipients, err := s.ListRecipients(ctx, filters)
 	if err != nil {
@@ -507,7 +551,16 @@ func (s *SMSBroadcastService) executeCampaign(ctx context.Context, campaignID in
 				recipients[i].User = *user
 			}
 		}
-		if err := s.smsService.SendActivityTemplateMessage(ctx, recipients[i].PhoneNumber, campaign.TemplateID, templateVarValues(campaign.TemplateVarRows)); err != nil {
+		varValues, err := templateVarValues(campaign.TemplateVarRows, recipients[i].User)
+		if err != nil {
+			failed++
+			msg := err.Error()
+			recipients[i].Status = "failed"
+			recipients[i].ErrorMessage = &msg
+			_ = s.repo.UpdateRecipient(ctx, campaignID, &recipients[i])
+			continue
+		}
+		if err := s.smsService.SendActivityTemplateMessage(ctx, recipients[i].PhoneNumber, campaign.TemplateID, varValues); err != nil {
 			failed++
 			msg := err.Error()
 			recipients[i].Status = "failed"
@@ -533,12 +586,56 @@ func (s *SMSBroadcastService) executeCampaign(ctx context.Context, campaignID in
 	return s.repo.UpdateCampaign(ctx, campaign)
 }
 
-func templateVarValues(rows []SMSBroadcastTemplateVarRow) []string {
+func templateVarValues(rows []SMSBroadcastTemplateVarRow, user User) ([]string, error) {
 	values := make([]string, 0, len(rows))
 	for _, row := range rows {
-		values = append(values, row.Value)
+		value, err := resolveSMSBroadcastTemplateVarValue(row, user)
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, value)
 	}
-	return values
+	return values, nil
+}
+
+func resolveSMSBroadcastTemplateVarValue(row SMSBroadcastTemplateVarRow, user User) (string, error) {
+	source := SMSBroadcastTemplateVarSource(strings.TrimSpace(string(row.Source)))
+	if source == "" {
+		return row.Value, nil
+	}
+	var value string
+	switch source {
+	case SMSBroadcastTemplateVarSourcePhoneNumber:
+		value = NormalizePhoneNumber(user.PhoneNumber, "86")
+	case SMSBroadcastTemplateVarSourceEmail:
+		value = strings.TrimSpace(user.Email)
+	case SMSBroadcastTemplateVarSourceUsername:
+		value = strings.TrimSpace(user.Username)
+	default:
+		return "", ErrSMSBroadcastTemplateVarSourceInvalid
+	}
+	if value == "" {
+		return "", ErrSMSBroadcastTemplateVarUserFieldEmpty
+	}
+	return value, nil
+}
+
+func validateSMSBroadcastRecipientTemplateVarSources(rows []SMSBroadcastTemplateVarRow, recipients []SMSBroadcastRecipient) error {
+	normalizedRows, _, err := NormalizeSMSBroadcastTemplateVarRows(rows)
+	if err != nil {
+		return err
+	}
+	for i := range recipients {
+		for _, row := range normalizedRows {
+			if row.Source == "" {
+				continue
+			}
+			if _, err := resolveSMSBroadcastTemplateVarValue(row, recipients[i].User); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func convertSMSBroadcastFilters(filters SMSBroadcastAudienceFilters) UserListFilters {

@@ -9,6 +9,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Wei-Shaw/sub2api/internal/service"
 )
 
 func setupAdminRouter() (*gin.Engine, *stubAdminService) {
@@ -60,7 +62,19 @@ func setupAdminRouter() (*gin.Engine, *stubAdminService) {
 	router.POST("/api/v1/admin/redeem-codes/:id/expire", redeemHandler.Expire)
 	router.GET("/api/v1/admin/redeem-codes/:id/stats", redeemHandler.GetStats)
 
+	smsBroadcastHandler := NewSMSBroadcastHandler(&service.SMSBroadcastService{})
+	router.GET("/api/v1/admin/sms-broadcasts/:id/recipients", smsBroadcastHandler.ListRecipients)
+
 	return router, adminSvc
+}
+
+func TestSMSBroadcastRecipientsRouteReturnsServiceUnavailableWithoutService(t *testing.T) {
+	router, _ := setupAdminRouter()
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/sms-broadcasts/1/recipients", nil)
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusServiceUnavailable, rec.Code)
 }
 
 func TestUserHandlerEndpoints(t *testing.T) {

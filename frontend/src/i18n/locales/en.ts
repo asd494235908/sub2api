@@ -4706,13 +4706,41 @@ export default {
         variables: 'SMS variables',
         addVariable: 'Add variable',
         variableKey: 'Variable key',
-        variableValue: 'Variable value'
+        variableValue: 'Variable value',
+        variableValuePlaceholder: 'Select user field',
+        variableSourcePhone: 'Phone number',
+        variableSourceEmail: 'Email',
+        variableSourceUsername: 'Username',
+        variableSourceMissingUserField: 'A selected recipient is missing the selected variable field. Update recipients or variables.'
       },
       columns: {
         title: 'Title',
         status: 'Status',
         summary: 'Recipients / Sent / Failed',
         createdAt: 'Created At'
+      },
+      details: {
+        title: 'Send Details',
+        templateId: 'Template ID',
+        totalRecipients: 'Total',
+        sentCount: 'Sent',
+        failedCount: 'Failed',
+        skippedCount: 'Skipped',
+        statusFilter: 'Status',
+        statusQueued: 'Queued',
+        statusSucceeded: 'Succeeded',
+        statusFailed: 'Failed',
+        statusCanceled: 'Canceled',
+        recipient: 'Recipient',
+        phoneNumber: 'Phone',
+        rawPhone: 'Raw Phone',
+        renderedBody: 'Rendered Content',
+        status: 'Status',
+        failureReason: 'Failure Reason',
+        sentAt: 'Sent At',
+        noRecipients: 'No recipient details yet',
+        failedToLoad: 'Failed to load send details',
+        failedToLoadRecipients: 'Failed to load recipient details'
       }
     },
 

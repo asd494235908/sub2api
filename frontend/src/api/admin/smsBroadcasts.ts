@@ -3,10 +3,12 @@ import type { BasePaginationResponse } from '@/types'
 
 export type SMSBroadcastMode = 'freeform' | 'template'
 export type SMSBroadcastStatus = 'draft' | 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled'
+export type SMSBroadcastTemplateVarSource = 'phone_number' | 'email' | 'username'
 
 export interface SMSBroadcastTemplateVarRow {
   key: string
-  value: string
+  value?: string
+  source?: SMSBroadcastTemplateVarSource
 }
 
 export interface SMSBroadcastAudience {
@@ -42,8 +44,10 @@ export interface SMSBroadcastRecipientPreview {
   user_id: number
   phone_number: string
   raw_phone: string
+  rendered_body?: string
   status?: string
   error_message?: string | null
+  sent_at?: string | null
 }
 
 export interface SMSBroadcastPreviewResponse {
@@ -83,12 +87,33 @@ export async function cancel(id: number): Promise<{ message: string }> {
   return data
 }
 
+export interface SMSBroadcastRecipientsResponse {
+  items: SMSBroadcastRecipientPreview[]
+  total: number
+  page: number
+  page_size: number
+  pages: number
+}
+
+export async function getRecipients(
+  id: number,
+  page = 1,
+  pageSize = 20,
+  status?: string
+): Promise<SMSBroadcastRecipientsResponse> {
+  const { data } = await apiClient.get<SMSBroadcastRecipientsResponse>(`/admin/sms-broadcasts/${id}/recipients`, {
+    params: { page, page_size: pageSize, status }
+  })
+  return data
+}
+
 const smsBroadcastsAPI = {
   preview,
   create,
   list,
   getById,
-  cancel
+  cancel,
+  getRecipients
 }
 
 export default smsBroadcastsAPI

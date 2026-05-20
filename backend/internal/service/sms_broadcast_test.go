@@ -190,8 +190,9 @@ func (s *smsBroadcastProviderStub) SendActivityTemplateMessage(_ context.Context
 }
 
 type smsBroadcastRepoStub struct {
-	campaign   *SMSBroadcastCampaign
-	recipients []SMSBroadcastRecipient
+	campaign         *SMSBroadcastCampaign
+	recipients       []SMSBroadcastRecipient
+	recipientsPageFn func(ctx context.Context, campaignID int64, params pagination.PaginationParams, status string) ([]SMSBroadcastRecipient, *pagination.PaginationResult, error)
 }
 
 func (s *smsBroadcastRepoStub) CreateCampaign(_ context.Context, campaign *SMSBroadcastCampaign) error {
@@ -224,6 +225,13 @@ func (s *smsBroadcastRepoStub) AppendRecipients(_ context.Context, _ int64, reci
 
 func (s *smsBroadcastRepoStub) ListRecipients(context.Context, int64) ([]SMSBroadcastRecipient, error) {
 	return append([]SMSBroadcastRecipient(nil), s.recipients...), nil
+}
+
+func (s *smsBroadcastRepoStub) ListRecipientsPaginated(ctx context.Context, campaignID int64, params pagination.PaginationParams, status string) ([]SMSBroadcastRecipient, *pagination.PaginationResult, error) {
+	if s.recipientsPageFn != nil {
+		return s.recipientsPageFn(ctx, campaignID, params, status)
+	}
+	return append([]SMSBroadcastRecipient(nil), s.recipients...), &pagination.PaginationResult{Total: int64(len(s.recipients)), Page: params.Page, PageSize: params.PageSize, Pages: 1}, nil
 }
 
 func (s *smsBroadcastRepoStub) UpdateRecipient(_ context.Context, _ int64, recipient *SMSBroadcastRecipient) error {
@@ -430,6 +438,29 @@ func TestSMSBroadcastService_CreateCampaignNormalizesTemplateVarRows(t *testing.
 	}, campaign.TemplateVars)
 }
 
+func TestSMSBroadcastService_CreateCampaignNormalizesTemplateVarSources(t *testing.T) {
+	repo := &smsBroadcastRepoStub{}
+	svc := NewSMSBroadcastService(nil, nil, nil, nil, repo)
+
+	campaign, err := svc.CreateCampaign(context.Background(), &SMSBroadcastCampaignInput{
+		Title:      "Maintenance",
+		TemplateID: "broadcast-template",
+		VarRows: []SMSBroadcastTemplateVarRow{
+			{Key: " phone ", Source: " phone_number "},
+			{Key: "email", Source: "email"},
+			{Key: "name", Source: "username"},
+		},
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, []SMSBroadcastTemplateVarRow{
+		{Key: "phone", Source: SMSBroadcastTemplateVarSourcePhoneNumber},
+		{Key: "email", Source: SMSBroadcastTemplateVarSourceEmail},
+		{Key: "name", Source: SMSBroadcastTemplateVarSourceUsername},
+	}, campaign.TemplateVarRows)
+	require.Empty(t, campaign.TemplateVars)
+}
+
 func TestSMSBroadcastService_CreateCampaignRejectsInvalidTemplateVarRows(t *testing.T) {
 	tests := []struct {
 		name string
@@ -451,6 +482,11 @@ func TestSMSBroadcastService_CreateCampaignRejectsInvalidTemplateVarRows(t *test
 			rows: []SMSBroadcastTemplateVarRow{{Key: "name", Value: "Alice"}, {Key: " name ", Value: "Bob"}},
 			want: ErrSMSBroadcastTemplateVarKeyDuplicate,
 		},
+		{
+			name: "invalid source",
+			rows: []SMSBroadcastTemplateVarRow{{Key: "name", Source: "balance"}},
+			want: ErrSMSBroadcastTemplateVarSourceInvalid,
+		},
 	}
 
 	for _, tt := range tests {
@@ -466,6 +502,24 @@ func TestSMSBroadcastService_CreateCampaignRejectsInvalidTemplateVarRows(t *test
 			require.ErrorIs(t, err, tt.want)
 		})
 	}
+}
+
+func TestSMSBroadcastService_CreateAndQueueRejectsEmptyUserFieldSource(t *testing.T) {
+	userRepo := &smsBroadcastUserRepoStub{
+		users: []User{
+			{ID: 1, PhoneNumber: "13800138000", Email: "", Username: "alice", Status: StatusActive, Role: RoleUser},
+		},
+	}
+	svc := NewSMSBroadcastService(userRepo, &smsBroadcastSMSCacheStub{}, &smsBroadcastProviderStub{}, nil, &smsBroadcastRepoStub{})
+
+	_, err := svc.CreateAndQueueCampaign(context.Background(), &SMSBroadcastCampaignInput{
+		Title:      "Maintenance",
+		TemplateID: "broadcast-template",
+		Audience:   SMSBroadcastAudienceFilters{UserIDs: []int64{1}},
+		VarRows:    []SMSBroadcastTemplateVarRow{{Key: "email", Source: SMSBroadcastTemplateVarSourceEmail}},
+	})
+
+	require.ErrorIs(t, err, ErrSMSBroadcastTemplateVarUserFieldEmpty)
 }
 
 func TestSMSBroadcastService_ExecuteCampaignUsesCampaignTemplateIDAndOrderedVarRows(t *testing.T) {
@@ -500,6 +554,65 @@ func TestSMSBroadcastService_ExecuteCampaignUsesCampaignTemplateIDAndOrderedVarR
 	require.Equal(t, "20180515006|Alice|100元", provider.sent[0].body)
 	require.Equal(t, "succeeded", repo.recipients[0].Status)
 	require.Empty(t, repo.recipients[0].RenderedBody)
+}
+
+func TestSMSBroadcastService_ExecuteCampaignResolvesTemplateVarSourcesPerRecipient(t *testing.T) {
+	provider := &smsBroadcastProviderStub{}
+	repo := &smsBroadcastRepoStub{
+		campaign: &SMSBroadcastCampaign{
+			ID:         12,
+			Title:      "Maintenance",
+			Mode:       SMSBroadcastModeTemplate,
+			TemplateID: "broadcast-template",
+			Status:     SMSBroadcastStatusQueued,
+			TemplateVarRows: []SMSBroadcastTemplateVarRow{
+				{Key: "phone", Source: SMSBroadcastTemplateVarSourcePhoneNumber},
+				{Key: "email", Source: SMSBroadcastTemplateVarSourceEmail},
+				{Key: "name", Source: SMSBroadcastTemplateVarSourceUsername},
+			},
+		},
+		recipients: []SMSBroadcastRecipient{
+			{
+				UserID:      1,
+				PhoneNumber: "+8613800138000",
+				RawPhone:    "13800138000",
+				User:        User{ID: 1, PhoneNumber: "13800138000", Email: "alice@example.com", Username: "alice"},
+			},
+			{
+				UserID:      2,
+				PhoneNumber: "+8613900139000",
+				RawPhone:    "13900139000",
+				User:        User{ID: 2, PhoneNumber: "13900139000", Email: "bob@example.com", Username: "bob"},
+			},
+		},
+	}
+	svc := NewSMSBroadcastService(nil, &smsBroadcastSMSCacheStub{}, provider, nil, repo)
+
+	err := svc.executeCampaign(context.Background(), 12)
+
+	require.NoError(t, err)
+	require.Len(t, provider.sent, 2)
+	require.Equal(t, "+8613800138000|alice@example.com|alice", provider.sent[0].body)
+	require.Equal(t, "+8613900139000|bob@example.com|bob", provider.sent[1].body)
+}
+
+func TestSMSBroadcastService_ListRecipientsPaginatedPassesStatus(t *testing.T) {
+	repo := &smsBroadcastRepoStub{
+		recipientsPageFn: func(_ context.Context, campaignID int64, params pagination.PaginationParams, status string) ([]SMSBroadcastRecipient, *pagination.PaginationResult, error) {
+			require.Equal(t, int64(9), campaignID)
+			require.Equal(t, "failed", status)
+			require.Equal(t, 2, params.Page)
+			require.Equal(t, 10, params.PageSize)
+			return []SMSBroadcastRecipient{{UserID: 1, PhoneNumber: "+8613800138000", Status: "failed"}}, &pagination.PaginationResult{Total: 1, Page: 2, PageSize: 10, Pages: 1}, nil
+		},
+	}
+	svc := NewSMSBroadcastService(nil, nil, nil, nil, repo)
+
+	items, page, err := svc.ListRecipientsPaginated(context.Background(), 9, pagination.PaginationParams{Page: 2, PageSize: 10}, "failed")
+
+	require.NoError(t, err)
+	require.Len(t, items, 1)
+	require.Equal(t, int64(1), page.Total)
 }
 
 func TestSMSBroadcastService_ValidateContentLength(t *testing.T) {
