@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 )
@@ -22,14 +24,15 @@ type EmailTask struct {
 	TaskType string // "verify_code" or "password_reset"
 	ResetURL string // Only used for password_reset task type
 	Code     string // Only used for verify_code task type
+	Locale   string // Optional Accept-Language locale hint
 }
 
 type VerifyCodeEnqueuer interface {
-	EnqueueVerifyCode(email, siteName, code string) error
+	EnqueueVerifyCode(email, siteName, code string, locale ...string) error
 }
 
 type PasswordResetEnqueuer interface {
-	EnqueuePasswordReset(email, siteName, resetURL string) error
+	EnqueuePasswordReset(email, siteName, resetURL string, locale ...string) error
 }
 
 type AuthEmailQueue interface {
@@ -96,13 +99,13 @@ func (s *EmailQueueService) processTask(workerID int, task EmailTask) {
 
 	switch task.TaskType {
 	case TaskTypeVerifyCode:
-		if err := s.emailService.SendVerifyCodeEmail(ctx, task.Email, task.SiteName, task.Code); err != nil {
+		if err := s.emailService.SendVerifyCodeEmail(ctx, task.Email, task.SiteName, task.Code, task.Locale); err != nil {
 			logger.LegacyPrintf("service.email_queue", "[EmailQueue] Worker %d failed to send verify code to %s: %v", workerID, task.Email, err)
 		} else {
 			logger.LegacyPrintf("service.email_queue", "[EmailQueue] Worker %d sent verify code to %s", workerID, task.Email)
 		}
 	case TaskTypePasswordReset:
-		if err := s.emailService.SendPasswordResetEmailWithCooldown(ctx, task.Email, task.SiteName, task.ResetURL); err != nil {
+		if err := s.emailService.SendPasswordResetEmailWithCooldown(ctx, task.Email, task.SiteName, task.ResetURL, task.Locale); err != nil {
 			logger.LegacyPrintf("service.email_queue", "[EmailQueue] Worker %d failed to send password reset to %s: %v", workerID, task.Email, err)
 		} else {
 			logger.LegacyPrintf("service.email_queue", "[EmailQueue] Worker %d sent password reset to %s", workerID, task.Email)
@@ -113,12 +116,19 @@ func (s *EmailQueueService) processTask(workerID int, task EmailTask) {
 }
 
 // EnqueueVerifyCode 将验证码发送任务加入队列
-func (s *EmailQueueService) EnqueueVerifyCode(email, siteName, code string) error {
+func (s *EmailQueueService) EnqueueVerifyCode(email, siteName, code string, locale ...string) error {
+	resolvedCode := code
+	resolvedLocale := firstEmailLocale(locale)
+	if resolvedLocale == "" && looksLikeEmailLocale(code) {
+		resolvedCode = ""
+		resolvedLocale = strings.TrimSpace(code)
+	}
 	task := EmailTask{
 		Email:    email,
 		SiteName: siteName,
 		TaskType: TaskTypeVerifyCode,
-		Code:     code,
+		Code:     resolvedCode,
+		Locale:   resolvedLocale,
 	}
 
 	select {
@@ -131,12 +141,13 @@ func (s *EmailQueueService) EnqueueVerifyCode(email, siteName, code string) erro
 }
 
 // EnqueuePasswordReset 将密码重置邮件任务加入队列
-func (s *EmailQueueService) EnqueuePasswordReset(email, siteName, resetURL string) error {
+func (s *EmailQueueService) EnqueuePasswordReset(email, siteName, resetURL string, locale ...string) error {
 	task := EmailTask{
 		Email:    email,
 		SiteName: siteName,
 		TaskType: TaskTypePasswordReset,
 		ResetURL: resetURL,
+		Locale:   firstEmailLocale(locale),
 	}
 
 	select {
@@ -146,6 +157,27 @@ func (s *EmailQueueService) EnqueuePasswordReset(email, siteName, resetURL strin
 	default:
 		return fmt.Errorf("email queue is full")
 	}
+}
+
+func looksLikeEmailLocale(value string) bool {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return false
+	}
+	hasLetter := false
+	hasSeparator := false
+	for _, r := range value {
+		switch {
+		case unicode.IsLetter(r):
+			hasLetter = true
+		case r == '-' || r == '_' || r == ',' || r == ';' || r == '=' || r == '.':
+			hasSeparator = true
+		case unicode.IsDigit(r) || unicode.IsSpace(r):
+		default:
+			return false
+		}
+	}
+	return hasLetter && hasSeparator
 }
 
 // Stop 停止队列服务

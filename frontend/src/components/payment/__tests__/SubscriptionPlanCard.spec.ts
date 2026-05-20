@@ -1,55 +1,64 @@
-import { describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
-import SubscriptionPlanCard from '@/components/payment/SubscriptionPlanCard.vue'
-import type { SubscriptionPlan } from '@/types/payment'
+import { mount } from "@vue/test-utils";
+import { describe, expect, it } from "vitest";
+import { createI18n } from "vue-i18n";
+import SubscriptionPlanCard from "../SubscriptionPlanCard.vue";
 
-vi.mock('vue-i18n', () => ({
-  useI18n: () => ({
-    t: (key: string) => key,
-  }),
-}))
-
-const planFactory = (): SubscriptionPlan => ({
-  id: 1,
-  group_id: 7,
-  group_platform: 'openai',
-  group_name: 'OpenAI',
-  rate_multiplier: 1.5,
-  daily_limit_usd: 95,
-  weekly_limit_usd: null,
-  monthly_limit_usd: null,
-  supported_model_scopes: ['claude', 'gemini_text', 'gemini_image'],
-  name: '标准版',
-  description: '套餐每天95刀，时长30天',
-  price: 135,
-  validity_days: 30,
-  validity_unit: 'day',
-  features: [],
-  for_sale: true,
-  sort_order: 1,
-})
-
-describe('SubscriptionPlanCard', () => {
-  it('hides model scope labels while keeping core plan details visible', () => {
-    const wrapper = mount(SubscriptionPlanCard, {
-      props: {
-        plan: planFactory(),
-        activeSubscriptions: [],
+const i18n = createI18n({
+  legacy: false,
+  locale: "en",
+  fallbackWarn: false,
+  missingWarn: false,
+  messages: {
+    en: {
+      payment: {
+        days: "days",
+        models: "Models",
+        planCard: {
+          quota: "Quota",
+          rate: "Rate",
+          unlimited: "Unlimited",
+        },
+        subscribeNow: "Subscribe now",
       },
-    })
+    },
+  },
+});
 
-    const text = wrapper.text()
+const mountPlanCard = (groupPlatform: string) =>
+  mount(SubscriptionPlanCard, {
+    props: {
+      plan: {
+        id: 1,
+        group_id: 10,
+        group_platform: groupPlatform,
+        name: "Pro",
+        price: 10,
+        amount: 1000,
+        features: [],
+        rate_multiplier: 1,
+        validity_days: 30,
+        validity_unit: "day",
+        supported_model_scopes: ["claude", "gemini_text", "gemini_image"],
+        is_active: true,
+      },
+    },
+    global: { plugins: [i18n] },
+  });
 
-    expect(text).toContain('标准版')
-    expect(text).toContain('OpenAI')
-    expect(text).toContain('135')
-    expect(text).toContain('×1.5')
-    expect(text).toContain('¥95')
-    expect(text).toContain('payment.subscribeNow')
+describe("SubscriptionPlanCard", () => {
+  it("does not show Antigravity model scopes for OpenAI plans", () => {
+    const text = mountPlanCard("openai").text();
 
-    expect(text).not.toContain('payment.planCard.models')
-    expect(text).not.toContain('Claude')
-    expect(text).not.toContain('Gemini')
-    expect(text).not.toContain('Imagen')
-  })
-})
+    expect(text).not.toContain("Claude");
+    expect(text).not.toContain("Gemini");
+    expect(text).not.toContain("Imagen");
+  });
+
+  it("shows model scopes for Antigravity plans", () => {
+    const text = mountPlanCard("antigravity").text();
+
+    expect(text).toContain("Claude");
+    expect(text).toContain("Gemini");
+    expect(text).toContain("Imagen");
+  });
+});

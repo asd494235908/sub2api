@@ -143,6 +143,7 @@
           <ProfileIdentityBindingsSection
             :user="user"
             :linuxdo-enabled="linuxdoEnabled"
+            :dingtalk-enabled="dingtalkEnabled"
             :oidc-enabled="oidcEnabled"
             :oidc-provider-name="oidcProviderName"
             :wechat-enabled="wechatEnabled"
@@ -195,6 +196,7 @@ const props = withDefaults(defineProps<{
   user: User | null
   phoneVerifyEnabled?: boolean
   linuxdoEnabled?: boolean
+  dingtalkEnabled?: boolean
   oidcEnabled?: boolean
   oidcProviderName?: string
   wechatEnabled?: boolean
@@ -203,6 +205,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   phoneVerifyEnabled: false,
   linuxdoEnabled: false,
+  dingtalkEnabled: false,
   oidcEnabled: false,
   oidcProviderName: 'OIDC',
   wechatEnabled: false,
@@ -276,6 +279,7 @@ const hiddenProfileProviders = new Set<UserAuthProvider>(['github'])
 const providerLabels = computed<Record<UserAuthProvider, string>>(() => ({
   email: t('profile.authBindings.providers.email'),
   linuxdo: t('profile.authBindings.providers.linuxdo'),
+  dingtalk: t('profile.authBindings.providers.dingtalk'),
   oidc: t('profile.authBindings.providers.oidc', { providerName: props.oidcProviderName }),
   wechat: t('profile.authBindings.providers.wechat'),
   github: 'GitHub',
