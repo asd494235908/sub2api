@@ -20,6 +20,10 @@ import (
 )
 
 // AuthHandler handles authentication-related requests
+type memberLevelResolver interface {
+	ResolveMemberLevel(context.Context, *service.User) (*service.MemberLevelState, error)
+}
+
 type AuthHandler struct {
 	cfg                  *config.Config
 	authService          *service.AuthService
@@ -30,6 +34,7 @@ type AuthHandler struct {
 	totpService          *service.TotpService
 	smsService           *service.SMSService
 	userAttributeService *service.UserAttributeService
+	memberLevelResolver  memberLevelResolver
 
 	dingTalkClientInstance *DingTalkClient
 	dingTalkClientMu       sync.Mutex
@@ -39,12 +44,15 @@ type AuthHandler struct {
 func NewAuthHandler(cfg *config.Config, authService *service.AuthService, userService *service.UserService, settingService *service.SettingService, promoService *service.PromoService, redeemService *service.RedeemService, totpService *service.TotpService, extras ...any) *AuthHandler {
 	var smsService *service.SMSService
 	var userAttributeService *service.UserAttributeService
+	var memberLevelResolver memberLevelResolver
 	for _, extra := range extras {
 		switch v := extra.(type) {
 		case *service.SMSService:
 			smsService = v
 		case *service.UserAttributeService:
 			userAttributeService = v
+		case *service.PaymentService:
+			memberLevelResolver = v
 		}
 	}
 	return &AuthHandler{
@@ -57,6 +65,7 @@ func NewAuthHandler(cfg *config.Config, authService *service.AuthService, userSe
 		totpService:          totpService,
 		smsService:           smsService,
 		userAttributeService: userAttributeService,
+		memberLevelResolver:  memberLevelResolver,
 	}
 }
 
@@ -581,8 +590,18 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 		runMode = h.cfg.RunMode
 	}
 
+	profile := userProfileResponseFromService(user, identities)
+	if h.memberLevelResolver != nil {
+		level, levelErr := h.memberLevelResolver.ResolveMemberLevel(c.Request.Context(), user)
+		if levelErr != nil {
+			response.ErrorFrom(c, levelErr)
+			return
+		}
+		profile.MemberLevel = level
+	}
+
 	response.Success(c, UserResponse{
-		userProfileResponse: userProfileResponseFromService(user, identities),
+		userProfileResponse: profile,
 		RunMode:             runMode,
 	})
 }

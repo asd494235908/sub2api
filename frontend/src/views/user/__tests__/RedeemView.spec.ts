@@ -126,6 +126,29 @@ describe('RedeemView', () => {
     expect(wrapper.text()).toContain('+¥12.34')
   })
 
+  it('shows first recharge bonus entries as platform quota instead of RMB', async () => {
+    getHistory.mockResolvedValue([
+      {
+        id: 902,
+        code: 'FIRST-RECHARGE-30',
+        type: 'first_recharge_bonus',
+        value: 15,
+        status: 'used',
+        used_at: '2026-05-13T11:00:00Z',
+        created_at: '2026-05-13T11:00:00Z',
+        source: 'first_recharge_bonus',
+        title: '',
+      },
+    ])
+
+    const wrapper = mountRedeemView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('首冲赠送额度')
+    expect(wrapper.text()).toContain('+15.00 平台额度')
+    expect(wrapper.text()).not.toContain('+¥15.00')
+  })
+
   it('disables weekly quota claim and shows phone binding prompt when phone verification is enabled', async () => {
     getWeeklyQuota.mockResolvedValue({
       enabled: true,

@@ -27,6 +27,30 @@ type updateRechargeActivityConfigRequest struct {
 	Config  service.RechargeActivityConfig `json:"config"`
 }
 
+type updateFirstRechargeConfigRequest struct {
+	Enabled bool                        `json:"enabled"`
+	Config  service.FirstRechargeConfig `json:"config"`
+}
+
+type updateMemberLevelConfigRequest struct {
+	Enabled bool                      `json:"enabled"`
+	Config  service.MemberLevelConfig `json:"config"`
+}
+
+type grantFirstRechargeChanceRequest struct {
+	UserID  int64  `json:"user_id" binding:"required,gt=0"`
+	TierID  string `json:"tier_id" binding:"required"`
+	Chances int    `json:"chances" binding:"required,gt=0"`
+	Note    string `json:"note"`
+}
+
+type bulkFirstRechargeChanceRequest struct {
+	TierID  string                              `json:"tier_id" binding:"required"`
+	Chances int                                 `json:"chances" binding:"min=0"`
+	Mode    service.FirstRechargeBulkChanceMode `json:"mode" binding:"required"`
+	Note    string                              `json:"note"`
+}
+
 type updateRechargeActivityFulfillmentRequest struct {
 	Status string `json:"status"`
 	Note   string `json:"note"`
@@ -154,6 +178,106 @@ func (h *PaymentHandler) UpdateRechargeActivityConfig(c *gin.Context) {
 		"enabled": req.Enabled,
 		"config":  cfg,
 	})
+}
+
+func (h *PaymentHandler) GetFirstRechargeConfig(c *gin.Context) {
+	if h.paymentService == nil {
+		response.InternalError(c, "Payment service not configured")
+		return
+	}
+	cfg, enabled, err := h.paymentService.GetFirstRechargeConfig(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"enabled": enabled, "config": cfg})
+}
+
+func (h *PaymentHandler) UpdateFirstRechargeConfig(c *gin.Context) {
+	var req updateFirstRechargeConfigRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	if h.paymentService == nil {
+		response.InternalError(c, "Payment service not configured")
+		return
+	}
+	cfg, err := h.paymentService.UpdateFirstRechargeConfig(c.Request.Context(), req.Enabled, &req.Config)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"enabled": req.Enabled, "config": cfg})
+}
+
+func (h *PaymentHandler) GrantFirstRechargeChance(c *gin.Context) {
+	var req grantFirstRechargeChanceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	if h.paymentService == nil {
+		response.InternalError(c, "Payment service not configured")
+		return
+	}
+	subject, _ := middleware.GetAuthSubjectFromContext(c)
+	result, err := h.paymentService.GrantFirstRechargeChance(c.Request.Context(), req.UserID, req.TierID, req.Chances, strconv.FormatInt(subject.UserID, 10), req.Note)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, result)
+}
+
+func (h *PaymentHandler) BulkUpdateFirstRechargeChances(c *gin.Context) {
+	var req bulkFirstRechargeChanceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	if h.paymentService == nil {
+		response.InternalError(c, "Payment service not configured")
+		return
+	}
+	subject, _ := middleware.GetAuthSubjectFromContext(c)
+	result, err := h.paymentService.BulkUpdateFirstRechargeChances(c.Request.Context(), req.TierID, req.Chances, req.Mode, strconv.FormatInt(subject.UserID, 10), req.Note)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, result)
+}
+
+func (h *PaymentHandler) GetMemberLevelConfig(c *gin.Context) {
+	if h.paymentService == nil {
+		response.InternalError(c, "Payment service not configured")
+		return
+	}
+	cfg, enabled, err := h.paymentService.GetMemberLevelConfig(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"enabled": enabled, "config": cfg})
+}
+
+func (h *PaymentHandler) UpdateMemberLevelConfig(c *gin.Context) {
+	var req updateMemberLevelConfigRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	if h.paymentService == nil {
+		response.InternalError(c, "Payment service not configured")
+		return
+	}
+	cfg, err := h.paymentService.UpdateMemberLevelConfig(c.Request.Context(), req.Enabled, &req.Config)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"enabled": req.Enabled, "config": cfg})
 }
 
 // GetRechargeActivityStats returns admin recharge activity statistics.

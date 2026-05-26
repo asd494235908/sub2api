@@ -200,6 +200,7 @@ const typeOptions = computed(() => [
   { value: 'admin_balance', label: t('admin.users.typeAdminBalance') },
   { value: 'weekly_balance', label: t('redeem.weeklyQuotaHistoryTitle') },
   { value: 'lucky_wheel_bonus', label: t('redeem.luckyWheelBonusTitle') },
+  { value: 'first_recharge_bonus', label: '首冲赠送额度' },
   { value: 'concurrency', label: t('admin.users.typeConcurrency') },
   { value: 'admin_concurrency', label: t('admin.users.typeAdminConcurrency') },
   { value: 'subscription', label: t('admin.users.typeSubscription') }
@@ -237,10 +238,10 @@ const loadHistory = async (page: number) => {
 // Helper: check if admin type
 const isAdminType = (type: string) => type === 'admin_balance' || type === 'admin_concurrency'
 
-const isSystemGrantType = (type: string) => type === 'weekly_balance' || type === 'lucky_wheel_bonus'
+const isSystemGrantType = (type: string) => type === 'weekly_balance' || type === 'lucky_wheel_bonus' || type === 'first_recharge_bonus'
 
 // Helper: check if balance type (includes admin_balance)
-const isBalanceType = (type: string) => type === 'balance' || type === 'admin_balance' || type === 'affiliate_balance' || type === 'weekly_balance' || type === 'lucky_wheel_bonus'
+const isBalanceType = (type: string) => type === 'balance' || type === 'admin_balance' || type === 'affiliate_balance' || type === 'weekly_balance' || type === 'lucky_wheel_bonus' || type === 'first_recharge_bonus'
 
 // Helper: check if subscription type
 const isSubscriptionType = (type: string) => type === 'subscription'
@@ -316,6 +317,8 @@ const getItemTitle = (item: BalanceHistoryItem) => {
       return t('redeem.weeklyQuotaHistoryTitle')
     case 'lucky_wheel_bonus':
       return t('redeem.luckyWheelBonusTitle')
+    case 'first_recharge_bonus':
+      return '首冲赠送额度'
     case 'concurrency':
       return t('redeem.concurrencyAddedRedeem')
     case 'admin_concurrency':
@@ -329,6 +332,10 @@ const getItemTitle = (item: BalanceHistoryItem) => {
 
 // Format display value
 const formatValue = (item: BalanceHistoryItem) => {
+  if (item.type === 'first_recharge_bonus') {
+    const sign = item.value >= 0 ? '+' : ''
+    return `${sign}${item.value.toFixed(2)} 平台额度`
+  }
   if (isBalanceType(item.type)) {
     const sign = item.value >= 0 ? '+' : ''
     return `${sign}¥${item.value.toFixed(2)}`

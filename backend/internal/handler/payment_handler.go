@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -142,6 +143,7 @@ func (h *PaymentHandler) GetCheckoutInfo(c *gin.Context) {
 		HelpImageURL:              cfg.HelpImageURL,
 		StripePublishableKey:      cfg.StripePublishableKey,
 		AlipayForceQRCode:         cfg.AlipayForceQRCode,
+		FirstRecharge:             h.firstRechargeCheckoutSummary(ctx),
 	})
 }
 
@@ -157,6 +159,12 @@ type checkoutInfoResponse struct {
 	HelpImageURL              string                          `json:"help_image_url"`
 	StripePublishableKey      string                          `json:"stripe_publishable_key"`
 	AlipayForceQRCode         bool                            `json:"alipay_force_qrcode"`
+	FirstRecharge             *firstRechargeCheckoutSummary   `json:"first_recharge,omitempty"`
+}
+
+type firstRechargeCheckoutSummary struct {
+	Enabled bool                        `json:"enabled"`
+	Tiers   []service.FirstRechargeTier `json:"tiers"`
 }
 
 type checkoutPlan struct {
@@ -177,6 +185,23 @@ type checkoutPlan struct {
 	ValidityUnit    string   `json:"validity_unit"`
 	Features        []string `json:"features"`
 	ProductName     string   `json:"product_name"`
+}
+
+func (h *PaymentHandler) firstRechargeCheckoutSummary(ctx context.Context) *firstRechargeCheckoutSummary {
+	if h == nil || h.paymentService == nil {
+		return nil
+	}
+	cfg, enabled, err := h.paymentService.GetFirstRechargeConfig(ctx)
+	if err != nil || cfg == nil {
+		return nil
+	}
+	tiers := make([]service.FirstRechargeTier, 0, len(cfg.Tiers))
+	for _, tier := range cfg.Tiers {
+		if tier.Enabled {
+			tiers = append(tiers, tier)
+		}
+	}
+	return &firstRechargeCheckoutSummary{Enabled: enabled, Tiers: tiers}
 }
 
 // parseFeatures splits a newline-separated features string into a string slice.

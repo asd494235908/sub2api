@@ -39,6 +39,10 @@ func querySingleInt(t *testing.T, ctx context.Context, client *dbent.Client, que
 	return value
 }
 
+func ptrTime(v time.Time) *time.Time {
+	return &v
+}
+
 func TestAffiliateRepository_TransferQuotaToBalance_UsesClaimedQuotaBeforeClear(t *testing.T) {
 	ctx := context.Background()
 	tx := testEntTx(t)
@@ -199,6 +203,73 @@ func TestAffiliateRepository_ListInvitees_IncludesSignupBonusInTotalRebate(t *te
 	require.Len(t, invitees, 1)
 	require.Equal(t, invitee.ID, invitees[0].UserID)
 	require.InDelta(t, 8.5, invitees[0].TotalRebate, 1e-9)
+}
+
+func TestAffiliateRepository_ListInvitersWithInvitees_FiltersByInviteCreatedAt(t *testing.T) {
+	ctx := context.Background()
+	tx := testEntTx(t)
+	txCtx := dbent.NewTxContext(ctx, tx)
+	client := tx.Client()
+
+	repo := NewAffiliateRepository(client, integrationDB)
+
+	inviter := mustCreateUser(t, client, &service.User{
+		Email:        fmt.Sprintf("affiliate-inviters-range-inviter-%d@example.com", time.Now().UnixNano()),
+		PasswordHash: "hash",
+		Role:         service.RoleUser,
+		Status:       service.StatusActive,
+		Concurrency:  5,
+	})
+	oldInvitee := mustCreateUser(t, client, &service.User{
+		Email:        fmt.Sprintf("affiliate-inviters-range-old-%d@example.com", time.Now().UnixNano()+1),
+		PasswordHash: "hash",
+		Role:         service.RoleUser,
+		Status:       service.StatusActive,
+		Concurrency:  5,
+	})
+	newInvitee := mustCreateUser(t, client, &service.User{
+		Email:        fmt.Sprintf("affiliate-inviters-range-new-%d@example.com", time.Now().UnixNano()+2),
+		PasswordHash: "hash",
+		Role:         service.RoleUser,
+		Status:       service.StatusActive,
+		Concurrency:  5,
+	})
+
+	oldCreatedAt := time.Date(2026, 5, 1, 9, 0, 0, 0, time.UTC)
+	newCreatedAt := time.Date(2026, 5, 20, 10, 0, 0, 0, time.UTC)
+
+	_, err := client.ExecContext(txCtx, `
+INSERT INTO user_affiliates (user_id, inviter_id, aff_code, aff_count, created_at, updated_at)
+VALUES ($1, $2, 'OLDREL', 0, $3, $3)`, oldInvitee.ID, inviter.ID, oldCreatedAt)
+	require.NoError(t, err)
+	_, err = client.ExecContext(txCtx, `
+INSERT INTO user_affiliates (user_id, inviter_id, aff_code, aff_count, created_at, updated_at)
+VALUES ($1, $2, 'NEWREL', 0, $3, $3)`, newInvitee.ID, inviter.ID, newCreatedAt)
+	require.NoError(t, err)
+	_, err = client.ExecContext(txCtx, `
+UPDATE user_affiliates SET aff_count = 2, updated_at = NOW() WHERE user_id = $1`, inviter.ID)
+	require.NoError(t, err)
+	_, err = client.ExecContext(txCtx, `
+INSERT INTO user_affiliate_ledger (user_id, action, amount, source_user_id, created_at, updated_at)
+VALUES ($1, 'accrue', 4.5, $2, $3, $3), ($1, 'signup_bonus', 1.5, $2, $3, $3)`, inviter.ID, newInvitee.ID, newCreatedAt)
+	require.NoError(t, err)
+	_, err = client.ExecContext(txCtx, `
+INSERT INTO user_affiliate_ledger (user_id, action, amount, source_user_id, created_at, updated_at)
+VALUES ($1, 'accrue', 9.0, $2, $3, $3), ($1, 'signup_bonus', 3.0, $2, $3, $3)`, inviter.ID, oldInvitee.ID, oldCreatedAt)
+	require.NoError(t, err)
+
+	items, total, err := repo.ListInvitersWithInvitees(txCtx, service.AffiliateAdminFilter{
+		Page:     1,
+		PageSize: 20,
+		StartAt:  ptrTime(time.Date(2026, 5, 10, 0, 0, 0, 0, time.UTC)),
+		EndAt:    ptrTime(time.Date(2026, 5, 20, 23, 59, 59, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), total)
+	require.Len(t, items, 1)
+	require.Equal(t, inviter.ID, items[0].UserID)
+	require.Equal(t, 1, items[0].AffCount)
+	require.InDelta(t, 6.0, items[0].TotalRebate, 1e-9)
 }
 
 func TestAffiliateRepository_AdminSetInviteRelationCreatesRelationAndCounts(t *testing.T) {

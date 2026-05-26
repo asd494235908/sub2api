@@ -914,6 +914,21 @@ totp:
   encryption_key: ""
 
 # =============================================================================
+# Casdoor OAuth Login (SSO)
+# Casdoor OAuth 登录（用于 Token 站统一登录）
+# =============================================================================
+casdoor:
+  enabled: false
+  issuer: "https://login.gepinkeji.com"
+  client_id: ""
+  client_secret: ""
+  redirect_uri: "https://token.gepinkeji.com/api/v1/auth/casdoor/callback"
+  scope: "openid profile email phone"
+  authorize_url: "https://login.gepinkeji.com/login/oauth/authorize"
+  token_url: "https://login.gepinkeji.com/api/login/oauth/access_token"
+  userinfo_url: "https://login.gepinkeji.com/api/userinfo"
+
+# =============================================================================
 # LinuxDo Connect OAuth Login (SSO)
 # LinuxDo Connect OAuth 登录（用于 Sub2API 用户登录）
 # =============================================================================

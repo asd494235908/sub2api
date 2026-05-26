@@ -30,6 +30,16 @@ describe('oauth adoption auth api', () => {
     })
   })
 
+  it('posts casdoor ticket exchange to the isolated casdoor endpoint', async () => {
+    const { exchangeCasdoorTicket } = await import('@/api/auth')
+
+    await exchangeCasdoorTicket('ticket-abc')
+
+    expect(post).toHaveBeenCalledWith('/auth/casdoor/exchange-ticket', {
+      ticket: 'ticket-abc'
+    })
+  })
+
   it('posts bind-login decisions when finalizing pending oauth bind flow', async () => {
     const { completePendingOAuthBindLogin } = await import('@/api/auth')
 

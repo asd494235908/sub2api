@@ -163,6 +163,50 @@ describe('AffiliatesView', () => {
     expect(wrapper.text()).toContain('CNY:6.60')
   })
 
+  it('reloads inviters with date range filters and timezone', async () => {
+    try {
+      const wrapper = mount(AffiliatesView, {
+        global: {
+          stubs: {
+            AppLayout: { template: '<div><slot /></div>' },
+          },
+        },
+      })
+
+      await flushPromises()
+      listInviters.mockClear()
+
+      const inputs = wrapper.findAll('input[type="date"]')
+      expect(inputs).toHaveLength(2)
+
+      await inputs[0].setValue('2026-05-01')
+      await inputs[0].trigger('change')
+      await flushPromises()
+
+      expect(listInviters).toHaveBeenCalledWith({
+        page: 1,
+        page_size: 20,
+        search: '',
+        start_at: '2026-05-01',
+        end_at: undefined,
+        timezone: expect.any(String),
+      })
+
+      await inputs[1].setValue('2026-05-31')
+      await inputs[1].trigger('change')
+      await flushPromises()
+
+      expect(listInviters).toHaveBeenCalledWith({
+        page: 1,
+        page_size: 20,
+        search: '',
+        start_at: '2026-05-01',
+        end_at: '2026-05-31',
+        timezone: expect.any(String),
+      })
+    } finally {}
+  })
+
   it('opens manual relation dialog and submits overwrite payload', async () => {
     vi.useFakeTimers()
     try {

@@ -44,6 +44,9 @@ export interface ListAffiliateInvitersParams {
   page?: number
   page_size?: number
   search?: string
+  start_at?: string
+  end_at?: string
+  timezone?: string
 }
 
 export interface ListAffiliateRecordsParams {
@@ -179,6 +182,9 @@ export async function listInviters(
         page: params.page ?? 1,
         page_size: params.page_size ?? 20,
         search: params.search ?? '',
+        start_at: params.start_at || undefined,
+        end_at: params.end_at || undefined,
+        timezone: params.timezone || undefined,
       },
     },
   )

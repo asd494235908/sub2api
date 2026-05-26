@@ -159,7 +159,10 @@
                 <div class="mt-2 text-sm text-emerald-700 dark:text-emerald-400">
                   <p>{{ redeemResult.message }}</p>
                   <div class="mt-3 space-y-1">
-                    <p v-if="redeemResult.type === 'balance'" class="font-medium">
+                    <p v-if="redeemResult.type === 'first_recharge_bonus'" class="font-medium">
+                      {{ t('redeem.added') }}: {{ redeemResult.value.toFixed(2) }} 平台额度
+                    </p>
+                    <p v-else-if="redeemResult.type === 'balance'" class="font-medium">
                       {{ t('redeem.added') }}: ¥{{ redeemResult.value.toFixed(2) }}
                     </p>
                     <p v-else-if="redeemResult.type === 'concurrency'" class="font-medium">
@@ -443,7 +446,7 @@ const contactInfo = ref('')
 
 // Helper functions for history display
 const isBalanceType = (type: string) => {
-  return type === 'balance' || type === 'admin_balance' || type === 'weekly_balance'
+  return type === 'balance' || type === 'admin_balance' || type === 'weekly_balance' || type === 'first_recharge_bonus'
 }
 
 const isSubscriptionType = (type: string) => {
@@ -474,6 +477,9 @@ const getHistoryItemTitle = (item: RedeemHistoryItem) => {
   if (item.type === 'lucky_wheel_bonus') {
     return item.title || t('redeem.luckyWheelBonusTitle')
   }
+  if (item.type === 'first_recharge_bonus') {
+    return '首冲赠送额度'
+  }
   if (item.type === 'balance') {
     return t('redeem.balanceAddedRedeem')
   } else if (item.type === 'admin_balance') {
@@ -493,6 +499,10 @@ const getHistoryItemTitle = (item: RedeemHistoryItem) => {
 const formatHistoryValue = (item: RedeemHistoryItem) => {
   if (item.type === 'lucky_wheel_bonus') {
     return `+¥${item.value.toFixed(2)}`
+  }
+  if (item.type === 'first_recharge_bonus') {
+    const sign = item.value >= 0 ? '+' : ''
+    return `${sign}${item.value.toFixed(2)} 平台额度`
   }
   if (isBalanceType(item.type)) {
     const sign = item.value >= 0 ? '+' : ''

@@ -118,19 +118,19 @@ export default {
             plan: 'Standard Plan',
             badge: 'Light',
             description: 'For lightweight projects by individual developers',
-            price: 'From ¥19.9/month'
+            price: '¥29.90/month'
           },
           pro: {
             plan: 'Professional Plan',
             badge: 'Recommended',
             description: 'For mid-sized teams and stable projects',
-            price: '¥135/month'
+            price: '¥69.90/month'
           },
           enterprise: {
             plan: 'Enterprise Plan',
             badge: 'Enterprise',
             description: 'For large enterprises and custom requirements',
-            price: 'Custom Pricing'
+            price: '¥159.90/month'
           }
         }
       },

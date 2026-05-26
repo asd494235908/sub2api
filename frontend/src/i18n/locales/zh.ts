@@ -118,19 +118,19 @@ export default {
             plan: '标准套餐',
             badge: '轻量版',
             description: '适合个人开发者的轻度项目',
-            price: '¥19.9/月起'
+            price: '¥29.90/月'
           },
           pro: {
             plan: '专业套餐',
             badge: '推荐',
             description: '适合中型团队和稳定项目',
-            price: '¥135/月'
+            price: '¥69.90/月'
           },
           enterprise: {
             plan: '企业套餐',
             badge: '企业版',
             description: '适合大型企业和定制化需求',
-            price: '定制价格'
+            price: '¥159.90/月'
           }
         }
       },

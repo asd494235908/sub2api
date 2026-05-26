@@ -12,13 +12,29 @@
         </div>
 
         <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <input
-            v-model="inviterState.search"
-            type="text"
-            class="input sm:max-w-md"
-            :placeholder="t('admin.affiliates.searchPlaceholder')"
-            @input="onInviterSearchInput"
-          />
+          <div class="flex flex-1 flex-wrap items-center gap-3">
+            <input
+              v-model="inviterState.search"
+              type="text"
+              class="input sm:max-w-md"
+              :placeholder="t('admin.affiliates.searchPlaceholder')"
+              @input="onInviterSearchInput"
+            />
+            <input
+              v-model="inviterState.startAt"
+              type="date"
+              class="input w-full sm:w-44"
+              :title="t('admin.affiliates.records.startAt')"
+              @change="onInviterDateRangeChange"
+            />
+            <input
+              v-model="inviterState.endAt"
+              type="date"
+              class="input w-full sm:w-44"
+              :title="t('admin.affiliates.records.endAt')"
+              @change="onInviterDateRangeChange"
+            />
+          </div>
           <button
             type="button"
             class="btn btn-primary btn-sm inline-flex items-center justify-center gap-2"
@@ -267,6 +283,8 @@ const inviterState = reactive<{
   page: number
   pageSize: number
   search: string
+  startAt: string
+  endAt: string
   searchTimer: number | null
 }>({
   loading: false,
@@ -275,6 +293,8 @@ const inviterState = reactive<{
   page: 1,
   pageSize: 20,
   search: '',
+  startAt: '',
+  endAt: '',
   searchTimer: null,
 })
 
@@ -325,6 +345,14 @@ const manualState = reactive<{
 function debounceTimer(slot: { searchTimer: number | null }, delayMs: number, run: () => void) {
   if (slot.searchTimer != null) window.clearTimeout(slot.searchTimer)
   slot.searchTimer = window.setTimeout(run, delayMs)
+}
+
+function userTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone
+  } catch {
+    return 'UTC'
+  }
 }
 
 function openManualDialog() {
@@ -434,6 +462,9 @@ async function loadInviters() {
       page: inviterState.page,
       page_size: inviterState.pageSize,
       search: inviterState.search,
+      start_at: inviterState.startAt || undefined,
+      end_at: inviterState.endAt || undefined,
+      timezone: userTimezone(),
     })
     inviterState.entries = res.items ?? []
     inviterState.total = res.total ?? 0
@@ -449,6 +480,11 @@ function onInviterSearchInput() {
     inviterState.page = 1
     void loadInviters()
   })
+}
+
+function onInviterDateRangeChange() {
+  inviterState.page = 1
+  void loadInviters()
 }
 
 function changeInviterPage(page: number) {

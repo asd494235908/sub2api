@@ -26,3 +26,13 @@ func TestAffiliateRecordQueriesUseLedgerAuditFields(t *testing.T) {
 	require.NotContains(t, content, "parseAffiliateRebateAmount")
 	require.NotContains(t, content, `"current_balance": "u.balance"`)
 }
+
+func TestAffiliateInviterQueryAppliesDateRangeToInviteerCreatedAt(t *testing.T) {
+	source, err := os.ReadFile("affiliate_repo.go")
+	require.NoError(t, err)
+	content := string(source)
+
+	require.Contains(t, content, "buildAffiliateRecordWhere(filter, \"ua.created_at\"")
+	require.Contains(t, content, "ListInvitersWithInvitees")
+	require.Contains(t, content, "ua.created_at")
+}

@@ -167,11 +167,23 @@
           </div>
 
           <EmailOAuthButtons
+            v-if="githubOAuthEnabled || googleOAuthEnabled"
             :disabled="authActionDisabled"
             :github-enabled="githubOAuthEnabled"
             :google-enabled="googleOAuthEnabled"
             :show-divider="false"
           />
+
+          <a
+            data-testid="casdoor-login-link"
+            :href="casdoorLoginUrl"
+            class="btn btn-secondary w-full"
+            :class="{ 'pointer-events-none opacity-60': authActionDisabled }"
+            :aria-disabled="authActionDisabled ? 'true' : undefined"
+          >
+            <Icon name="login" size="md" class="mr-2" />
+            Casdoor 登录
+          </a>
 
           <LinuxDoOAuthSection
             v-if="linuxdoOAuthEnabled"
@@ -239,7 +251,7 @@ import Icon from '@/components/icons/Icon.vue'
 import TurnstileWidget from '@/components/TurnstileWidget.vue'
 import { useAuthStore, useAppStore } from '@/stores'
 import { apiClient } from '@/api/client'
-import { getPublicSettings, isTotp2FARequired, isWeChatWebOAuthEnabled } from '@/api/auth'
+import { buildCasdoorLoginUrl, getPublicSettings, isTotp2FARequired, isWeChatWebOAuthEnabled } from '@/api/auth'
 import type { LoginAgreementDocument, TotpLoginResponse } from '@/types'
 import { extractI18nErrorMessage } from '@/utils/apiError'
 import { clearAllAffiliateReferralCodes } from '@/utils/oauthAffiliate'
@@ -326,17 +338,25 @@ const isPhoneIdentifier = computed(() => {
   const raw = formData.identifier.trim()
   return raw.length > 0 && phoneVerifyEnabled.value && !isEmailIdentifier.value
 })
+const casdoorOAuthEnabled = computed(() => !backendModeEnabled.value)
 
 const showOAuthLogin = computed(
   () =>
     !backendModeEnabled.value &&
-    (linuxdoOAuthEnabled.value ||
+    (casdoorOAuthEnabled.value ||
+      linuxdoOAuthEnabled.value ||
       dingtalkOAuthEnabled.value ||
       wechatOAuthEnabled.value ||
       oidcOAuthEnabled.value ||
       githubOAuthEnabled.value ||
       googleOAuthEnabled.value)
 )
+
+const casdoorLoginUrl = computed(() => {
+  const redirect = router.currentRoute.value.query.redirect
+  const redirectPath = Array.isArray(redirect) ? redirect[0] : redirect
+  return buildCasdoorLoginUrl(redirectPath || '/dashboard')
+})
 
 watch(validationToastMessage, (value, previousValue) => {
   if (value && value !== previousValue) {

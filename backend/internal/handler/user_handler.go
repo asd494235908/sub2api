@@ -20,6 +20,7 @@ type UserHandler struct {
 	emailService     *service.EmailService
 	emailCache       service.EmailCache
 	affiliateService *service.AffiliateService
+	paymentService   *service.PaymentService
 }
 
 // NewUserHandler creates a new UserHandler
@@ -29,6 +30,7 @@ func NewUserHandler(
 	emailService *service.EmailService,
 	emailCache service.EmailCache,
 	affiliateService *service.AffiliateService,
+	paymentService *service.PaymentService,
 ) *UserHandler {
 	return &UserHandler{
 		userService:      userService,
@@ -36,6 +38,7 @@ func NewUserHandler(
 		emailService:     emailService,
 		emailCache:       emailCache,
 		affiliateService: affiliateService,
+		paymentService:   paymentService,
 	}
 }
 
@@ -79,6 +82,7 @@ type userProfileResponse struct {
 	OIDCBound         bool                                   `json:"oidc_bound"`
 	WeChatBound       bool                                   `json:"wechat_bound"`
 	DingTalkBound     bool                                   `json:"dingtalk_bound"`
+	MemberLevel       *service.MemberLevelState              `json:"member_level,omitempty"`
 }
 
 type userProfileSourceContext struct {
@@ -612,7 +616,15 @@ func (h *UserHandler) buildUserProfileResponse(ctx context.Context, userID int64
 	if err != nil {
 		return userProfileResponse{}, err
 	}
-	return userProfileResponseFromService(user, identities), nil
+	resp := userProfileResponseFromService(user, identities)
+	if h.paymentService != nil {
+		level, levelErr := h.paymentService.ResolveMemberLevel(ctx, user)
+		if levelErr != nil {
+			return userProfileResponse{}, levelErr
+		}
+		resp.MemberLevel = level
+	}
+	return resp, nil
 }
 
 func userProfileResponseFromService(user *service.User, identities service.UserIdentitySummarySet) userProfileResponse {

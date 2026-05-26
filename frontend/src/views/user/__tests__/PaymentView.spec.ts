@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { flushPromises, shallowMount } from '@vue/test-utils'
+import { flushPromises, mount, shallowMount } from '@vue/test-utils'
+import { defineComponent, h } from 'vue'
 import PaymentView from '../PaymentView.vue'
 import { PAYMENT_RECOVERY_STORAGE_KEY } from '@/components/payment/paymentFlow'
+
+const AppLayoutStub = defineComponent({
+  setup(_, { slots }) {
+    return () => h('div', slots.default?.())
+  },
+})
 
 const routeState = vi.hoisted(() => ({
   path: '/purchase',
@@ -414,5 +421,55 @@ describe('PaymentView WeChat JSAPI flow', () => {
     expect(showWarning).toHaveBeenCalledWith('payment.errors.mobilePaymentFallbackToQr')
     expect(showError).not.toHaveBeenCalled()
     expect(window.localStorage.getItem(PAYMENT_RECOVERY_STORAGE_KEY)).toContain('weixin://wxpay/bizpayurl?pr=fallback-native')
+  })
+
+  it('shows credited balance and first recharge bonus as platform quota instead of RMB', async () => {
+    routeState.path = '/purchase'
+    routeState.query = {}
+    getCheckoutInfo.mockResolvedValue({
+      data: {
+        ...checkoutInfoFixture().data,
+        balance_recharge_multiplier: 13,
+        first_recharge: {
+          enabled: true,
+          tiers: [
+            {
+              id: 'tier-30',
+              pay_amount: 30,
+              bonus_amount: 15,
+              enabled: true,
+              sort_order: 1,
+            },
+          ],
+        },
+      },
+    })
+
+    const wrapper = mount(PaymentView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          AmountInput: true,
+          PaymentMethodSelector: true,
+          PaymentStatusPanel: true,
+          SubscriptionPlanCard: true,
+          Icon: true,
+          Teleport: true,
+          Transition: false,
+        },
+      },
+    })
+    await flushPromises()
+    await flushPromises()
+
+    ;(wrapper.vm as any).amount = 30
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('390.00 平台额度')
+    expect(wrapper.text()).toContain('+15.00 平台额度')
+    expect(wrapper.text()).toContain('送 15.00 平台额度')
+    expect(wrapper.text()).not.toContain('¥390.00')
+    expect(wrapper.text()).not.toContain('+¥15.00')
+    expect(wrapper.text()).not.toContain('返 ¥15.00')
   })
 })

@@ -63,6 +63,14 @@ func RegisterAuthRoutes(
 			FailureMode: middleware.RateLimitFailClose,
 		}), h.Auth.ResetPassword)
 		auth.GET("/oauth/linuxdo/start", h.Auth.LinuxDoOAuthStart)
+		auth.GET("/casdoor/login", h.Auth.CasdoorOAuthLogin)
+		auth.GET("/casdoor/callback", h.Auth.CasdoorOAuthCallback)
+		auth.POST("/casdoor/exchange-ticket",
+			rateLimiter.LimitWithOptions("casdoor-exchange-ticket", 20, time.Minute, middleware.RateLimitOptions{
+				FailureMode: middleware.RateLimitFailClose,
+			}),
+			h.Auth.CasdoorExchangeTicket,
+		)
 		auth.GET("/oauth/github/start", h.Auth.GitHubOAuthStart)
 		auth.GET("/oauth/github/callback", h.Auth.GitHubOAuthCallback)
 		auth.POST("/oauth/github/complete-registration",

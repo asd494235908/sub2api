@@ -3,11 +3,28 @@ import { flushPromises, mount } from '@vue/test-utils'
 
 import AdminRechargeActivityView from '../AdminRechargeActivityView.vue'
 
-const { getRechargeActivityConfig, getRechargeActivityStats, updateRechargeActivityConfig, updateRechargeActivityRecordFulfillment } = vi.hoisted(() => ({
+const {
+  getRechargeActivityConfig,
+  getRechargeActivityStats,
+  updateRechargeActivityConfig,
+  updateRechargeActivityRecordFulfillment,
+  getFirstRechargeConfig,
+  getMemberLevelConfig,
+  updateFirstRechargeConfig,
+  updateMemberLevelConfig,
+  grantFirstRechargeChance,
+  bulkUpdateFirstRechargeChances,
+} = vi.hoisted(() => ({
   getRechargeActivityConfig: vi.fn(),
   getRechargeActivityStats: vi.fn(),
   updateRechargeActivityConfig: vi.fn(),
   updateRechargeActivityRecordFulfillment: vi.fn(),
+  getFirstRechargeConfig: vi.fn(),
+  getMemberLevelConfig: vi.fn(),
+  updateFirstRechargeConfig: vi.fn(),
+  updateMemberLevelConfig: vi.fn(),
+  grantFirstRechargeChance: vi.fn(),
+  bulkUpdateFirstRechargeChances: vi.fn(),
 }))
 
 const showError = vi.fn()
@@ -19,12 +36,24 @@ vi.mock('@/api/admin/payment', () => ({
     getRechargeActivityStats,
     updateRechargeActivityConfig,
     updateRechargeActivityRecordFulfillment,
+    getFirstRechargeConfig,
+    getMemberLevelConfig,
+    updateFirstRechargeConfig,
+    updateMemberLevelConfig,
+    grantFirstRechargeChance,
+    bulkUpdateFirstRechargeChances,
   },
   default: {
     getRechargeActivityConfig,
     getRechargeActivityStats,
     updateRechargeActivityConfig,
     updateRechargeActivityRecordFulfillment,
+    getFirstRechargeConfig,
+    getMemberLevelConfig,
+    updateFirstRechargeConfig,
+    updateMemberLevelConfig,
+    grantFirstRechargeChance,
+    bulkUpdateFirstRechargeChances,
   },
 }))
 
@@ -68,8 +97,34 @@ describe('AdminRechargeActivityView', () => {
     getRechargeActivityStats.mockReset()
     updateRechargeActivityConfig.mockReset()
     updateRechargeActivityRecordFulfillment.mockReset()
+    getFirstRechargeConfig.mockReset()
+    getMemberLevelConfig.mockReset()
+    updateFirstRechargeConfig.mockReset()
+    updateMemberLevelConfig.mockReset()
+    grantFirstRechargeChance.mockReset()
+    bulkUpdateFirstRechargeChances.mockReset()
 
     getRechargeActivityConfig.mockResolvedValue({ data: configPayload })
+    getFirstRechargeConfig.mockResolvedValue({
+      data: {
+        enabled: true,
+        config: {
+          tiers: [
+            { id: 'tier-30', pay_amount: 30, bonus_amount: 15, enabled: true, sort_order: 1 },
+          ],
+        },
+      },
+    })
+    getMemberLevelConfig.mockResolvedValue({
+      data: {
+        enabled: true,
+        config: {
+          levels: [
+            { id: 'default', name: '默认等级', min_recharge_amount: 0, rate_multiplier: 1, enabled: true, sort_order: 1 },
+          ],
+        },
+      },
+    })
     getRechargeActivityStats.mockResolvedValue({
       data: {
         enabled: true,
@@ -139,6 +194,9 @@ describe('AdminRechargeActivityView', () => {
     const wrapper = mountView()
     await flushPromises()
 
+    expect(wrapper.text()).toContain('首冲赠送额度')
+    expect(wrapper.text()).toContain('赠送平台额度')
+    expect(wrapper.text()).not.toContain('首冲返额')
     expect(wrapper.findAll('[data-test="recharge-prize-row"]')).toHaveLength(3)
     expect(wrapper.text()).toContain('联系客服领取实体礼品')
     expect(wrapper.text()).toContain('admin@sub2api.local')

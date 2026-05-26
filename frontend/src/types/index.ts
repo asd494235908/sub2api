@@ -95,9 +95,22 @@ export interface User {
   balance_notify_threshold: number | null
   balance_notify_extra_emails: NotifyEmailEntry[]
   subscriptions?: UserSubscription[] // User's active subscriptions
+  member_level?: MemberLevelState | null
   last_active_at?: string | null
   created_at: string
   updated_at: string
+}
+
+export interface MemberLevelState {
+  level_id: string
+  level_name: string
+  rate_multiplier: number
+  total_recharged: number
+  current_threshold: number
+  next_threshold?: number | null
+  progress: number
+  progress_current: number
+  progress_target: number
 }
 
 export interface AdminUser extends User {

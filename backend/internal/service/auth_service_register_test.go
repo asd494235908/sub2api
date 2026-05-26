@@ -220,7 +220,7 @@ func (s *emailCacheStub) IncrNotifyCodeUserRate(ctx context.Context, userID int6
 	return 0, nil
 }
 
-func (s *emailQueueServiceStub) EnqueueVerifyCode(email, siteName, code string) error {
+func (s *emailQueueServiceStub) EnqueueVerifyCode(email, siteName, code string, locale ...string) error {
 	if s.verifyCodeErr != nil {
 		return s.verifyCodeErr
 	}
@@ -232,7 +232,7 @@ func (s *emailQueueServiceStub) EnqueueVerifyCode(email, siteName, code string) 
 	return nil
 }
 
-func (s *emailQueueServiceStub) EnqueuePasswordReset(email, siteName, resetURL string) error {
+func (s *emailQueueServiceStub) EnqueuePasswordReset(email, siteName, resetURL string, locale ...string) error {
 	panic("unexpected EnqueuePasswordReset call")
 }
 
@@ -986,7 +986,7 @@ func TestAuthService_LoginOrRegisterOAuthWithTokenPair_AppliesAffiliateSignupBon
 	}, nil, affiliateService)
 	service.refreshTokenCache = &refreshTokenCacheStub{}
 
-	tokenPair, user, err := service.LoginOrRegisterOAuthWithTokenPair(context.Background(), "oauth-user@test.com", "oauth-user", "", "INVITER001")
+	tokenPair, user, err := service.LoginOrRegisterOAuthWithTokenPair(context.Background(), "oauth-user@test.com", "oauth-user", "", "INVITER001", "oauth")
 	require.NoError(t, err)
 	require.NotNil(t, tokenPair)
 	require.NotNil(t, user)

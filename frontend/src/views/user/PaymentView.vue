@@ -48,6 +48,30 @@
                 :min="globalMinAmount"
                 :max="globalMaxAmount"
               />
+              <div v-if="firstRechargeTiers.length" class="mt-5 border-t border-gray-100 pt-4 dark:border-dark-700">
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  首冲赠送额度
+                </label>
+                <div class="grid grid-cols-3 gap-2">
+                  <button
+                    v-for="tier in firstRechargeTiers"
+                    :key="tier.id"
+                    type="button"
+                    :class="[
+                      'rounded-lg border-2 px-4 py-3 text-center transition-colors',
+                      amount === tier.pay_amount
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-900/30 dark:text-emerald-300'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-emerald-300 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-200 dark:hover:border-emerald-700',
+                    ]"
+                    @click="amount = tier.pay_amount"
+                  >
+                    <span class="block text-base font-medium leading-5">{{ tier.pay_amount }}</span>
+                    <span class="mt-1 block text-xs font-semibold leading-4 text-emerald-600 dark:text-emerald-400">
+                      送 {{ tier.bonus_amount.toFixed(2) }} 平台额度
+                    </span>
+                  </button>
+                </div>
+              </div>
               <p v-if="amountError" class="mt-2 text-xs text-amber-600 dark:text-amber-300">{{ amountError }}</p>
             </div>
             <div v-if="enabledMethods.length >= 1" class="card p-6">
@@ -73,7 +97,11 @@
                 </div>
                 <div v-if="balanceRechargeMultiplier !== 1" class="flex justify-between" :class="{ 'border-t border-gray-200 pt-2 dark:border-dark-600': feeRate <= 0 }">
                   <span class="text-gray-500 dark:text-gray-400">{{ t('payment.creditedBalance') }}</span>
-                  <span class="text-gray-900 dark:text-white">¥{{ creditedAmount.toFixed(2) }}</span>
+                  <span class="text-gray-900 dark:text-white">{{ creditedAmount.toFixed(2) }} 平台额度</span>
+                </div>
+                <div v-if="firstRechargeBonus > 0" class="flex justify-between border-t border-gray-200 pt-2 dark:border-dark-600">
+                  <span class="text-gray-500 dark:text-gray-400">首冲赠送额度</span>
+                  <span class="font-semibold text-emerald-600 dark:text-emerald-400">+{{ firstRechargeBonus.toFixed(2) }} 平台额度</span>
                 </div>
                 <p v-if="balanceRechargeMultiplier !== 1" class="border-t border-gray-200 pt-2 text-xs text-gray-500 dark:border-dark-600 dark:text-gray-400">
                   {{ t('payment.rechargeRatePreview', { usd: balanceRechargeMultiplier.toFixed(2) }) }}
@@ -496,6 +524,35 @@ const balanceRechargeMultiplier = computed(() => {
   return multiplier > 0 ? multiplier : 1
 })
 const creditedAmount = computed(() => Math.round((validAmount.value * balanceRechargeMultiplier.value) * 100) / 100)
+const firstRechargeTiers = computed(() => {
+  const summary = checkout.value.first_recharge
+  if (!summary?.enabled) {
+    return []
+  }
+  return (summary.tiers || [])
+    .filter((tier) =>
+      tier.enabled
+      && tier.pay_amount > 0
+      && tier.bonus_amount > 0
+      && (globalMinAmount.value <= 0 || tier.pay_amount >= globalMinAmount.value)
+      && (globalMaxAmount.value <= 0 || tier.pay_amount <= globalMaxAmount.value)
+    )
+    .sort((a, b) => {
+      if (a.sort_order === b.sort_order) return a.pay_amount - b.pay_amount
+      return a.sort_order - b.sort_order
+    })
+})
+const firstRechargeBonus = computed(() => {
+  return firstRechargeBonusForAmount(validAmount.value)
+})
+
+function firstRechargeBonusForAmount(payAmount: number): number {
+  const summary = checkout.value.first_recharge
+  if (!summary?.enabled || !summary.tiers?.length || payAmount <= 0) return 0
+  const matched = summary.tiers
+    .find((tier) => tier.enabled && Math.abs(tier.pay_amount - payAmount) < 0.005)
+  return matched?.bonus_amount ?? 0
+}
 
 // Adaptive grid: center single card, 2-col for 2 plans, 3-col for 3+
 const planGridClass = computed(() => {

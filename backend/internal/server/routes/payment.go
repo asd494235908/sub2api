@@ -82,6 +82,12 @@ func RegisterPaymentRoutes(
 		adminGroup.PUT("/recharge-activity/config", adminPaymentHandler.UpdateRechargeActivityConfig)
 		adminGroup.GET("/recharge-activity/stats", adminPaymentHandler.GetRechargeActivityStats)
 		adminGroup.PUT("/recharge-activity/records/:id/fulfillment", adminPaymentHandler.UpdateRechargeActivityRecordFulfillment)
+		adminGroup.GET("/first-recharge/config", adminPaymentHandler.GetFirstRechargeConfig)
+		adminGroup.PUT("/first-recharge/config", adminPaymentHandler.UpdateFirstRechargeConfig)
+		adminGroup.POST("/first-recharge/chances", adminPaymentHandler.GrantFirstRechargeChance)
+		adminGroup.POST("/first-recharge/chances/bulk", adminPaymentHandler.BulkUpdateFirstRechargeChances)
+		adminGroup.GET("/member-level/config", adminPaymentHandler.GetMemberLevelConfig)
+		adminGroup.PUT("/member-level/config", adminPaymentHandler.UpdateMemberLevelConfig)
 
 		// Config
 		adminGroup.GET("/config", adminPaymentHandler.GetConfig)

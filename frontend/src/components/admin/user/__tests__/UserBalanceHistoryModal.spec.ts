@@ -171,6 +171,40 @@ describe('UserBalanceHistoryModal', () => {
     expect(wrapper.text()).toContain('redeem.systemGrant')
   })
 
+  it('renders first recharge bonuses as platform quota grants', async () => {
+    getUserBalanceHistory.mockResolvedValue({
+      items: [
+        {
+          id: -3101,
+          code: 'FIRST-RECHARGE-30',
+          type: 'first_recharge_bonus',
+          value: 15,
+          status: 'used',
+          used_by: 42,
+          used_at: '2026-05-14T10:00:00Z',
+          created_at: '2026-05-14T09:00:00Z',
+          group_id: null,
+          validity_days: 0,
+          notes: '首冲 tier-30',
+        },
+      ],
+      total: 1,
+      page: 1,
+      page_size: 15,
+      pages: 1,
+      total_recharged: 0,
+    })
+
+    const wrapper = mountModal()
+    await wrapper.setProps({ show: true })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('首冲赠送额度')
+    expect(wrapper.text()).toContain('+15.00 平台额度')
+    expect(wrapper.text()).toContain('redeem.systemGrant')
+    expect(wrapper.text()).not.toContain('+¥15.00')
+  })
+
   it('allows filtering balance history by lucky wheel type', async () => {
     const wrapper = mountModal()
     await wrapper.setProps({ show: true })

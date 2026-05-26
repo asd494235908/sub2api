@@ -71,6 +71,57 @@ export interface CheckoutInfoResponse {
   stripe_publishable_key: string
   /** When true, Alipay payments on mobile always show the QR code instead of redirecting */
   alipay_force_qrcode?: boolean
+  first_recharge?: FirstRechargeCheckoutSummary | null
+}
+
+export interface FirstRechargeTier {
+  id: string
+  pay_amount: number
+  bonus_amount: number
+  enabled: boolean
+  sort_order: number
+}
+
+export interface FirstRechargeConfig {
+  tiers: FirstRechargeTier[]
+}
+
+export interface FirstRechargeCheckoutSummary {
+  enabled: boolean
+  tiers: FirstRechargeTier[]
+}
+
+export interface MemberLevel {
+  id: string
+  name: string
+  min_recharge_amount: number
+  rate_multiplier: number
+  enabled: boolean
+  sort_order: number
+}
+
+export interface MemberLevelConfig {
+  levels: MemberLevel[]
+}
+
+export interface AdminFirstRechargeConfigResponse {
+  enabled: boolean
+  config: FirstRechargeConfig
+}
+
+export type FirstRechargeBulkChanceMode = 'grant' | 'reset'
+
+export interface FirstRechargeBulkChanceResult {
+  tier_id: string
+  mode: FirstRechargeBulkChanceMode
+  chances: number
+  affected_users: number
+  created_at: string
+}
+
+export interface AdminMemberLevelConfigResponse {
+  enabled: boolean
+  config: MemberLevelConfig
 }
 
 // ==================== Orders ====================

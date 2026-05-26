@@ -70,6 +70,7 @@ type Config struct {
 	JWT                     JWTConfig                     `mapstructure:"jwt"`
 	Totp                    TotpConfig                    `mapstructure:"totp"`
 	LinuxDo                 LinuxDoConnectConfig          `mapstructure:"linuxdo_connect"`
+	Casdoor                 CasdoorConfig                 `mapstructure:"casdoor"`
 	WeChat                  WeChatConnectConfig           `mapstructure:"wechat_connect"`
 	OIDC                    OIDCConnectConfig             `mapstructure:"oidc_connect"`
 	DingTalk                DingTalkConnectConfig         `mapstructure:"dingtalk_connect"`
@@ -193,6 +194,18 @@ type LinuxDoConnectConfig struct {
 	UserInfoEmailPath    string `mapstructure:"userinfo_email_path"`
 	UserInfoIDPath       string `mapstructure:"userinfo_id_path"`
 	UserInfoUsernamePath string `mapstructure:"userinfo_username_path"`
+}
+
+type CasdoorConfig struct {
+	Enabled      bool   `mapstructure:"enabled"`
+	Issuer       string `mapstructure:"issuer"`
+	ClientID     string `mapstructure:"client_id"`
+	ClientSecret string `mapstructure:"client_secret"`
+	RedirectURI  string `mapstructure:"redirect_uri"`
+	Scope        string `mapstructure:"scope"`
+	AuthorizeURL string `mapstructure:"authorize_url"`
+	TokenURL     string `mapstructure:"token_url"`
+	UserInfoURL  string `mapstructure:"userinfo_url"`
 }
 
 type WeChatConnectConfig struct {
@@ -1338,6 +1351,14 @@ func load(allowMissingJWTSecret bool) (*Config, error) {
 	cfg.LinuxDo.UserInfoEmailPath = strings.TrimSpace(cfg.LinuxDo.UserInfoEmailPath)
 	cfg.LinuxDo.UserInfoIDPath = strings.TrimSpace(cfg.LinuxDo.UserInfoIDPath)
 	cfg.LinuxDo.UserInfoUsernamePath = strings.TrimSpace(cfg.LinuxDo.UserInfoUsernamePath)
+	cfg.Casdoor.Issuer = strings.TrimSpace(cfg.Casdoor.Issuer)
+	cfg.Casdoor.ClientID = strings.TrimSpace(cfg.Casdoor.ClientID)
+	cfg.Casdoor.ClientSecret = strings.TrimSpace(cfg.Casdoor.ClientSecret)
+	cfg.Casdoor.RedirectURI = strings.TrimSpace(cfg.Casdoor.RedirectURI)
+	cfg.Casdoor.Scope = strings.TrimSpace(cfg.Casdoor.Scope)
+	cfg.Casdoor.AuthorizeURL = strings.TrimSpace(cfg.Casdoor.AuthorizeURL)
+	cfg.Casdoor.TokenURL = strings.TrimSpace(cfg.Casdoor.TokenURL)
+	cfg.Casdoor.UserInfoURL = strings.TrimSpace(cfg.Casdoor.UserInfoURL)
 	applyLegacyWeChatConnectEnvCompatibility(&cfg.WeChat)
 	normalizeWeChatConnectConfig(&cfg.WeChat)
 	cfg.OIDC.ProviderName = strings.TrimSpace(cfg.OIDC.ProviderName)
@@ -1536,6 +1557,16 @@ func setDefaults() {
 	viper.SetDefault("linuxdo_connect.userinfo_email_path", "")
 	viper.SetDefault("linuxdo_connect.userinfo_id_path", "")
 	viper.SetDefault("linuxdo_connect.userinfo_username_path", "")
+
+	viper.SetDefault("casdoor.enabled", false)
+	viper.SetDefault("casdoor.issuer", "")
+	viper.SetDefault("casdoor.client_id", "")
+	viper.SetDefault("casdoor.client_secret", "")
+	viper.SetDefault("casdoor.redirect_uri", "")
+	viper.SetDefault("casdoor.scope", "openid profile email phone")
+	viper.SetDefault("casdoor.authorize_url", "")
+	viper.SetDefault("casdoor.token_url", "")
+	viper.SetDefault("casdoor.userinfo_url", "")
 
 	// WeChat Connect OAuth 登录
 	viper.SetDefault("wechat_connect.enabled", false)
@@ -2047,6 +2078,52 @@ func (c *Config) Validate() error {
 		warnIfInsecureURL("linuxdo_connect.userinfo_url", c.LinuxDo.UserInfoURL)
 		warnIfInsecureURL("linuxdo_connect.redirect_url", c.LinuxDo.RedirectURL)
 		warnIfInsecureURL("linuxdo_connect.frontend_redirect_url", c.LinuxDo.FrontendRedirectURL)
+	}
+	if c.Casdoor.Enabled {
+		if strings.TrimSpace(c.Casdoor.Issuer) == "" {
+			return fmt.Errorf("casdoor.issuer is required when casdoor.enabled=true")
+		}
+		if strings.TrimSpace(c.Casdoor.ClientID) == "" {
+			return fmt.Errorf("casdoor.client_id is required when casdoor.enabled=true")
+		}
+		if strings.TrimSpace(c.Casdoor.ClientSecret) == "" {
+			return fmt.Errorf("casdoor.client_secret is required when casdoor.enabled=true")
+		}
+		if strings.TrimSpace(c.Casdoor.RedirectURI) == "" {
+			return fmt.Errorf("casdoor.redirect_uri is required when casdoor.enabled=true")
+		}
+		if strings.TrimSpace(c.Casdoor.AuthorizeURL) == "" {
+			return fmt.Errorf("casdoor.authorize_url is required when casdoor.enabled=true")
+		}
+		if strings.TrimSpace(c.Casdoor.TokenURL) == "" {
+			return fmt.Errorf("casdoor.token_url is required when casdoor.enabled=true")
+		}
+		if strings.TrimSpace(c.Casdoor.UserInfoURL) == "" {
+			return fmt.Errorf("casdoor.userinfo_url is required when casdoor.enabled=true")
+		}
+		if !scopeContainsOpenID(c.Casdoor.Scope) {
+			return fmt.Errorf("casdoor.scope must contain openid")
+		}
+		if err := ValidateAbsoluteHTTPURL(c.Casdoor.Issuer); err != nil {
+			return fmt.Errorf("casdoor.issuer invalid: %w", err)
+		}
+		if err := ValidateAbsoluteHTTPURL(c.Casdoor.RedirectURI); err != nil {
+			return fmt.Errorf("casdoor.redirect_uri invalid: %w", err)
+		}
+		if err := ValidateAbsoluteHTTPURL(c.Casdoor.AuthorizeURL); err != nil {
+			return fmt.Errorf("casdoor.authorize_url invalid: %w", err)
+		}
+		if err := ValidateAbsoluteHTTPURL(c.Casdoor.TokenURL); err != nil {
+			return fmt.Errorf("casdoor.token_url invalid: %w", err)
+		}
+		if err := ValidateAbsoluteHTTPURL(c.Casdoor.UserInfoURL); err != nil {
+			return fmt.Errorf("casdoor.userinfo_url invalid: %w", err)
+		}
+		warnIfInsecureURL("casdoor.issuer", c.Casdoor.Issuer)
+		warnIfInsecureURL("casdoor.redirect_uri", c.Casdoor.RedirectURI)
+		warnIfInsecureURL("casdoor.authorize_url", c.Casdoor.AuthorizeURL)
+		warnIfInsecureURL("casdoor.token_url", c.Casdoor.TokenURL)
+		warnIfInsecureURL("casdoor.userinfo_url", c.Casdoor.UserInfoURL)
 	}
 	if c.WeChat.Enabled {
 		weChat := c.WeChat

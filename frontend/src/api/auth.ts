@@ -281,6 +281,27 @@ export function persistOAuthTokenContext(tokens: Partial<OAuthTokenResponse>): v
   }
 }
 
+export async function exchangeCasdoorTicket(ticket: string): Promise<AuthResponse> {
+  const { data } = await apiClient.post<AuthResponse>('/auth/casdoor/exchange-ticket', {
+    ticket: ticket.trim()
+  })
+  return data
+}
+
+export function buildCasdoorLoginUrl(redirect = '/dashboard'): string {
+  const safeRedirect = sanitizeSameSiteRedirectPath(redirect) || '/dashboard'
+  const params = new URLSearchParams({ redirect: safeRedirect })
+  return `/api/v1/auth/casdoor/login?${params.toString()}`
+}
+
+export function sanitizeSameSiteRedirectPath(path: string | null | undefined): string {
+  const value = (path || '').trim()
+  if (!value) return ''
+  if (!value.startsWith('/') || value.startsWith('//')) return ''
+  if (value.includes('://') || /[\r\n]/.test(value)) return ''
+  return value
+}
+
 export async function prepareOAuthBindAccessTokenCookie(): Promise<void> {
   if (!getAuthToken()) {
     return
@@ -685,6 +706,9 @@ export const authAPI = {
   isPendingOAuthCreateAccountRequired,
   hasPendingOAuthSuggestedProfile,
   completePendingOAuthBindLogin,
+  exchangeCasdoorTicket,
+  buildCasdoorLoginUrl,
+  sanitizeSameSiteRedirectPath,
   createPendingLinuxDoOAuthAccount,
   createPendingOIDCOAuthAccount,
   createPendingWeChatOAuthAccount,

@@ -5,6 +5,7 @@ import LoginView from '@/views/auth/LoginView.vue'
 
 const {
   getPublicSettingsMock,
+  buildCasdoorLoginUrlMock,
   authStoreLoginMock,
   showErrorMock,
   showSuccessMock,
@@ -13,6 +14,7 @@ const {
   apiClientPostMock,
 } = vi.hoisted(() => ({
   getPublicSettingsMock: vi.fn(),
+  buildCasdoorLoginUrlMock: vi.fn(),
   authStoreLoginMock: vi.fn(),
   showErrorMock: vi.fn(),
   showSuccessMock: vi.fn(),
@@ -64,6 +66,7 @@ vi.mock('@/stores', () => ({
 vi.mock('@/api/auth', () => {
   return {
     getPublicSettings: (...args: any[]) => getPublicSettingsMock(...args),
+    buildCasdoorLoginUrl: (...args: any[]) => buildCasdoorLoginUrlMock(...args),
     isWeChatWebOAuthEnabled: () => false,
     isTotp2FARequired: (response: any) => response?.requires_2fa === true,
   }
@@ -138,6 +141,7 @@ describe('LoginView', () => {
     vi.clearAllMocks()
     sessionStorage.clear()
     getPublicSettingsMock.mockResolvedValue(defaultPublicSettings())
+    buildCasdoorLoginUrlMock.mockReturnValue('/api/v1/auth/casdoor/login?redirect=%2Fdashboard')
     authStoreLoginMock.mockResolvedValue({
       access_token: 'token',
       token_type: 'Bearer',
@@ -196,6 +200,17 @@ describe('LoginView', () => {
       password: 'password123',
       turnstile_token: undefined,
     })
+  })
+
+  it('shows a Casdoor login button that starts the isolated Casdoor flow', async () => {
+    const wrapper = mountLoginView()
+    await flushPromises()
+
+    const casdoorLink = wrapper.get('[data-testid="casdoor-login-link"]')
+
+    expect(casdoorLink.text()).toContain('Casdoor 登录')
+    expect(casdoorLink.attributes('href')).toBe('/api/v1/auth/casdoor/login?redirect=%2Fdashboard')
+    expect(buildCasdoorLoginUrlMock).toHaveBeenCalledWith('/dashboard')
   })
 
   it('shows sms code controls for phone login when phone verification is enabled', async () => {

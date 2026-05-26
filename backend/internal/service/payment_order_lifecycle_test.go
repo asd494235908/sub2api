@@ -550,6 +550,233 @@ func TestExecuteBalanceFulfillmentCreatesRedeemCodeFromCreditedAmount(t *testing
 	require.Equal(t, OrderStatusCompleted, reloaded.Status)
 }
 
+func TestExecuteBalanceFulfillmentAppliesFirstRechargeBonusOncePerTier(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentOrderLifecycleTestClient(t)
+
+	user, err := client.User.Create().
+		SetEmail("first-recharge@example.com").
+		SetPasswordHash("hash").
+		SetUsername("first-recharge-user").
+		Save(ctx)
+	require.NoError(t, err)
+
+	userRepo := &mockUserRepo{
+		getByIDUser: &User{
+			ID:       user.ID,
+			Email:    user.Email,
+			Username: user.Username,
+			Balance:  0,
+		},
+	}
+	userRepo.updateBalanceFn = func(ctx context.Context, id int64, amount float64) error {
+		require.Equal(t, user.ID, id)
+		userRepo.getByIDUser.Balance += amount
+		return nil
+	}
+	redeemRepo := &paymentOrderLifecycleRedeemRepo{}
+	redeemService := NewRedeemService(
+		redeemRepo,
+		userRepo,
+		nil,
+		nil,
+		nil,
+		client,
+		nil,
+		nil,
+		nil,
+	)
+	settingRepo := &settingPublicRepoStub{values: map[string]string{
+		SettingPaymentEnabled: "true",
+	}}
+	configService := NewPaymentConfigService(client, settingRepo, nil)
+	firstRechargeCfg := &FirstRechargeConfig{Tiers: []FirstRechargeTier{
+		{ID: "tier-30", PayAmount: 30, BonusAmount: 30, Enabled: true, SortOrder: 1},
+	}}
+	svc := &PaymentService{
+		entClient:       client,
+		redeemService:   redeemService,
+		configService:   configService,
+		userRepo:        userRepo,
+		providersLoaded: true,
+	}
+	_, err = svc.UpdateFirstRechargeConfig(ctx, true, firstRechargeCfg)
+	require.NoError(t, err)
+
+	for i := 0; i < 2; i++ {
+		order, err := client.PaymentOrder.Create().
+			SetUserID(user.ID).
+			SetUserEmail(user.Email).
+			SetUserName(user.Username).
+			SetAmount(30).
+			SetPayAmount(30).
+			SetFeeRate(0).
+			SetRechargeCode("FIRST-RECHARGE-" + strconvFormatInt(int64(i))).
+			SetOutTradeNo("sub2_first_recharge_" + strconvFormatInt(int64(i))).
+			SetPaymentType(payment.TypeWxpay).
+			SetPaymentTradeNo("trade-first-recharge-" + strconvFormatInt(int64(i))).
+			SetOrderType(payment.OrderTypeBalance).
+			SetStatus(OrderStatusPaid).
+			SetExpiresAt(time.Now().Add(time.Hour)).
+			SetClientIP("127.0.0.1").
+			SetSrcHost("api.example.com").
+			Save(ctx)
+		require.NoError(t, err)
+		require.NoError(t, svc.ExecuteBalanceFulfillment(ctx, order.ID))
+	}
+
+	var bonusCodes []RedeemCode
+	for _, code := range redeemRepo.codesByCode {
+		if code.Type == RedeemTypeFirstRechargeBonus {
+			bonusCodes = append(bonusCodes, *code)
+		}
+	}
+	require.Len(t, bonusCodes, 1)
+	require.InDelta(t, 30.0, bonusCodes[0].Value, 1e-9)
+	require.Contains(t, bonusCodes[0].Notes, "tier-30")
+	require.InDelta(t, 90.0, userRepo.getByIDUser.Balance, 1e-9)
+
+	result, err := svc.GrantFirstRechargeChance(ctx, user.ID, "tier-30", 1, "admin", "manual grant")
+	require.NoError(t, err)
+	require.Equal(t, 1, result.Available)
+
+	order, err := client.PaymentOrder.Create().
+		SetUserID(user.ID).
+		SetUserEmail(user.Email).
+		SetUserName(user.Username).
+		SetAmount(30).
+		SetPayAmount(30).
+		SetFeeRate(0).
+		SetRechargeCode("FIRST-RECHARGE-GRANTED").
+		SetOutTradeNo("sub2_first_recharge_granted").
+		SetPaymentType(payment.TypeWxpay).
+		SetPaymentTradeNo("trade-first-recharge-granted").
+		SetOrderType(payment.OrderTypeBalance).
+		SetStatus(OrderStatusPaid).
+		SetExpiresAt(time.Now().Add(time.Hour)).
+		SetClientIP("127.0.0.1").
+		SetSrcHost("api.example.com").
+		Save(ctx)
+	require.NoError(t, err)
+	require.NoError(t, svc.ExecuteBalanceFulfillment(ctx, order.ID))
+
+	bonusCodes = bonusCodes[:0]
+	for _, code := range redeemRepo.codesByCode {
+		if code.Type == RedeemTypeFirstRechargeBonus {
+			bonusCodes = append(bonusCodes, *code)
+		}
+	}
+	require.Len(t, bonusCodes, 2)
+	require.InDelta(t, 150.0, userRepo.getByIDUser.Balance, 1e-9)
+}
+
+func TestBulkUpdateFirstRechargeChancesPreservesHistory(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentOrderLifecycleTestClient(t)
+
+	user1, err := client.User.Create().
+		SetEmail("first-recharge-bulk-1@example.com").
+		SetPasswordHash("hash").
+		SetUsername("bulk-user-1").
+		Save(ctx)
+	require.NoError(t, err)
+	user2, err := client.User.Create().
+		SetEmail("first-recharge-bulk-2@example.com").
+		SetPasswordHash("hash").
+		SetUsername("bulk-user-2").
+		Save(ctx)
+	require.NoError(t, err)
+
+	svc := &PaymentService{entClient: client}
+	require.NoError(t, svc.ensureFirstRechargeTables(ctx))
+	now := time.Now().UTC()
+	require.NoError(t, firstRechargeAddChance(ctx, client, user1.ID, "tier-30", 1, "admin", "seed", now))
+	claimed, err := firstRechargeClaimChance(ctx, client, user1.ID, "tier-30", 1001, now.Add(time.Minute))
+	require.NoError(t, err)
+	require.True(t, claimed)
+
+	result, err := svc.BulkUpdateFirstRechargeChances(ctx, "tier-30", 2, FirstRechargeBulkChanceModeGrant, "admin", "bulk grant")
+	require.NoError(t, err)
+	require.Equal(t, 2, result.AffectedUsers)
+
+	state1, err := firstRechargeLoadChance(ctx, client, user1.ID, "tier-30")
+	require.NoError(t, err)
+	require.Equal(t, 2, state1.Available)
+	require.Equal(t, 1, state1.Consumed)
+	state2, err := firstRechargeLoadChance(ctx, client, user2.ID, "tier-30")
+	require.NoError(t, err)
+	require.Equal(t, 2, state2.Available)
+	require.Equal(t, 0, state2.Consumed)
+
+	result, err = svc.BulkUpdateFirstRechargeChances(ctx, "tier-30", 1, FirstRechargeBulkChanceModeReset, "admin", "bulk reset")
+	require.NoError(t, err)
+	require.Equal(t, 2, result.AffectedUsers)
+	state1, err = firstRechargeLoadChance(ctx, client, user1.ID, "tier-30")
+	require.NoError(t, err)
+	require.Equal(t, 1, state1.Available)
+	require.Equal(t, 0, state1.Consumed)
+
+	execCtx, err := luckyWheelExecContext(ctx, client)
+	require.NoError(t, err)
+	rows, err := execCtx.QueryContext(ctx, "SELECT COUNT(*) FROM first_recharge_consumption_logs WHERE user_id = ? AND tier_id = ?", user1.ID, "tier-30")
+	require.NoError(t, err)
+	defer rows.Close()
+	require.True(t, rows.Next())
+	var consumptionLogs int
+	require.NoError(t, rows.Scan(&consumptionLogs))
+	require.Equal(t, 1, consumptionLogs)
+
+	rows, err = execCtx.QueryContext(ctx, "SELECT COUNT(*) FROM first_recharge_grant_logs WHERE tier_id = ?", "tier-30")
+	require.NoError(t, err)
+	defer rows.Close()
+	require.True(t, rows.Next())
+	var grantLogs int
+	require.NoError(t, rows.Scan(&grantLogs))
+	require.Equal(t, 5, grantLogs)
+}
+
+func TestResolveMemberLevelUsesTotalRechargedAndBalanceKeyOnly(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentOrderLifecycleTestClient(t)
+	settingRepo := &settingPublicRepoStub{values: map[string]string{
+		SettingPaymentEnabled: "true",
+	}}
+	svc := &PaymentService{
+		entClient:     client,
+		configService: NewPaymentConfigService(client, settingRepo, nil),
+	}
+	_, err := svc.UpdateMemberLevelConfig(ctx, true, &MemberLevelConfig{Levels: []MemberLevel{
+		{ID: "lv1", Name: "Lv1", MinRechargeAmount: 0, RateMultiplier: 1, Enabled: true, SortOrder: 1},
+		{ID: "lv2", Name: "Lv2", MinRechargeAmount: 500, RateMultiplier: 0.8, Enabled: true, SortOrder: 2},
+		{ID: "lv3", Name: "Lv3", MinRechargeAmount: 1000, RateMultiplier: 0.6, Enabled: true, SortOrder: 3},
+	}})
+	require.NoError(t, err)
+
+	user := &User{ID: 1, TotalRecharged: 750}
+	state, err := svc.ResolveMemberLevel(ctx, user)
+	require.NoError(t, err)
+	require.Equal(t, "lv2", state.LevelID)
+	require.InDelta(t, 0.8, state.RateMultiplier, 1e-9)
+	require.NotNil(t, state.NextThreshold)
+	require.InDelta(t, 1000.0, *state.NextThreshold, 1e-9)
+	require.InDelta(t, 50.0, state.Progress, 1e-9)
+
+	balanceKey := &APIKey{ID: 1, Group: &Group{ID: 10, SubscriptionType: SubscriptionTypeStandard}}
+	require.True(t, svc.MemberMultiplierEnabledForKey(ctx, balanceKey, nil))
+	require.InDelta(t, 0.8, svc.ResolveMemberMultiplier(ctx, user, balanceKey, nil), 1e-9)
+
+	subscriptionKey := &APIKey{ID: 2, Group: &Group{ID: 11, SubscriptionType: SubscriptionTypeSubscription}}
+	require.False(t, svc.MemberMultiplierEnabledForKey(ctx, subscriptionKey, &UserSubscription{ID: 99}))
+	require.InDelta(t, 1.0, svc.ResolveMemberMultiplier(ctx, user, subscriptionKey, &UserSubscription{ID: 99}), 1e-9)
+
+	_, err = svc.UpdateMemberLevelConfig(ctx, false, &MemberLevelConfig{Levels: []MemberLevel{
+		{ID: "lv1", Name: "Lv1", MinRechargeAmount: 0, RateMultiplier: 1, Enabled: true, SortOrder: 1},
+		{ID: "lv2", Name: "Lv2", MinRechargeAmount: 500, RateMultiplier: 0.8, Enabled: true, SortOrder: 2},
+	}})
+	require.NoError(t, err)
+	require.False(t, svc.MemberMultiplierEnabledForKey(ctx, balanceKey, nil))
+}
+
 func TestVerifyOrderByOutTradeNoRetriesZeroAmountPaidQueryOnce(t *testing.T) {
 	ctx := context.Background()
 	client := newPaymentOrderLifecycleTestClient(t)
@@ -919,6 +1146,7 @@ func TestReconcilePendingWxpayOrdersBackfillsPaidOrder(t *testing.T) {
 		nil,
 		nil,
 		client,
+		nil,
 		nil,
 		nil,
 	)

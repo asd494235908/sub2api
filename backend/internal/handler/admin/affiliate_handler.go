@@ -51,11 +51,14 @@ func (h *AffiliateHandler) ListUsers(c *gin.Context) {
 func (h *AffiliateHandler) ListInviters(c *gin.Context) {
 	page, pageSize := response.ParsePagination(c)
 	search := c.Query("search")
+	userTZ := c.Query("timezone")
 
 	entries, total, err := h.affiliateService.AdminListInvitersWithInvitees(c.Request.Context(), service.AffiliateAdminFilter{
 		Search:   search,
 		Page:     page,
 		PageSize: pageSize,
+		StartAt:  parseAffiliateRecordStartTime(c.Query("start_at"), userTZ),
+		EndAt:    parseAffiliateRecordEndTime(c.Query("end_at"), userTZ),
 	})
 	if err != nil {
 		response.ErrorFrom(c, err)

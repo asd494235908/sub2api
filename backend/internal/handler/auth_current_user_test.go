@@ -3,6 +3,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +15,23 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
+
+type authCurrentUserPaymentServiceStub struct{}
+
+func (authCurrentUserPaymentServiceStub) ResolveMemberLevel(context.Context, *service.User) (*service.MemberLevelState, error) {
+	nextThreshold := 100.0
+	return &service.MemberLevelState{
+		LevelID:          "silver",
+		LevelName:        "白银会员",
+		RateMultiplier:   0.8,
+		TotalRecharged:   50,
+		CurrentThreshold: 0,
+		NextThreshold:    &nextThreshold,
+		Progress:         50,
+		ProgressCurrent:  50,
+		ProgressTarget:   100,
+	}, nil
+}
 
 func TestAuthHandlerGetCurrentUserReturnsProfileCompatibilityFields(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -45,6 +63,7 @@ func TestAuthHandlerGetCurrentUserReturnsProfileCompatibilityFields(t *testing.T
 
 	handler := &AuthHandler{
 		userService: service.NewUserService(repo, nil, nil, nil),
+		memberLevelResolver: authCurrentUserPaymentServiceStub{},
 	}
 
 	recorder := httptest.NewRecorder()
@@ -83,4 +102,9 @@ func TestAuthHandlerGetCurrentUserReturnsProfileCompatibilityFields(t *testing.T
 	require.True(t, ok)
 	require.Equal(t, "linuxdo", usernameSource["provider"])
 	require.Equal(t, "linuxdo", usernameSource["source"])
+
+	memberLevel, ok := resp.Data["member_level"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "白银会员", memberLevel["level_name"])
+	require.Equal(t, float64(0.8), memberLevel["rate_multiplier"])
 }

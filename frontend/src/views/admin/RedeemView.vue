@@ -99,7 +99,8 @@
 
           <template #cell-value="{ value, row }">
             <span class="text-sm font-medium text-gray-900 dark:text-white">
-              <template v-if="isCurrencyRedeemType(row.type)">¥{{ value.toFixed(2) }}</template>
+              <template v-if="row.type === 'first_recharge_bonus'">{{ value.toFixed(2) }} 平台额度</template>
+              <template v-else-if="isCurrencyRedeemType(row.type)">¥{{ value.toFixed(2) }}</template>
               <template v-else-if="row.type === 'subscription'">
                 {{ row.validity_days || 30 }} {{ t('admin.redeem.days') }}
                 <span v-if="row.group" class="ml-1 text-xs text-gray-500 dark:text-gray-400"
@@ -564,7 +565,8 @@ const filterTypeOptions = computed(() => [
   { value: 'subscription', label: t('admin.redeem.subscription') },
   { value: 'invitation', label: t('admin.redeem.invitation') },
   { value: 'weekly_balance', label: formatRedeemType('weekly_balance') },
-  { value: 'lucky_wheel_bonus', label: formatRedeemType('lucky_wheel_bonus') }
+  { value: 'lucky_wheel_bonus', label: formatRedeemType('lucky_wheel_bonus') },
+  { value: 'first_recharge_bonus', label: formatRedeemType('first_recharge_bonus') }
 ])
 
 const filterStatusOptions = computed(() => [
@@ -609,7 +611,8 @@ const redeemTypeFallbackLabels: Record<string, { zh: string; en: string }> = {
   subscription: { zh: '订阅', en: 'Subscription' },
   invitation: { zh: '邀请码', en: 'Invitation' },
   weekly_balance: { zh: '周额度领取', en: 'Weekly Quota Claim' },
-  lucky_wheel_bonus: { zh: '转盘奖励', en: 'Lucky Wheel Bonus' }
+  lucky_wheel_bonus: { zh: '转盘奖励', en: 'Lucky Wheel Bonus' },
+  first_recharge_bonus: { zh: '首冲赠送额度', en: 'First Recharge Platform Quota' }
 }
 
 const formatRedeemType = (type: string) => {

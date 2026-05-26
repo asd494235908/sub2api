@@ -94,6 +94,19 @@ services:
       - JWT_EXPIRE_HOUR=${JWT_EXPIRE_HOUR:-24}
 
       # =======================================================================
+      # Casdoor OAuth Login
+      # =======================================================================
+      - CASDOOR_ENABLED=${CASDOOR_ENABLED:-false}
+      - CASDOOR_ISSUER=${CASDOOR_ISSUER:-}
+      - CASDOOR_CLIENT_ID=${CASDOOR_CLIENT_ID:-}
+      - CASDOOR_CLIENT_SECRET=${CASDOOR_CLIENT_SECRET:-}
+      - CASDOOR_REDIRECT_URI=${CASDOOR_REDIRECT_URI:-}
+      - CASDOOR_SCOPE=${CASDOOR_SCOPE:-openid profile email phone}
+      - CASDOOR_AUTHORIZE_URL=${CASDOOR_AUTHORIZE_URL:-}
+      - CASDOOR_TOKEN_URL=${CASDOOR_TOKEN_URL:-}
+      - CASDOOR_USERINFO_URL=${CASDOOR_USERINFO_URL:-}
+
+      # =======================================================================
       # Timezone Configuration
       # =======================================================================
       - TZ=${TZ:-Asia/Shanghai}

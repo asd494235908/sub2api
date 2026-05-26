@@ -17,6 +17,12 @@ import type {
   RechargeActivityStats,
   RechargeActivityConfig,
   RechargeActivityDrawRecord,
+  AdminFirstRechargeConfigResponse,
+  AdminMemberLevelConfigResponse,
+  FirstRechargeBulkChanceMode,
+  FirstRechargeBulkChanceResult,
+  FirstRechargeConfig,
+  MemberLevelConfig,
 } from '@/types/payment'
 import type { BasePaginationResponse } from '@/types'
 
@@ -111,6 +117,30 @@ export const adminPaymentAPI = {
   /** Update manual fulfillment status for a recharge activity draw record */
   updateRechargeActivityRecordFulfillment(id: number, data: { status: 'pending' | 'fulfilled'; note?: string }) {
     return apiClient.put<RechargeActivityDrawRecord>(`/admin/payment/recharge-activity/records/${id}/fulfillment`, data)
+  },
+
+  getFirstRechargeConfig() {
+    return apiClient.get<AdminFirstRechargeConfigResponse>('/admin/payment/first-recharge/config')
+  },
+
+  updateFirstRechargeConfig(data: { enabled: boolean; config: FirstRechargeConfig }) {
+    return apiClient.put<AdminFirstRechargeConfigResponse>('/admin/payment/first-recharge/config', data)
+  },
+
+  grantFirstRechargeChance(data: { user_id: number; tier_id: string; chances: number; note?: string }) {
+    return apiClient.post('/admin/payment/first-recharge/chances', data)
+  },
+
+  bulkUpdateFirstRechargeChances(data: { tier_id: string; chances: number; mode: FirstRechargeBulkChanceMode; note?: string }) {
+    return apiClient.post<FirstRechargeBulkChanceResult>('/admin/payment/first-recharge/chances/bulk', data)
+  },
+
+  getMemberLevelConfig() {
+    return apiClient.get<AdminMemberLevelConfigResponse>('/admin/payment/member-level/config')
+  },
+
+  updateMemberLevelConfig(data: { enabled: boolean; config: MemberLevelConfig }) {
+    return apiClient.put<AdminMemberLevelConfigResponse>('/admin/payment/member-level/config', data)
   },
 
   // ==================== Orders ====================

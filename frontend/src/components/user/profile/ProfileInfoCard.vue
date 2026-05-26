@@ -46,6 +46,30 @@
                   {{ phoneDisplay }}
                 </p>
                 <div
+                  v-if="user?.member_level"
+                  class="mt-2 max-w-md rounded-xl bg-white/80 px-3 py-2 text-sm shadow-sm ring-1 ring-primary-100 dark:bg-dark-900/70 dark:ring-primary-900/40"
+                >
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="font-semibold text-gray-900 dark:text-white">
+                      会员等级：{{ user.member_level.level_name }}
+                    </span>
+                    <span class="font-medium text-primary-600 dark:text-primary-400">
+                      消耗倍率 ×{{ user.member_level.rate_multiplier }}
+                    </span>
+                  </div>
+                  <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-dark-700">
+                    <div
+                      class="h-full rounded-full bg-primary-500"
+                      :style="{ width: `${memberLevelProgressPercent}%` }"
+                    />
+                  </div>
+                  <div class="mt-1 flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span>累计充值 ¥{{ user.member_level.total_recharged.toFixed(2) }}</span>
+                    <span v-if="user.member_level.next_threshold">下一级 ¥{{ user.member_level.next_threshold.toFixed(2) }}</span>
+                    <span v-else>已达最高等级</span>
+                  </div>
+                </div>
+                <div
                   v-if="sourceHints.length"
                   class="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400"
                 >
@@ -272,6 +296,10 @@ const memberSinceLabel = computed(() => {
     year: 'numeric',
     month: 'short',
   }).format(date)
+})
+const memberLevelProgressPercent = computed(() => {
+  const progress = props.user?.member_level?.progress ?? 0
+  return Math.max(0, Math.min(100, Math.round(progress)))
 })
 
 const hiddenProfileProviders = new Set<UserAuthProvider>(['github'])

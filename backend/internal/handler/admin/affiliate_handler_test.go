@@ -29,10 +29,13 @@ type affiliateReaderStub struct {
 func (s *affiliateReaderStub) ListInviters(c *gin.Context) {
 	page, pageSize := response.ParsePagination(c)
 	search := c.Query("search")
+	userTZ := c.Query("timezone")
 	s.lastFilter = service.AffiliateAdminFilter{
 		Search:   search,
 		Page:     page,
 		PageSize: pageSize,
+		StartAt:  parseAffiliateRecordStartTime(c.Query("start_at"), userTZ),
+		EndAt:    parseAffiliateRecordEndTime(c.Query("end_at"), userTZ),
 	}
 	if s.invitersErr != nil {
 		response.ErrorFrom(c, s.invitersErr)
@@ -98,6 +101,33 @@ func TestAffiliateReaderStub_ListInviters(t *testing.T) {
 	require.Len(t, resp.Data.Items, 1)
 	require.Equal(t, int64(7), resp.Data.Items[0].UserID)
 	require.Equal(t, int64(1), resp.Data.Total)
+}
+
+func TestAffiliateReaderStub_ListInviters_ParsesDateRangeFilters(t *testing.T) {
+	t.Parallel()
+
+	stub := &affiliateReaderStub{}
+	ctx, rec := newAffiliateTestContext(http.MethodGet, "/api/v1/admin/affiliates/inviters?page=3&page_size=12&search=owner&start_at=2026-05-01&end_at=2026-05-31&timezone=Asia%2FShanghai")
+
+	stub.ListInviters(ctx)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, 3, stub.lastFilter.Page)
+	require.Equal(t, 12, stub.lastFilter.PageSize)
+	require.Equal(t, "owner", stub.lastFilter.Search)
+	require.NotNil(t, stub.lastFilter.StartAt)
+	require.NotNil(t, stub.lastFilter.EndAt)
+	require.Equal(t, "2026-05-01T00:00:00+08:00", stub.lastFilter.StartAt.Format(time.RFC3339))
+	require.Equal(t, "2026-05-31T23:59:59+08:00", stub.lastFilter.EndAt.Format(time.RFC3339))
+
+	var resp struct {
+		Data struct {
+			Items []service.AffiliateInviterEntry `json:"items"`
+			Total int64                           `json:"total"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	require.Equal(t, int64(0), resp.Data.Total)
 }
 
 func TestAffiliateReaderStub_ListInviterInvitees(t *testing.T) {

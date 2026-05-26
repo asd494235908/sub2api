@@ -564,7 +564,7 @@ func (r *affiliateRepository) ListInvitersWithInvitees(ctx context.Context, filt
 
 	client := clientFromContext(ctx, r.client)
 	search := strings.TrimSpace(filter.Search)
-	args := make([]any, 0, 4)
+	args := make([]any, 0, 8)
 	where := ""
 	if search != "" {
 		pattern := "%" + strings.ToLower(search) + "%"
@@ -576,6 +576,28 @@ WHERE LOWER(COALESCE(u.email, '')) LIKE $%d
    OR LOWER(COALESCE(ua.aff_code, '')) LIKE $%d
    OR ua.user_id::text LIKE $%d`, idx, idx, idx, idx)
 	}
+	if filter.StartAt != nil {
+		args = append(args, *filter.StartAt)
+		idx := len(args)
+		if where == "" {
+			where = fmt.Sprintf("\nWHERE ua.created_at >= $%d", idx)
+		} else {
+			where += fmt.Sprintf("\n  AND ua.created_at >= $%d", idx)
+		}
+	}
+	if filter.EndAt != nil {
+		args = append(args, *filter.EndAt)
+		idx := len(args)
+		if where == "" {
+			where = fmt.Sprintf("\nWHERE ua.created_at <= $%d", idx)
+		} else {
+			where += fmt.Sprintf("\n  AND ua.created_at <= $%d", idx)
+		}
+	}
+	baseWhere := "WHERE ua.aff_count > 0"
+	if where != "" {
+		baseWhere += strings.Replace(where, "WHERE ", "\n  AND ", 1)
+	}
 
 	countRows, err := client.QueryContext(ctx, `
 SELECT COUNT(*)
@@ -583,8 +605,7 @@ FROM (
     SELECT ua.user_id
     FROM user_affiliates ua
     JOIN users u ON u.id = ua.user_id
-    WHERE ua.aff_count > 0
-`+strings.Replace(where, "WHERE ", "AND ", 1)+`
+`+baseWhere+`
     GROUP BY ua.user_id
 ) AS inviters`, args...)
 	if err != nil {
@@ -608,17 +629,20 @@ SELECT ua.user_id,
        COALESCE(u.email, ''),
        COALESCE(u.username, ''),
        COALESCE(ua.aff_code, ''),
-       ua.aff_count,
+       COUNT(DISTINCT ua_child.user_id)::integer AS aff_count,
        COALESCE(SUM(ual.amount), 0)::double precision AS total_rebate
 FROM user_affiliates ua
 JOIN users u ON u.id = ua.user_id
+LEFT JOIN user_affiliates ua_child
+       ON ua_child.inviter_id = ua.user_id
 LEFT JOIN user_affiliate_ledger ual
        ON ual.user_id = ua.user_id
+      AND ual.source_user_id = ua_child.user_id
       AND ual.action IN ('accrue', 'signup_bonus')
-`+where+`
-  AND ua.aff_count > 0
-GROUP BY ua.user_id, u.email, u.username, ua.aff_code, ua.aff_count
-ORDER BY ua.aff_count DESC, ua.user_id DESC
+`+baseWhere+`
+GROUP BY ua.user_id, u.email, u.username, ua.aff_code
+HAVING COUNT(DISTINCT ua_child.user_id) > 0
+ORDER BY COUNT(DISTINCT ua_child.user_id) DESC, ua.user_id DESC
 LIMIT $`+fmt.Sprint(len(args)-1)+` OFFSET $`+fmt.Sprint(len(args)), args...)
 	if err != nil {
 		return nil, 0, err

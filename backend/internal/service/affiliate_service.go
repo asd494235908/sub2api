@@ -125,6 +125,8 @@ type AffiliateAdminFilter struct {
 	Search   string
 	Page     int
 	PageSize int
+	StartAt  *time.Time
+	EndAt    *time.Time
 }
 
 // AffiliateAdminEntry 专属用户列表条目

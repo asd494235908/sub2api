@@ -138,6 +138,24 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/auth/casdoor/success',
+    name: 'CasdoorSuccess',
+    component: () => import('@/views/auth/CasdoorSuccessView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: 'Casdoor Login'
+    }
+  },
+  {
+    path: '/auth/casdoor/error',
+    name: 'CasdoorError',
+    component: () => import('@/views/auth/CasdoorErrorView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: 'Casdoor Login Failed'
+    }
+  },
+  {
     path: '/forgot-password',
     name: 'ForgotPassword',
     component: () => import('@/views/auth/ForgotPasswordView.vue'),
@@ -763,6 +781,8 @@ const BACKEND_MODE_CALLBACK_PATHS = [
   '/auth/dingtalk/callback',
   '/auth/dingtalk/email-completion',
   '/auth/oidc/callback',
+  '/auth/casdoor/success',
+  '/auth/casdoor/error',
   '/auth/wechat/callback',
   '/auth/wechat/payment/callback',
 ]
