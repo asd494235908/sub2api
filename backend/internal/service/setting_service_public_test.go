@@ -95,14 +95,14 @@ func TestSettingService_GetPublicSettings_ExposesRegistrationEmailSuffixWhitelis
 		values: map[string]string{
 			SettingKeyRegistrationEnabled:              "true",
 			SettingKeyEmailVerifyEnabled:               "true",
-			SettingKeyRegistrationEmailSuffixWhitelist: `["@EXAMPLE.com"," @foo.bar ","@invalid_domain",""]`,
+			SettingKeyRegistrationEmailSuffixWhitelist: `["@EXAMPLE.com"," @foo.bar ","*.EDU.CN","@invalid_domain",""]`,
 		},
 	}
 	svc := NewSettingService(repo, &config.Config{})
 
 	settings, err := svc.GetPublicSettings(context.Background())
 	require.NoError(t, err)
-	require.Equal(t, []string{"@example.com", "@foo.bar"}, settings.RegistrationEmailSuffixWhitelist)
+	require.Equal(t, []string{"@example.com", "@foo.bar", "*.edu.cn"}, settings.RegistrationEmailSuffixWhitelist)
 }
 
 func TestSettingService_GetPublicSettings_ExposesTablePreferences(t *testing.T) {
@@ -146,6 +146,21 @@ func TestSettingService_GetPublicSettings_ExposesHomepageContactFields(t *testin
 	require.NoError(t, err)
 	require.Equal(t, "123456789", settings.QQGroup)
 	require.Equal(t, "sub2api_support", settings.WeChatContact)
+}
+
+func TestSettingService_GetPublicSettings_PreservesMultilineHomepageContactFields(t *testing.T) {
+	repo := &settingPublicRepoStub{
+		values: map[string]string{
+			SettingKeyQQGroup:       "123456789\n987654321",
+			SettingKeyWeChatContact: "sub2api_support\nwechat_helper",
+		},
+	}
+	svc := NewSettingService(repo, &config.Config{})
+
+	settings, err := svc.GetPublicSettings(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, "123456789\n987654321", settings.QQGroup)
+	require.Equal(t, "sub2api_support\nwechat_helper", settings.WeChatContact)
 }
 
 func TestSettingService_GetPublicSettings_ExposesDefaultHomeLinks(t *testing.T) {

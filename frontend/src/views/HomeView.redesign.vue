@@ -210,13 +210,20 @@ const configuredHomeLinks = computed(() => {
     }))
 })
 
+function splitHomepageContact(value: string | undefined) {
+  return (value || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
 const communityContactItems = computed(() => {
   const settings = appStore.cachedPublicSettings
   const items = [
-    { label: t('home.landing.community.qrLabels.qq'), value: settings?.qq_group?.trim() || '' },
-    { label: t('home.landing.community.qrLabels.wechat'), value: settings?.wechat_contact?.trim() || '' }
+    { label: t('home.landing.community.qrLabels.qq'), values: splitHomepageContact(settings?.qq_group) },
+    { label: t('home.landing.community.qrLabels.wechat'), values: splitHomepageContact(settings?.wechat_contact) }
   ]
-  return items.filter((item) => item.value)
+  return items.filter((item) => item.values.length)
 })
 
 const headerRef = ref<HTMLElement | null>(null)

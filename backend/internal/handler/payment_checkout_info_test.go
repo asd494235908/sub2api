@@ -1,0 +1,182 @@
+package handler
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
+	dbent "github.com/Wei-Shaw/sub2api/ent"
+	"github.com/Wei-Shaw/sub2api/ent/enttest"
+	"github.com/Wei-Shaw/sub2api/internal/payment"
+	middleware "github.com/Wei-Shaw/sub2api/internal/server/middleware"
+	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
+
+	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
+)
+
+func TestPaymentHandlerGetCheckoutInfoIncludesDailySaleMetadata(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ctx := context.Background()
+	client := newCheckoutInfoHandlerTestClient(t)
+	repo := &checkoutInfoSettingRepoStub{
+		values: map[string]string{
+			service.SettingPaymentEnabled:                    "true",
+			service.SettingPaymentVisibleMethodAlipayEnabled: "true",
+			service.SettingPaymentVisibleMethodAlipaySource:  service.VisibleMethodSourceEasyPayAlipay,
+		},
+	}
+	configService := service.NewPaymentConfigService(client, repo, nil)
+	handler := NewPaymentHandler(nil, configService, nil)
+
+	_, err := client.PaymentProviderInstance.Create().
+		SetProviderKey(payment.TypeEasyPay).
+		SetName("EasyPay").
+		SetConfig("{}").
+		SetSupportedTypes(payment.TypeAlipay).
+		SetEnabled(true).
+		Save(ctx)
+	require.NoError(t, err)
+	_, err = client.Group.Create().
+		SetName("Subscription Group").
+		SetStatus(payment.EntityStatusActive).
+		SetPlatform(service.PlatformOpenAI).
+		SetSubscriptionType(service.SubscriptionTypeSubscription).
+		Save(ctx)
+	require.NoError(t, err)
+
+	now := time.Now()
+	start := now.Add(time.Hour).Local().Format("15:04")
+	end := now.Add(2 * time.Hour).Local().Format("15:04")
+	plan, err := client.SubscriptionPlan.Create().
+		SetGroupID(1).
+		SetName("Daily Window Plan").
+		SetPrice(10).
+		SetValidityDays(30).
+		SetValidityUnit("days").
+		SetForSale(true).
+		SetDailyPurchaseLimit(2).
+		SetDailySaleStartsAt(start).
+		SetDailySaleEndsAt(end).
+		Save(ctx)
+	require.NoError(t, err)
+	user, err := client.User.Create().
+		SetEmail("checkout@example.com").
+		SetPasswordHash("hash").
+		SetUsername("checkout-user").
+		Save(ctx)
+	require.NoError(t, err)
+	_, err = client.PaymentOrder.Create().
+		SetUserID(user.ID).
+		SetUserEmail(user.Email).
+		SetUserName(user.Username).
+		SetAmount(10).
+		SetPayAmount(10).
+		SetFeeRate(0).
+		SetRechargeCode("PAY-checkout").
+		SetOutTradeNo("sub2_checkout_daily_1").
+		SetPaymentType(payment.TypeAlipay).
+		SetPaymentTradeNo("").
+		SetOrderType(payment.OrderTypeSubscription).
+		SetStatus(service.OrderStatusPending).
+		SetPlanID(plan.ID).
+		SetExpiresAt(now.Add(time.Hour)).
+		SetClientIP("127.0.0.1").
+		SetSrcHost("localhost").
+		Save(ctx)
+	require.NoError(t, err)
+
+	rec := httptest.NewRecorder()
+	gctx, _ := gin.CreateTestContext(rec)
+	gctx.Request = httptest.NewRequest(http.MethodGet, "/api/v1/payment/checkout-info", nil)
+	gctx.Set(string(middleware.ContextKeyUser), middleware.AuthSubject{UserID: user.ID, Concurrency: 1})
+
+	handler.GetCheckoutInfo(gctx)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var body struct {
+		Data struct {
+			Plans []struct {
+				Name                      string `json:"name"`
+				DailySaleStartsAt         string `json:"daily_sale_starts_at"`
+				DailySaleEndsAt           string `json:"daily_sale_ends_at"`
+				DailyPurchaseLimit        int    `json:"daily_purchase_limit"`
+				DailyPurchaseRemaining    *int   `json:"daily_purchase_remaining"`
+				DailySaleStatus           string `json:"daily_sale_status"`
+				DailySaleCountdownSeconds int    `json:"daily_sale_countdown_seconds"`
+			} `json:"plans"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	require.Len(t, body.Data.Plans, 1)
+	got := body.Data.Plans[0]
+	require.Equal(t, "Daily Window Plan", got.Name)
+	require.Equal(t, start, got.DailySaleStartsAt)
+	require.Equal(t, end, got.DailySaleEndsAt)
+	require.Equal(t, 2, got.DailyPurchaseLimit)
+	require.NotNil(t, got.DailyPurchaseRemaining)
+	require.Equal(t, 1, *got.DailyPurchaseRemaining)
+	require.Equal(t, "pending", got.DailySaleStatus)
+	require.Greater(t, got.DailySaleCountdownSeconds, 0)
+}
+
+func newCheckoutInfoHandlerTestClient(t *testing.T) *dbent.Client {
+	t.Helper()
+	dbName := "file:" + strings.NewReplacer("/", "_", " ", "_").Replace(t.Name()) + "?mode=memory&cache=shared"
+	db, err := sql.Open("sqlite", dbName)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	require.NoError(t, err)
+
+	drv := entsql.OpenDB(dialect.SQLite, db)
+	client := enttest.NewClient(t, enttest.WithOptions(dbent.Driver(drv)))
+	t.Cleanup(func() { _ = client.Close() })
+	return client
+}
+
+type checkoutInfoSettingRepoStub struct {
+	values map[string]string
+}
+
+func (s *checkoutInfoSettingRepoStub) Get(context.Context, string) (*service.Setting, error) {
+	return nil, nil
+}
+
+func (s *checkoutInfoSettingRepoStub) GetValue(_ context.Context, key string) (string, error) {
+	return s.values[key], nil
+}
+
+func (s *checkoutInfoSettingRepoStub) Set(context.Context, string, string) error { return nil }
+
+func (s *checkoutInfoSettingRepoStub) GetMultiple(_ context.Context, keys []string) (map[string]string, error) {
+	out := make(map[string]string, len(keys))
+	for _, key := range keys {
+		out[key] = s.values[key]
+	}
+	return out, nil
+}
+
+func (s *checkoutInfoSettingRepoStub) SetMultiple(_ context.Context, values map[string]string) error {
+	for key, value := range values {
+		if s.values == nil {
+			s.values = map[string]string{}
+		}
+		s.values[key] = value
+	}
+	return nil
+}
+
+func (s *checkoutInfoSettingRepoStub) GetAll(context.Context) (map[string]string, error) {
+	return s.values, nil
+}
+
+func (s *checkoutInfoSettingRepoStub) Delete(context.Context, string) error { return nil }

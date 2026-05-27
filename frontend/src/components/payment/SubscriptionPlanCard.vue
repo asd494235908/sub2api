@@ -70,6 +70,20 @@
         </div>
       </div>
 
+      <div v-if="hasDailySaleInfo" class="mb-3 space-y-1.5 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs dark:border-amber-900/40 dark:bg-amber-950/20">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-amber-700 dark:text-amber-300">{{ t('payment.planCard.dailySaleTime') }}</span>
+          <span class="font-medium tabular-nums text-amber-900 dark:text-amber-100">{{ dailySaleTimeRange }}</span>
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-amber-700 dark:text-amber-300">{{ dailySaleStatusText }}</span>
+          <span v-if="dailySaleCountdownText" class="font-semibold tabular-nums text-amber-900 dark:text-amber-100">{{ dailySaleCountdownText }}</span>
+        </div>
+        <div v-if="dailyRemainingText" class="font-medium text-amber-800 dark:text-amber-200">
+          {{ dailyRemainingText }}
+        </div>
+      </div>
+
       <!-- Features list (compact) -->
       <div v-if="plan.features.length > 0" class="mb-3 space-y-1">
         <div v-for="feature in plan.features" :key="feature" class="flex items-start gap-1.5">
@@ -85,17 +99,18 @@
       <!-- Subscribe Button -->
       <button
         type="button"
-        :class="['w-full rounded-xl py-2.5 text-sm font-semibold transition-all active:scale-[0.98]', btnClass]"
-        @click="emit('select', plan)"
+        :class="['w-full rounded-xl py-2.5 text-sm font-semibold transition-all active:scale-[0.98]', canSelectPlan ? btnClass : 'cursor-not-allowed bg-gray-200 text-gray-500 dark:bg-dark-700 dark:text-gray-400']"
+        :disabled="!canSelectPlan"
+        @click="canSelectPlan && emit('select', plan)"
       >
-        {{ isRenewal ? t('payment.renewNow') : t('payment.subscribeNow') }}
+        {{ canSelectPlan ? (isRenewal ? t('payment.renewNow') : t('payment.subscribeNow')) : t('payment.saleUnavailable') }}
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { SubscriptionPlan } from '@/types/payment'
 import type { UserSubscription } from '@/types'
@@ -113,6 +128,28 @@ import {
 const props = defineProps<{ plan: SubscriptionPlan; activeSubscriptions?: UserSubscription[] }>()
 const emit = defineEmits<{ select: [plan: SubscriptionPlan] }>()
 const { t } = useI18n()
+const countdownSeconds = ref(Math.max(0, props.plan.daily_sale_countdown_seconds ?? 0))
+let countdownTimer: ReturnType<typeof setInterval> | null = null
+
+function stopCountdown() {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+}
+
+function startCountdown(seconds: number) {
+  countdownSeconds.value = Math.max(0, seconds)
+  stopCountdown()
+  if (countdownSeconds.value <= 0) return
+  countdownTimer = setInterval(() => {
+    countdownSeconds.value = Math.max(0, countdownSeconds.value - 1)
+    if (countdownSeconds.value <= 0) stopCountdown()
+  }, 1000)
+}
+
+watch(() => props.plan.daily_sale_countdown_seconds, (seconds) => startCountdown(seconds ?? 0), { immediate: true })
+onBeforeUnmount(stopCountdown)
 
 const platform = computed(() => props.plan.group_platform || '')
 const isRenewal = computed(() =>
@@ -128,6 +165,41 @@ const iconClass = computed(() => platformIconClass(platform.value))
 const btnClass = computed(() => platformButtonClass(platform.value))
 const discountClass = computed(() => platformDiscountClass(platform.value))
 const pLabel = computed(() => platformLabel(platform.value))
+const canSelectPlan = computed(() => props.plan.daily_sale_available_for_payment !== false && props.plan.daily_sale_status !== 'sold_out')
+const hasDailySaleInfo = computed(() => !!(props.plan.daily_sale_starts_at && props.plan.daily_sale_ends_at) || props.plan.daily_purchase_limit > 0)
+const dailySaleTimeRange = computed(() => {
+  if (!props.plan.daily_sale_starts_at || !props.plan.daily_sale_ends_at) return '-'
+  return `${props.plan.daily_sale_starts_at} - ${props.plan.daily_sale_ends_at}`
+})
+
+function formatDuration(totalSeconds: number): string {
+  const seconds = Math.max(0, Math.floor(totalSeconds))
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = seconds % 60
+  return [h, m, s].map(value => String(value).padStart(2, '0')).join(':')
+}
+
+const dailySaleCountdownText = computed(() => {
+  if (countdownSeconds.value <= 0) return ''
+  const key = props.plan.daily_sale_status === 'available'
+    ? 'payment.planCard.dailySaleCountdownToEnd'
+    : 'payment.planCard.dailySaleCountdownToStart'
+  return t(key, { time: formatDuration(countdownSeconds.value) })
+})
+
+const dailySaleStatusText = computed(() => {
+  if (props.plan.daily_sale_status === 'sold_out') return t('payment.planCard.soldOutToday')
+  if (props.plan.daily_sale_status === 'pending') return t('payment.planCard.unavailableNow')
+  if (props.plan.daily_sale_status === 'unavailable') return t('payment.planCard.unavailableNow')
+  return t('payment.planCard.availableNow')
+})
+
+const dailyRemainingText = computed(() => {
+  if (props.plan.daily_purchase_limit <= 0) return ''
+  if ((props.plan.daily_purchase_remaining ?? 0) <= 0) return t('payment.planCard.soldOutToday')
+  return t('payment.planCard.availableToday', { count: props.plan.daily_purchase_remaining })
+})
 
 const discountText = computed(() => {
   if (!props.plan.original_price || props.plan.original_price <= 0) return ''

@@ -4,7 +4,9 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
@@ -129,6 +131,7 @@ type redeemRepoStubForAdminList struct {
 	listWithFiltersCodes  []RedeemCode
 	listWithFiltersResult *pagination.PaginationResult
 	listWithFiltersErr    error
+	listWithFiltersPage   bool
 }
 
 func (s *redeemRepoStubForAdminList) ListWithFilters(_ context.Context, params pagination.PaginationParams, codeType, status, search string) ([]RedeemCode, *pagination.PaginationResult, error) {
@@ -151,7 +154,20 @@ func (s *redeemRepoStubForAdminList) ListWithFilters(_ context.Context, params p
 		}
 	}
 
-	return s.listWithFiltersCodes, result, nil
+	codes := s.listWithFiltersCodes
+	if s.listWithFiltersPage {
+		start := params.Offset()
+		if start >= len(codes) {
+			return []RedeemCode{}, result, nil
+		}
+		end := start + params.Limit()
+		if end > len(codes) {
+			end = len(codes)
+		}
+		codes = codes[start:end]
+	}
+
+	return codes, result, nil
 }
 
 func (s *redeemRepoStubForAdminList) ListByUserPaginated(_ context.Context, userID int64, params pagination.PaginationParams, codeType string) ([]RedeemCode, *pagination.PaginationResult, error) {
@@ -261,4 +277,34 @@ func TestAdminService_ListRedeemCodes_WithSearch(t *testing.T) {
 		require.Equal(t, StatusUnused, repo.listWithFiltersStatus)
 		require.Equal(t, "ABC", repo.listWithFiltersSearch)
 	})
+}
+
+func TestAdminService_ListRedeemCodes_AllStatusTailPageFetchesBeyondPaginationLimit(t *testing.T) {
+	codes := make([]RedeemCode, 1084)
+	base := time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC)
+	for i := range codes {
+		usedAt := base.Add(-time.Duration(i) * time.Minute)
+		codes[i] = RedeemCode{
+			ID:        int64(2000 - i),
+			Code:      fmt.Sprintf("R-%04d", i),
+			Status:    StatusUsed,
+			UsedAt:    &usedAt,
+			CreatedAt: usedAt,
+		}
+	}
+	repo := &redeemRepoStubForAdminList{
+		listWithFiltersCodes:  codes,
+		listWithFiltersResult: &pagination.PaginationResult{Total: int64(len(codes))},
+		listWithFiltersPage:   true,
+	}
+	svc := &adminServiceImpl{redeemCodeRepo: repo}
+
+	pageCodes, total, err := svc.ListRedeemCodes(context.Background(), 22, 50, "", "", "", "id", "desc")
+
+	require.NoError(t, err)
+	require.Equal(t, int64(1084), total)
+	require.Len(t, pageCodes, 34)
+	require.Equal(t, "R-1050", pageCodes[0].Code)
+	require.Equal(t, "R-1083", pageCodes[len(pageCodes)-1].Code)
+	require.GreaterOrEqual(t, repo.listWithFiltersCalls, 2)
 }

@@ -14,6 +14,7 @@ import (
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
+	dbuser "github.com/Wei-Shaw/sub2api/ent/user"
 	"github.com/Wei-Shaw/sub2api/internal/payment"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 )
@@ -304,9 +305,33 @@ func (s *PaymentService) doBalance(ctx context.Context, o *dbent.PaymentOrder) e
 
 func (s *PaymentService) markCompleted(ctx context.Context, o *dbent.PaymentOrder, auditAction string) error {
 	now := time.Now()
-	_, err := s.entClient.PaymentOrder.Update().Where(paymentorder.IDEQ(o.ID), paymentorder.StatusEQ(OrderStatusRecharging)).SetStatus(OrderStatusCompleted).SetCompletedAt(now).Save(ctx)
-	if err != nil {
-		return fmt.Errorf("mark completed: %w", err)
+	if auditAction == "RECHARGE_SUCCESS" && o.OrderType == payment.OrderTypeBalance && o.PayAmount > 0 {
+		tx, err := s.entClient.Tx(ctx)
+		if err != nil {
+			return fmt.Errorf("begin completion transaction: %w", err)
+		}
+		defer func() { _ = tx.Rollback() }()
+		c, err := tx.Client().PaymentOrder.Update().
+			Where(paymentorder.IDEQ(o.ID), paymentorder.StatusEQ(OrderStatusRecharging)).
+			SetStatus(OrderStatusCompleted).
+			SetCompletedAt(now).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("mark completed: %w", err)
+		}
+		if c > 0 {
+			if err := addUserTotalRecharged(ctx, tx.Client(), o.UserID, o.PayAmount); err != nil {
+				return fmt.Errorf("add total recharged: %w", err)
+			}
+		}
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("commit completion transaction: %w", err)
+		}
+	} else {
+		_, err := s.entClient.PaymentOrder.Update().Where(paymentorder.IDEQ(o.ID), paymentorder.StatusEQ(OrderStatusRecharging)).SetStatus(OrderStatusCompleted).SetCompletedAt(now).Save(ctx)
+		if err != nil {
+			return fmt.Errorf("mark completed: %w", err)
+		}
 	}
 	s.writeAuditLog(ctx, o.ID, auditAction, "system", map[string]any{
 		"rechargeCode":   o.RechargeCode,
@@ -320,6 +345,20 @@ func (s *PaymentService) markCompleted(ctx context.Context, o *dbent.PaymentOrde
 		return fmt.Errorf("grant recharge activity chance: %w", err)
 	}
 	s.dispatchPaymentFulfillmentNotification(o, auditAction)
+	return nil
+}
+
+func addUserTotalRecharged(ctx context.Context, client *dbent.Client, userID int64, amount float64) error {
+	if client == nil || amount == 0 {
+		return nil
+	}
+	n, err := client.User.Update().Where(dbuser.IDEQ(userID)).AddTotalRecharged(amount).Save(ctx)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrUserNotFound
+	}
 	return nil
 }
 

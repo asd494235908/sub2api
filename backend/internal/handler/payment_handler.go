@@ -114,11 +114,21 @@ func (h *PaymentHandler) GetCheckoutInfo(c *gin.Context) {
 	}
 
 	// Fetch plans with group info
-	plans, _ := h.configService.ListPlansForSale(ctx)
+	plans, _ := h.configService.ListCheckoutSubscriptionPlans(ctx)
 	groupInfo := h.configService.GetGroupInfoMap(ctx, plans)
 	planList := make([]checkoutPlan, 0, len(plans))
+	now := time.Now()
 	for _, p := range plans {
 		gi := groupInfo[p.GroupID]
+		dailyRemaining, err := h.configService.SubscriptionPlanDailyPurchaseRemaining(ctx, p, now)
+		if err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+		dailyStatus, dailyCountdown := service.SubscriptionPlanDailySaleState(p, now)
+		if dailyRemaining != nil && *dailyRemaining <= 0 {
+			dailyStatus = "sold_out"
+		}
 		planList = append(planList, checkoutPlan{
 			ID: int64(p.ID), GroupID: p.GroupID,
 			GroupPlatform: gi.Platform, GroupName: gi.Name,
@@ -128,6 +138,17 @@ func (h *PaymentHandler) GetCheckoutInfo(c *gin.Context) {
 			Name:        p.Name, Description: p.Description, Price: p.Price, OriginalPrice: p.OriginalPrice,
 			ValidityDays: p.ValidityDays, ValidityUnit: p.ValidityUnit, Features: parseFeatures(p.Features),
 			ProductName: p.ProductName,
+			ForSale:     p.ForSale,
+
+			SaleStartsAt:                 p.SaleStartsAt,
+			SaleEndsAt:                   p.SaleEndsAt,
+			DailyPurchaseLimit:           p.DailyPurchaseLimit,
+			DailyPurchaseRemaining:       dailyRemaining,
+			DailySaleStartsAt:            p.DailySaleStartsAt,
+			DailySaleEndsAt:              p.DailySaleEndsAt,
+			DailySaleStatus:              dailyStatus,
+			DailySaleCountdownSeconds:    dailyCountdown,
+			DailySaleAvailableForPayment: dailyStatus == "available",
 		})
 	}
 
@@ -168,23 +189,33 @@ type firstRechargeCheckoutSummary struct {
 }
 
 type checkoutPlan struct {
-	ID              int64    `json:"id"`
-	GroupID         int64    `json:"group_id"`
-	GroupPlatform   string   `json:"group_platform"`
-	GroupName       string   `json:"group_name"`
-	RateMultiplier  float64  `json:"rate_multiplier"`
-	DailyLimitUSD   *float64 `json:"daily_limit_usd"`
-	WeeklyLimitUSD  *float64 `json:"weekly_limit_usd"`
-	MonthlyLimitUSD *float64 `json:"monthly_limit_usd"`
-	ModelScopes     []string `json:"supported_model_scopes"`
-	Name            string   `json:"name"`
-	Description     string   `json:"description"`
-	Price           float64  `json:"price"`
-	OriginalPrice   *float64 `json:"original_price,omitempty"`
-	ValidityDays    int      `json:"validity_days"`
-	ValidityUnit    string   `json:"validity_unit"`
-	Features        []string `json:"features"`
-	ProductName     string   `json:"product_name"`
+	ID                           int64      `json:"id"`
+	GroupID                      int64      `json:"group_id"`
+	GroupPlatform                string     `json:"group_platform"`
+	GroupName                    string     `json:"group_name"`
+	RateMultiplier               float64    `json:"rate_multiplier"`
+	DailyLimitUSD                *float64   `json:"daily_limit_usd"`
+	WeeklyLimitUSD               *float64   `json:"weekly_limit_usd"`
+	MonthlyLimitUSD              *float64   `json:"monthly_limit_usd"`
+	ModelScopes                  []string   `json:"supported_model_scopes"`
+	Name                         string     `json:"name"`
+	Description                  string     `json:"description"`
+	Price                        float64    `json:"price"`
+	OriginalPrice                *float64   `json:"original_price,omitempty"`
+	ValidityDays                 int        `json:"validity_days"`
+	ValidityUnit                 string     `json:"validity_unit"`
+	Features                     []string   `json:"features"`
+	ProductName                  string     `json:"product_name"`
+	ForSale                      bool       `json:"for_sale"`
+	SaleStartsAt                 *time.Time `json:"sale_starts_at,omitempty"`
+	SaleEndsAt                   *time.Time `json:"sale_ends_at,omitempty"`
+	DailyPurchaseLimit           int        `json:"daily_purchase_limit"`
+	DailyPurchaseRemaining       *int       `json:"daily_purchase_remaining"`
+	DailySaleStartsAt            *string    `json:"daily_sale_starts_at"`
+	DailySaleEndsAt              *string    `json:"daily_sale_ends_at"`
+	DailySaleStatus              string     `json:"daily_sale_status"`
+	DailySaleCountdownSeconds    int        `json:"daily_sale_countdown_seconds"`
+	DailySaleAvailableForPayment bool       `json:"daily_sale_available_for_payment"`
 }
 
 func (h *PaymentHandler) firstRechargeCheckoutSummary(ctx context.Context) *firstRechargeCheckoutSummary {

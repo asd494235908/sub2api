@@ -56,6 +56,25 @@ func (SubscriptionPlan) Fields() []ent.Field {
 			Default(""),
 		field.Bool("for_sale").
 			Default(true),
+		field.Time("sale_starts_at").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
+		field.Time("sale_ends_at").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
+		field.Int("daily_purchase_limit").
+			Default(0).
+			NonNegative(),
+		field.String("daily_sale_starts_at").
+			MaxLen(5).
+			Optional().
+			Nillable(),
+		field.String("daily_sale_ends_at").
+			MaxLen(5).
+			Optional().
+			Nillable(),
 		field.Int("sort_order").
 			Default(0),
 		field.Time("created_at").
@@ -73,5 +92,7 @@ func (SubscriptionPlan) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("group_id"),
 		index.Fields("for_sale"),
+		index.Fields("sale_starts_at"),
+		index.Fields("sale_ends_at"),
 	}
 }

@@ -256,6 +256,31 @@ describe('HomeView', () => {
     expect(wrapper.find('img[alt="home.landing.community.qrAlt.qq"]').exists()).toBe(false)
   })
 
+  it('renders newline-separated homepage contacts as trimmed rows', () => {
+    appState.cachedPublicSettings = {
+      home_content: '',
+      site_logo: '/brand.svg',
+      qq_group: ' 123456789 \n\n987654321 ',
+      wechat_contact: ' sub2api_support\nwechat_helper ',
+      home_links: []
+    }
+
+    const wrapper = mount(HomeView, {
+      global: {
+        stubs: {
+          RouterLink: {
+            props: ['to'],
+            template: '<a :href="typeof to === \'string\' ? to : to?.path"><slot /></a>'
+          }
+        }
+      }
+    })
+
+    const contactRows = wrapper.findAll('[data-test="footer-contact-line"]').map((node) => node.text())
+    expect(contactRows).toEqual(['123456789', '987654321', 'sub2api_support', 'wechat_helper'])
+    expect(contactRows).not.toContain('')
+  })
+
   it('hides homepage contact section when both contacts are empty', () => {
     const wrapper = mount(HomeView, {
       global: {

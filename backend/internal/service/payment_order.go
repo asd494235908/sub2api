@@ -134,8 +134,11 @@ func (s *PaymentService) validateSubOrder(ctx context.Context, req CreateOrderRe
 		return nil, infraerrors.BadRequest("INVALID_INPUT", "subscription order requires a plan")
 	}
 	plan, err := s.configService.GetPlan(ctx, req.PlanID)
-	if err != nil || !plan.ForSale {
+	if err != nil || !subscriptionPlanIsAvailableForSale(plan, time.Now()) {
 		return nil, infraerrors.NotFound("PLAN_NOT_AVAILABLE", "plan not found or not for sale")
+	}
+	if err := s.checkPlanDailyPurchaseLimit(ctx, plan); err != nil {
+		return nil, err
 	}
 	group, err := s.groupRepo.GetByID(ctx, plan.GroupID)
 	if err != nil || group.Status != payment.EntityStatusActive {
@@ -145,6 +148,90 @@ func (s *PaymentService) validateSubOrder(ctx context.Context, req CreateOrderRe
 		return nil, infraerrors.BadRequest("GROUP_TYPE_MISMATCH", "group is not a subscription type")
 	}
 	return plan, nil
+}
+
+func subscriptionPlanIsInSaleWindow(plan *dbent.SubscriptionPlan, now time.Time) bool {
+	if plan == nil {
+		return false
+	}
+	if plan.SaleStartsAt != nil && plan.SaleStartsAt.After(now) {
+		return false
+	}
+	if plan.SaleEndsAt != nil && !plan.SaleEndsAt.After(now) {
+		return false
+	}
+	return true
+}
+
+func subscriptionPlanIsAvailableForSale(plan *dbent.SubscriptionPlan, now time.Time) bool {
+	if plan == nil || !plan.ForSale || !subscriptionPlanIsInSaleWindow(plan, now) {
+		return false
+	}
+	return subscriptionPlanIsInDailySaleWindow(plan, now)
+}
+
+func subscriptionPlanIsInDailySaleWindow(plan *dbent.SubscriptionPlan, now time.Time) bool {
+	if plan == nil || plan.DailySaleStartsAt == nil || plan.DailySaleEndsAt == nil {
+		return true
+	}
+	startMinute, ok := parseDailySaleMinute(*plan.DailySaleStartsAt)
+	if !ok {
+		return false
+	}
+	endMinute, ok := parseDailySaleMinute(*plan.DailySaleEndsAt)
+	if !ok {
+		return false
+	}
+	currentMinute := now.Local().Hour()*60 + now.Local().Minute()
+	if startMinute == endMinute {
+		return true
+	}
+	if startMinute < endMinute {
+		return currentMinute >= startMinute && currentMinute < endMinute
+	}
+	return currentMinute >= startMinute || currentMinute < endMinute
+}
+
+func parseDailySaleMinute(value string) (int, bool) {
+	if len(value) != 5 || value[2] != ':' {
+		return 0, false
+	}
+	if !isDailySaleTimeDigit(value[0]) || !isDailySaleTimeDigit(value[1]) ||
+		!isDailySaleTimeDigit(value[3]) || !isDailySaleTimeDigit(value[4]) {
+		return 0, false
+	}
+	hour := int(value[0]-'0')*10 + int(value[1]-'0')
+	minute := int(value[3]-'0')*10 + int(value[4]-'0')
+	if hour > 23 || minute > 59 {
+		return 0, false
+	}
+	return hour*60 + minute, true
+}
+
+func isDailySaleTimeDigit(value byte) bool {
+	return value >= '0' && value <= '9'
+}
+
+func (s *PaymentService) checkPlanDailyPurchaseLimit(ctx context.Context, plan *dbent.SubscriptionPlan) error {
+	if plan == nil || plan.DailyPurchaseLimit <= 0 {
+		return nil
+	}
+	now := time.Now()
+	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	count, err := s.entClient.PaymentOrder.Query().
+		Where(
+			paymentorder.PlanIDEQ(plan.ID),
+			paymentorder.CreatedAtGTE(startOfDay),
+			paymentorder.StatusIn(OrderStatusPending, OrderStatusPaid, OrderStatusRecharging, OrderStatusCompleted),
+		).
+		Count(ctx)
+	if err != nil {
+		return fmt.Errorf("query plan daily purchases: %w", err)
+	}
+	if count >= plan.DailyPurchaseLimit {
+		return infraerrors.TooManyRequests("PLAN_DAILY_LIMIT_REACHED", "daily purchase limit reached")
+	}
+	return nil
 }
 
 func (s *PaymentService) createOrderInTx(ctx context.Context, req CreateOrderRequest, user *User, plan *dbent.SubscriptionPlan, cfg *PaymentConfig, orderAmount, limitAmount, feeRate, payAmount float64, sel *payment.InstanceSelection) (*dbent.PaymentOrder, error) {

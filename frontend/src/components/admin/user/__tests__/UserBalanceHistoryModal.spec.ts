@@ -171,7 +171,7 @@ describe('UserBalanceHistoryModal', () => {
     expect(wrapper.text()).toContain('redeem.systemGrant')
   })
 
-  it('renders first recharge bonuses as platform quota grants', async () => {
+  it('renders first recharge bonus values without a Chinese unit', async () => {
     getUserBalanceHistory.mockResolvedValue({
       items: [
         {
@@ -200,7 +200,8 @@ describe('UserBalanceHistoryModal', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('首冲赠送额度')
-    expect(wrapper.text()).toContain('+15.00 平台额度')
+    expect(wrapper.text()).toContain('+15.00')
+    expect(wrapper.text()).not.toContain('平台额度')
     expect(wrapper.text()).toContain('redeem.systemGrant')
     expect(wrapper.text()).not.toContain('+¥15.00')
   })

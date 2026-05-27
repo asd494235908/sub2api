@@ -36,6 +36,21 @@
         <template #cell-validity_days="{ value, row }">
           <span class="text-sm">{{ value }} {{ t('payment.admin.' + (row.validity_unit || 'days')) }}</span>
         </template>
+        <template #cell-sale_starts_at="{ value }">
+          <span class="text-sm text-gray-700 dark:text-gray-300">{{ formatPlanDateTime(value) }}</span>
+        </template>
+        <template #cell-sale_ends_at="{ value }">
+          <span class="text-sm text-gray-700 dark:text-gray-300">{{ formatPlanDateTime(value) }}</span>
+        </template>
+        <template #cell-daily_purchase_limit="{ value }">
+          <span class="text-sm">{{ value ? value : t('payment.admin.unlimited') }}</span>
+        </template>
+        <template #cell-daily_sale_starts_at="{ value }">
+          <span class="text-sm text-gray-700 dark:text-gray-300">{{ formatPlanTime(value) }}</span>
+        </template>
+        <template #cell-daily_sale_ends_at="{ value }">
+          <span class="text-sm text-gray-700 dark:text-gray-300">{{ formatPlanTime(value) }}</span>
+        </template>
         <template #cell-for_sale="{ value, row }">
           <button
             type="button"
@@ -133,6 +148,11 @@ const planColumns = computed((): Column[] => [
   { key: 'group_id', label: t('payment.admin.group') },
   { key: 'price', label: t('payment.admin.price') },
   { key: 'validity_days', label: t('payment.admin.validityDays') },
+  { key: 'sale_starts_at', label: t('payment.admin.saleStartsAt') },
+  { key: 'sale_ends_at', label: t('payment.admin.saleEndsAt') },
+  { key: 'daily_purchase_limit', label: t('payment.admin.dailyPurchaseLimit') },
+  { key: 'daily_sale_starts_at', label: t('payment.admin.dailySaleStartsAt') },
+  { key: 'daily_sale_ends_at', label: t('payment.admin.dailySaleEndsAt') },
   { key: 'for_sale', label: t('payment.admin.forSale') },
   { key: 'sort_order', label: t('payment.admin.sortOrder') },
   { key: 'actions', label: t('common.actions') },
@@ -157,6 +177,17 @@ async function loadPlans() {
 function openPlanEdit(plan: SubscriptionPlan | null) {
   editingPlan.value = plan
   showPlanDialog.value = true
+}
+
+function formatPlanDateTime(value?: string | null): string {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+  return date.toLocaleString()
+}
+
+function formatPlanTime(value?: string | null): string {
+  return value || '-'
 }
 
 

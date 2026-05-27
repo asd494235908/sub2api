@@ -1,11 +1,14 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
+	"time"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
@@ -150,31 +153,79 @@ type UpdateProviderInstanceRequest struct {
 	AllowUserRefund *bool             `json:"allow_user_refund"`
 }
 type CreatePlanRequest struct {
-	GroupID       int64    `json:"group_id"`
-	Name          string   `json:"name"`
-	Description   string   `json:"description"`
-	Price         float64  `json:"price"`
-	OriginalPrice *float64 `json:"original_price"`
-	ValidityDays  int      `json:"validity_days"`
-	ValidityUnit  string   `json:"validity_unit"`
-	Features      string   `json:"features"`
-	ProductName   string   `json:"product_name"`
-	ForSale       bool     `json:"for_sale"`
-	SortOrder     int      `json:"sort_order"`
+	GroupID            int64      `json:"group_id"`
+	Name               string     `json:"name"`
+	Description        string     `json:"description"`
+	Price              float64    `json:"price"`
+	OriginalPrice      *float64   `json:"original_price"`
+	ValidityDays       int        `json:"validity_days"`
+	ValidityUnit       string     `json:"validity_unit"`
+	Features           string     `json:"features"`
+	ProductName        string     `json:"product_name"`
+	ForSale            bool       `json:"for_sale"`
+	SaleStartsAt       *time.Time `json:"sale_starts_at"`
+	SaleEndsAt         *time.Time `json:"sale_ends_at"`
+	DailyPurchaseLimit int        `json:"daily_purchase_limit"`
+	DailySaleStartsAt  string     `json:"daily_sale_starts_at"`
+	DailySaleEndsAt    string     `json:"daily_sale_ends_at"`
+	SortOrder          int        `json:"sort_order"`
 }
 
 type UpdatePlanRequest struct {
-	GroupID       *int64   `json:"group_id"`
-	Name          *string  `json:"name"`
-	Description   *string  `json:"description"`
-	Price         *float64 `json:"price"`
-	OriginalPrice *float64 `json:"original_price"`
-	ValidityDays  *int     `json:"validity_days"`
-	ValidityUnit  *string  `json:"validity_unit"`
-	Features      *string  `json:"features"`
-	ProductName   *string  `json:"product_name"`
-	ForSale       *bool    `json:"for_sale"`
-	SortOrder     *int     `json:"sort_order"`
+	GroupID            *int64         `json:"group_id"`
+	Name               *string        `json:"name"`
+	Description        *string        `json:"description"`
+	Price              *float64       `json:"price"`
+	OriginalPrice      *float64       `json:"original_price"`
+	ValidityDays       *int           `json:"validity_days"`
+	ValidityUnit       *string        `json:"validity_unit"`
+	Features           *string        `json:"features"`
+	ProductName        *string        `json:"product_name"`
+	ForSale            *bool          `json:"for_sale"`
+	SaleStartsAt       OptionalTime   `json:"sale_starts_at"`
+	SaleEndsAt         OptionalTime   `json:"sale_ends_at"`
+	DailyPurchaseLimit *int           `json:"daily_purchase_limit"`
+	DailySaleStartsAt  OptionalString `json:"daily_sale_starts_at"`
+	DailySaleEndsAt    OptionalString `json:"daily_sale_ends_at"`
+	SortOrder          *int           `json:"sort_order"`
+}
+
+type OptionalString struct {
+	Set   bool
+	Value *string
+}
+
+func (s *OptionalString) UnmarshalJSON(data []byte) error {
+	s.Set = true
+	if bytes.Equal(bytes.TrimSpace(data), []byte("null")) {
+		s.Value = nil
+		return nil
+	}
+	var value string
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	s.Value = &value
+	return nil
+}
+
+type OptionalTime struct {
+	Set   bool
+	Value *time.Time
+}
+
+func (t *OptionalTime) UnmarshalJSON(data []byte) error {
+	t.Set = true
+	if bytes.Equal(bytes.TrimSpace(data), []byte("null")) {
+		t.Value = nil
+		return nil
+	}
+	var value time.Time
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	t.Value = &value
+	return nil
 }
 
 // PaymentConfigService manages payment configuration and CRUD for

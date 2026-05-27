@@ -115,6 +115,10 @@ func (r *weeklyQuotaRedeemRepoStub) Update(context.Context, *RedeemCode) error {
 	panic("unexpected Update")
 }
 
+func (r *weeklyQuotaRedeemRepoStub) BatchUpdate(context.Context, []int64, RedeemCodeBatchUpdateFields) (int64, error) {
+	panic("unexpected BatchUpdate")
+}
+
 func (r *weeklyQuotaRedeemRepoStub) Delete(context.Context, int64) error {
 	panic("unexpected Delete")
 }

@@ -114,6 +114,12 @@ func (r *redeemCodeRepository) ListWithFilters(ctx context.Context, params pagin
 	if status != "" {
 		now := time.Now()
 		switch status {
+		case service.StatusUsed:
+			q = q.Where(redeemcode.Or(
+				redeemcode.StatusEQ(service.StatusUsed),
+				redeemcode.UsedByNotNil(),
+				redeemcode.UsedAtNotNil(),
+			))
 		case service.StatusExpired:
 			q = q.Where(redeemcode.Or(
 				redeemcode.StatusEQ(service.StatusExpired),
@@ -121,11 +127,15 @@ func (r *redeemCodeRepository) ListWithFilters(ctx context.Context, params pagin
 					redeemcode.StatusEQ(service.StatusUnused),
 					redeemcode.ExpiresAtNotNil(),
 					redeemcode.ExpiresAtLTE(now),
+					redeemcode.UsedByIsNil(),
+					redeemcode.UsedAtIsNil(),
 				),
 			))
 		case service.StatusUnused:
 			q = q.Where(
 				redeemcode.StatusEQ(service.StatusUnused),
+				redeemcode.UsedByIsNil(),
+				redeemcode.UsedAtIsNil(),
 				redeemcode.Or(
 					redeemcode.ExpiresAtIsNil(),
 					redeemcode.ExpiresAtGT(now),
@@ -193,7 +203,19 @@ func redeemCodeListOrder(params pagination.PaginationParams) []func(*entsql.Sele
 	}
 
 	if sortOrder == pagination.SortOrderAsc {
+		if field == redeemcode.FieldUsedAt {
+			return []func(*entsql.Selector){
+				entsql.OrderByField(field, entsql.OrderNullsLast()).ToFunc(),
+				dbent.Asc(redeemcode.FieldID),
+			}
+		}
 		return []func(*entsql.Selector){dbent.Asc(field), dbent.Asc(redeemcode.FieldID)}
+	}
+	if field == redeemcode.FieldUsedAt {
+		return []func(*entsql.Selector){
+			entsql.OrderByField(field, entsql.OrderDesc(), entsql.OrderNullsLast()).ToFunc(),
+			dbent.Desc(redeemcode.FieldID),
+		}
 	}
 	return []func(*entsql.Selector){dbent.Desc(field), dbent.Desc(redeemcode.FieldID)}
 }
@@ -237,6 +259,91 @@ func (r *redeemCodeRepository) Update(ctx context.Context, code *service.RedeemC
 	}
 	code.CreatedAt = updated.CreatedAt
 	return nil
+}
+
+func (r *redeemCodeRepository) BatchUpdate(ctx context.Context, ids []int64, fields service.RedeemCodeBatchUpdateFields) (int64, error) {
+	uniqueIDs := make([]int64, 0, len(ids))
+	seen := make(map[int64]struct{}, len(ids))
+	for _, id := range ids {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		uniqueIDs = append(uniqueIDs, id)
+	}
+	if len(uniqueIDs) == 0 {
+		return 0, nil
+	}
+
+	if tx := dbent.TxFromContext(ctx); tx != nil {
+		return r.batchUpdate(ctx, tx.Client(), uniqueIDs, fields)
+	}
+
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return 0, err
+	}
+	txCtx := dbent.NewTxContext(ctx, tx)
+	defer func() { _ = tx.Rollback() }()
+
+	updated, err := r.batchUpdate(txCtx, tx.Client(), uniqueIDs, fields)
+	if err != nil {
+		return 0, err
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+	return updated, nil
+}
+
+func (r *redeemCodeRepository) batchUpdate(ctx context.Context, client *dbent.Client, ids []int64, fields service.RedeemCodeBatchUpdateFields) (int64, error) {
+	existing, err := client.RedeemCode.Query().
+		Where(redeemcode.IDIn(ids...)).
+		All(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if len(existing) != len(ids) {
+		return 0, service.ErrRedeemCodeNotFound
+	}
+	if fields.TouchesUsedSensitiveFields() {
+		for _, code := range existing {
+			if code.Status == service.StatusUsed {
+				return 0, service.ErrRedeemCodeUsed
+			}
+		}
+	}
+
+	up := client.RedeemCode.Update().Where(redeemcode.IDIn(ids...))
+	if fields.Status != nil {
+		up.SetStatus(*fields.Status)
+	}
+	if fields.Notes != nil {
+		up.SetNotes(*fields.Notes)
+	}
+	if fields.ExpiresAt.Set {
+		if fields.ExpiresAt.Value != nil {
+			up.SetExpiresAt(*fields.ExpiresAt.Value)
+		} else {
+			up.ClearExpiresAt()
+		}
+	}
+	if fields.GroupID.Set {
+		if fields.GroupID.Value != nil {
+			up.SetGroupID(*fields.GroupID.Value)
+		} else {
+			up.ClearGroupID()
+		}
+	}
+
+	affected, err := up.Save(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if affected != len(ids) {
+		return 0, service.ErrRedeemCodeNotFound
+	}
+	return int64(affected), nil
 }
 
 func (r *redeemCodeRepository) Use(ctx context.Context, id, userID int64) error {

@@ -39,7 +39,7 @@ type AdminService interface {
 	GetUserRPMStatus(ctx context.Context, userID int64) (*UserRPMStatus, error)
 	// GetUserBalanceHistory returns paginated balance/concurrency change records for a user.
 	// codeType is optional - pass empty string to return all types.
-	// Also returns totalRecharged (sum of all positive balance top-ups).
+	// Also returns totalRecharged (completed balance recharge pay amount total).
 	GetUserBalanceHistory(ctx context.Context, userID int64, page, pageSize int, codeType string) ([]RedeemCode, int64, float64, error)
 	BindUserAuthIdentity(ctx context.Context, userID int64, input AdminBindAuthIdentityInput) (*AdminBoundAuthIdentity, error)
 
@@ -533,6 +533,7 @@ type adminServiceImpl struct {
 	defaultSubAssigner   DefaultSubscriptionAssigner
 	userSubRepo          UserSubscriptionRepository
 	privacyClientFactory PrivacyClientFactory
+	runtimeBlocker       AccountRuntimeBlocker
 }
 
 type userGroupRateBatchReader interface {
@@ -558,6 +559,7 @@ func NewAdminService(
 	defaultSubAssigner DefaultSubscriptionAssigner,
 	userSubRepo UserSubscriptionRepository,
 	privacyClientFactory PrivacyClientFactory,
+	runtimeBlocker AccountRuntimeBlocker,
 ) AdminService {
 	return &adminServiceImpl{
 		userRepo:             userRepo,
@@ -577,6 +579,7 @@ func NewAdminService(
 		defaultSubAssigner:   defaultSubAssigner,
 		userSubRepo:          userSubRepo,
 		privacyClientFactory: privacyClientFactory,
+		runtimeBlocker:       runtimeBlocker,
 	}
 }
 
@@ -1026,7 +1029,7 @@ func (s *adminServiceImpl) GetUserBalanceHistory(ctx context.Context, userID int
 		if err != nil {
 			return nil, 0, 0, err
 		}
-		totalRecharged, err := s.redeemCodeRepo.SumPositiveBalanceByUser(ctx, userID)
+		totalRecharged, err := s.getUserTotalRecharged(ctx, userID)
 		if err != nil {
 			return nil, 0, 0, err
 		}
@@ -1037,7 +1040,7 @@ func (s *adminServiceImpl) GetUserBalanceHistory(ctx context.Context, userID int
 		if err != nil {
 			return nil, 0, 0, err
 		}
-		totalRecharged, err := s.redeemCodeRepo.SumPositiveBalanceByUser(ctx, userID)
+		totalRecharged, err := s.getUserTotalRecharged(ctx, userID)
 		if err != nil {
 			return nil, 0, 0, err
 		}
@@ -1053,8 +1056,7 @@ func (s *adminServiceImpl) GetUserBalanceHistory(ctx context.Context, userID int
 		return nil, 0, 0, err
 	}
 	total := result.Total
-	// Aggregate total recharged amount (only once, regardless of type filter)
-	totalRecharged, err := s.redeemCodeRepo.SumPositiveBalanceByUser(ctx, userID)
+	totalRecharged, err := s.getUserTotalRecharged(ctx, userID)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -1081,11 +1083,22 @@ func (s *adminServiceImpl) getAllUserBalanceHistory(ctx context.Context, userID 
 	}
 	codes := mergeBalanceHistoryCodes(redeemCodes, affiliateCodes, luckyWheelCodes, params)
 
-	totalRecharged, err := s.redeemCodeRepo.SumPositiveBalanceByUser(ctx, userID)
+	totalRecharged, err := s.getUserTotalRecharged(ctx, userID)
 	if err != nil {
 		return nil, 0, 0, err
 	}
 	return codes, redeemTotal + affiliateTotal + luckyWheelTotal, totalRecharged, nil
+}
+
+func (s *adminServiceImpl) getUserTotalRecharged(ctx context.Context, userID int64) (float64, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+	if user == nil {
+		return 0, ErrUserNotFound
+	}
+	return user.TotalRecharged, nil
 }
 
 func (s *adminServiceImpl) listRedeemBalanceHistoryForMerge(ctx context.Context, userID int64, needed int) ([]RedeemCode, int64, error) {
@@ -2918,6 +2931,9 @@ func (s *adminServiceImpl) ClearAccountError(ctx context.Context, id int64) (*Ac
 	if err := s.accountRepo.ClearTempUnschedulable(ctx, id); err != nil {
 		return nil, err
 	}
+	if s.runtimeBlocker != nil {
+		s.runtimeBlocker.ClearAccountSchedulingBlock(id)
+	}
 	return s.accountRepo.GetByID(ctx, id)
 }
 
@@ -3095,19 +3111,15 @@ func (s *adminServiceImpl) ListRedeemCodes(ctx context.Context, page, pageSize i
 			needed = params.Limit()
 		}
 		mergeSortBy := normalizeRedeemCodeMergeSortBy(sortBy)
-		mergeParams := pagination.PaginationParams{Page: 1, PageSize: needed, SortBy: mergeSortBy, SortOrder: sortOrder}
-		redeemCodes, result, err := s.redeemCodeRepo.ListWithFilters(ctx, mergeParams, codeType, status, search)
+		redeemCodes, redeemTotal, err := s.listRedeemCodesForAdminMerge(ctx, needed, codeType, status, search, mergeSortBy, sortOrder)
 		if err != nil {
 			return nil, 0, err
 		}
-		luckyCodes, luckyTotal, err := s.listLuckyWheelRedeemCodes(ctx, mergeParams, status, search)
+		luckyCodes, luckyTotal, err := s.listLuckyWheelRedeemCodesForAdminMerge(ctx, needed, status, search, mergeSortBy, sortOrder)
 		if err != nil {
 			return nil, 0, err
 		}
-		total := luckyTotal
-		if result != nil {
-			total += result.Total
-		}
+		total := redeemTotal + luckyTotal
 		return mergeRedeemCodeAdminList(redeemCodes, luckyCodes, params, mergeSortBy, sortOrder), total, nil
 	}
 	codes, result, err := s.redeemCodeRepo.ListWithFilters(ctx, params, codeType, status, search)
@@ -3115,6 +3127,62 @@ func (s *adminServiceImpl) ListRedeemCodes(ctx context.Context, page, pageSize i
 		return nil, 0, err
 	}
 	return codes, result.Total, nil
+}
+
+func (s *adminServiceImpl) listRedeemCodesForAdminMerge(ctx context.Context, needed int, codeType, status, search, sortBy, sortOrder string) ([]RedeemCode, int64, error) {
+	batchSize := redeemCodeAdminMergeBatchSize(needed)
+	codes := make([]RedeemCode, 0, needed)
+	var total int64
+	for page := 1; len(codes) < needed; page++ {
+		params := pagination.PaginationParams{Page: page, PageSize: batchSize, SortBy: sortBy, SortOrder: sortOrder}
+		batch, result, err := s.redeemCodeRepo.ListWithFilters(ctx, params, codeType, status, search)
+		if err != nil {
+			return nil, 0, err
+		}
+		if result != nil {
+			total = result.Total
+		}
+		codes = append(codes, batch...)
+		if len(batch) < params.Limit() || (total > 0 && int64(len(codes)) >= total) {
+			break
+		}
+	}
+	if len(codes) > needed {
+		codes = codes[:needed]
+	}
+	return codes, total, nil
+}
+
+func (s *adminServiceImpl) listLuckyWheelRedeemCodesForAdminMerge(ctx context.Context, needed int, status, search, sortBy, sortOrder string) ([]RedeemCode, int64, error) {
+	batchSize := redeemCodeAdminMergeBatchSize(needed)
+	codes := make([]RedeemCode, 0, needed)
+	var total int64
+	for page := 1; len(codes) < needed; page++ {
+		params := pagination.PaginationParams{Page: page, PageSize: batchSize, SortBy: sortBy, SortOrder: sortOrder}
+		batch, batchTotal, err := s.listLuckyWheelRedeemCodes(ctx, params, status, search)
+		if err != nil {
+			return nil, 0, err
+		}
+		total = batchTotal
+		codes = append(codes, batch...)
+		if len(batch) < params.Limit() || (total > 0 && int64(len(codes)) >= total) {
+			break
+		}
+	}
+	if len(codes) > needed {
+		codes = codes[:needed]
+	}
+	return codes, total, nil
+}
+
+func redeemCodeAdminMergeBatchSize(needed int) int {
+	if needed < 1 {
+		return pagination.DefaultPagination().Limit()
+	}
+	if needed > 1000 {
+		return 1000
+	}
+	return needed
 }
 
 func normalizeRedeemCodeMergeSortBy(sortBy string) string {

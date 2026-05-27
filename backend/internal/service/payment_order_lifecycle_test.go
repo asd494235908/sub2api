@@ -191,6 +191,10 @@ func (r *paymentOrderLifecycleRedeemRepo) Update(context.Context, *RedeemCode) e
 	panic("unexpected call")
 }
 
+func (r *paymentOrderLifecycleRedeemRepo) BatchUpdate(context.Context, []int64, RedeemCodeBatchUpdateFields) (int64, error) {
+	panic("unexpected call")
+}
+
 func (r *paymentOrderLifecycleRedeemRepo) Delete(context.Context, int64) error {
 	panic("unexpected call")
 }
@@ -548,6 +552,9 @@ func TestExecuteBalanceFulfillmentCreatesRedeemCodeFromCreditedAmount(t *testing
 	reloaded, err := client.PaymentOrder.Get(ctx, order.ID)
 	require.NoError(t, err)
 	require.Equal(t, OrderStatusCompleted, reloaded.Status)
+	reloadedUser, err := client.User.Get(ctx, user.ID)
+	require.NoError(t, err)
+	require.InDelta(t, 20.0, reloadedUser.TotalRecharged, 1e-9)
 }
 
 func TestExecuteBalanceFulfillmentAppliesFirstRechargeBonusOncePerTier(t *testing.T) {
@@ -635,6 +642,9 @@ func TestExecuteBalanceFulfillmentAppliesFirstRechargeBonusOncePerTier(t *testin
 	require.InDelta(t, 30.0, bonusCodes[0].Value, 1e-9)
 	require.Contains(t, bonusCodes[0].Notes, "tier-30")
 	require.InDelta(t, 90.0, userRepo.getByIDUser.Balance, 1e-9)
+	reloadedUser, err := client.User.Get(ctx, user.ID)
+	require.NoError(t, err)
+	require.InDelta(t, 60.0, reloadedUser.TotalRecharged, 1e-9)
 
 	result, err := svc.GrantFirstRechargeChance(ctx, user.ID, "tier-30", 1, "admin", "manual grant")
 	require.NoError(t, err)
@@ -668,6 +678,9 @@ func TestExecuteBalanceFulfillmentAppliesFirstRechargeBonusOncePerTier(t *testin
 	}
 	require.Len(t, bonusCodes, 2)
 	require.InDelta(t, 150.0, userRepo.getByIDUser.Balance, 1e-9)
+	reloadedUser, err = client.User.Get(ctx, user.ID)
+	require.NoError(t, err)
+	require.InDelta(t, 90.0, reloadedUser.TotalRecharged, 1e-9)
 }
 
 func TestBulkUpdateFirstRechargeChancesPreservesHistory(t *testing.T) {

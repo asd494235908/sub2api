@@ -4,15 +4,17 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/ent/group"
+	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/subscriptionplan"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 )
 
 // validatePlanRequired checks that all required fields for a plan are provided.
-func validatePlanRequired(name string, groupID int64, price float64, validityDays int, validityUnit string, originalPrice *float64) error {
+func validatePlanRequired(name string, groupID int64, price float64, validityDays int, validityUnit string, originalPrice *float64, saleStartsAt, saleEndsAt *time.Time, dailyPurchaseLimit int, dailySaleStartsAt, dailySaleEndsAt string) error {
 	if strings.TrimSpace(name) == "" {
 		return infraerrors.BadRequest("PLAN_NAME_REQUIRED", "plan name is required")
 	}
@@ -30,6 +32,9 @@ func validatePlanRequired(name string, groupID int64, price float64, validityDay
 	}
 	if originalPrice != nil && *originalPrice < 0 {
 		return infraerrors.BadRequest("PLAN_ORIGINAL_PRICE_INVALID", "original price must be >= 0")
+	}
+	if err := validatePlanSaleControls(saleStartsAt, saleEndsAt, dailyPurchaseLimit, normalizeOptionalString(dailySaleStartsAt), normalizeOptionalString(dailySaleEndsAt)); err != nil {
+		return err
 	}
 	return nil
 }
@@ -54,7 +59,39 @@ func validatePlanPatch(req UpdatePlanRequest) error {
 	if req.OriginalPrice != nil && *req.OriginalPrice < 0 {
 		return infraerrors.BadRequest("PLAN_ORIGINAL_PRICE_INVALID", "original price must be >= 0")
 	}
+	if req.DailyPurchaseLimit != nil && *req.DailyPurchaseLimit < 0 {
+		return infraerrors.BadRequest("PLAN_DAILY_PURCHASE_LIMIT_INVALID", "daily purchase limit must be >= 0")
+	}
 	return nil
+}
+
+func validatePlanSaleControls(saleStartsAt, saleEndsAt *time.Time, dailyPurchaseLimit int, dailySaleStartsAt, dailySaleEndsAt *string) error {
+	if dailyPurchaseLimit < 0 {
+		return infraerrors.BadRequest("PLAN_DAILY_PURCHASE_LIMIT_INVALID", "daily purchase limit must be >= 0")
+	}
+	if saleStartsAt != nil && saleEndsAt != nil && !saleEndsAt.After(*saleStartsAt) {
+		return infraerrors.BadRequest("PLAN_SALE_WINDOW_INVALID", "sale end time must be after sale start time")
+	}
+	if (dailySaleStartsAt == nil) != (dailySaleEndsAt == nil) {
+		return infraerrors.BadRequest("PLAN_DAILY_SALE_WINDOW_INVALID", "daily sale start and end time must be set together")
+	}
+	if dailySaleStartsAt != nil {
+		if _, ok := parseDailySaleMinute(*dailySaleStartsAt); !ok {
+			return infraerrors.BadRequest("PLAN_DAILY_SALE_WINDOW_INVALID", "daily sale time must use HH:mm format")
+		}
+		if _, ok := parseDailySaleMinute(*dailySaleEndsAt); !ok {
+			return infraerrors.BadRequest("PLAN_DAILY_SALE_WINDOW_INVALID", "daily sale time must use HH:mm format")
+		}
+	}
+	return nil
+}
+
+func normalizeOptionalString(value string) *string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
 }
 
 // --- Plan CRUD ---
@@ -117,20 +154,168 @@ func (s *PaymentConfigService) ListPlans(ctx context.Context) ([]*dbent.Subscrip
 }
 
 func (s *PaymentConfigService) ListPlansForSale(ctx context.Context) ([]*dbent.SubscriptionPlan, error) {
-	return s.entClient.SubscriptionPlan.Query().Where(subscriptionplan.ForSaleEQ(true)).Order(subscriptionplan.BySortOrder()).All(ctx)
+	now := time.Now()
+	plans, err := s.entClient.SubscriptionPlan.Query().
+		Where(
+			subscriptionplan.ForSaleEQ(true),
+			subscriptionplan.Or(subscriptionplan.SaleStartsAtIsNil(), subscriptionplan.SaleStartsAtLTE(now)),
+			subscriptionplan.Or(subscriptionplan.SaleEndsAtIsNil(), subscriptionplan.SaleEndsAtGT(now)),
+		).
+		Order(subscriptionplan.BySortOrder()).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := plans[:0]
+	for _, plan := range plans {
+		if subscriptionPlanIsAvailableForSale(plan, now) {
+			result = append(result, plan)
+		}
+	}
+	return result, nil
+}
+
+func (s *PaymentConfigService) ListCheckoutSubscriptionPlans(ctx context.Context) ([]*dbent.SubscriptionPlan, error) {
+	now := time.Now()
+	plans, err := s.entClient.SubscriptionPlan.Query().
+		Where(
+			subscriptionplan.ForSaleEQ(true),
+			subscriptionplan.Or(subscriptionplan.SaleStartsAtIsNil(), subscriptionplan.SaleStartsAtLTE(now)),
+			subscriptionplan.Or(subscriptionplan.SaleEndsAtIsNil(), subscriptionplan.SaleEndsAtGT(now)),
+		).
+		Order(subscriptionplan.BySortOrder()).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(plans) == 0 {
+		return plans, nil
+	}
+	groupIDs := make([]int64, 0, len(plans))
+	seenGroup := make(map[int64]bool, len(plans))
+	for _, plan := range plans {
+		if !seenGroup[plan.GroupID] {
+			seenGroup[plan.GroupID] = true
+			groupIDs = append(groupIDs, plan.GroupID)
+		}
+	}
+	groups, err := s.entClient.Group.Query().Where(
+		group.IDIn(groupIDs...),
+		group.StatusEQ(StatusActive),
+		group.SubscriptionTypeEQ(SubscriptionTypeSubscription),
+	).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	subscriptionGroups := make(map[int64]bool, len(groups))
+	for _, g := range groups {
+		subscriptionGroups[int64(g.ID)] = true
+	}
+	result := plans[:0]
+	for _, plan := range plans {
+		if subscriptionGroups[plan.GroupID] {
+			result = append(result, plan)
+		}
+	}
+	return result, nil
+}
+
+func (s *PaymentConfigService) SubscriptionPlanDailyPurchaseRemaining(ctx context.Context, plan *dbent.SubscriptionPlan, now time.Time) (*int, error) {
+	if plan == nil || plan.DailyPurchaseLimit <= 0 {
+		return nil, nil
+	}
+	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	count, err := s.entClient.PaymentOrder.Query().
+		Where(
+			paymentorder.PlanIDEQ(plan.ID),
+			paymentorder.CreatedAtGTE(startOfDay),
+			paymentorder.StatusIn(OrderStatusPending, OrderStatusPaid, OrderStatusRecharging, OrderStatusCompleted),
+		).
+		Count(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("query plan daily purchases: %w", err)
+	}
+	remaining := plan.DailyPurchaseLimit - count
+	if remaining < 0 {
+		remaining = 0
+	}
+	return &remaining, nil
+}
+
+func SubscriptionPlanDailySaleState(plan *dbent.SubscriptionPlan, now time.Time) (string, int) {
+	if plan == nil || plan.DailySaleStartsAt == nil || plan.DailySaleEndsAt == nil {
+		return "available", 0
+	}
+	startMinute, ok := parseDailySaleMinute(*plan.DailySaleStartsAt)
+	if !ok {
+		return "unavailable", 0
+	}
+	endMinute, ok := parseDailySaleMinute(*plan.DailySaleEndsAt)
+	if !ok {
+		return "unavailable", 0
+	}
+	if startMinute == endMinute {
+		return "available", 0
+	}
+
+	localNow := now.Local()
+	currentMinute := localNow.Hour()*60 + localNow.Minute()
+	currentSecondOfDay := currentMinute*60 + localNow.Second()
+	startSecond := startMinute * 60
+	endSecond := endMinute * 60
+	secondsPerDay := 24 * 60 * 60
+
+	if startMinute < endMinute {
+		if currentMinute >= startMinute && currentMinute < endMinute {
+			return "available", maxInt(0, endSecond-currentSecondOfDay)
+		}
+		if currentMinute < startMinute {
+			return "pending", maxInt(0, startSecond-currentSecondOfDay)
+		}
+		return "pending", maxInt(0, secondsPerDay-currentSecondOfDay+startSecond)
+	}
+
+	if currentMinute >= startMinute {
+		return "available", maxInt(0, secondsPerDay-currentSecondOfDay+endSecond)
+	}
+	if currentMinute < endMinute {
+		return "available", maxInt(0, endSecond-currentSecondOfDay)
+	}
+	return "pending", maxInt(0, startSecond-currentSecondOfDay)
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 func (s *PaymentConfigService) CreatePlan(ctx context.Context, req CreatePlanRequest) (*dbent.SubscriptionPlan, error) {
-	if err := validatePlanRequired(req.Name, req.GroupID, req.Price, req.ValidityDays, req.ValidityUnit, req.OriginalPrice); err != nil {
+	dailySaleStartsAt := normalizeOptionalString(req.DailySaleStartsAt)
+	dailySaleEndsAt := normalizeOptionalString(req.DailySaleEndsAt)
+	if err := validatePlanRequired(req.Name, req.GroupID, req.Price, req.ValidityDays, req.ValidityUnit, req.OriginalPrice, req.SaleStartsAt, req.SaleEndsAt, req.DailyPurchaseLimit, req.DailySaleStartsAt, req.DailySaleEndsAt); err != nil {
 		return nil, err
 	}
 	b := s.entClient.SubscriptionPlan.Create().
 		SetGroupID(req.GroupID).SetName(req.Name).SetDescription(req.Description).
 		SetPrice(req.Price).SetValidityDays(req.ValidityDays).SetValidityUnit(req.ValidityUnit).
 		SetFeatures(req.Features).SetProductName(req.ProductName).
-		SetForSale(req.ForSale).SetSortOrder(req.SortOrder)
+		SetForSale(req.ForSale).SetDailyPurchaseLimit(req.DailyPurchaseLimit).SetSortOrder(req.SortOrder)
 	if req.OriginalPrice != nil {
 		b.SetOriginalPrice(*req.OriginalPrice)
+	}
+	if req.SaleStartsAt != nil {
+		b.SetSaleStartsAt(*req.SaleStartsAt)
+	}
+	if req.SaleEndsAt != nil {
+		b.SetSaleEndsAt(*req.SaleEndsAt)
+	}
+	if dailySaleStartsAt != nil {
+		b.SetDailySaleStartsAt(*dailySaleStartsAt)
+	}
+	if dailySaleEndsAt != nil {
+		b.SetDailySaleEndsAt(*dailySaleEndsAt)
 	}
 	return b.Save(ctx)
 }
@@ -140,6 +325,39 @@ func (s *PaymentConfigService) CreatePlan(ctx context.Context, req CreatePlanReq
 // plus a validation guard for non-nil fields.
 func (s *PaymentConfigService) UpdatePlan(ctx context.Context, id int64, req UpdatePlanRequest) (*dbent.SubscriptionPlan, error) {
 	if err := validatePlanPatch(req); err != nil {
+		return nil, err
+	}
+	current, err := s.entClient.SubscriptionPlan.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	saleStartsAt := current.SaleStartsAt
+	if req.SaleStartsAt.Set {
+		saleStartsAt = req.SaleStartsAt.Value
+	}
+	saleEndsAt := current.SaleEndsAt
+	if req.SaleEndsAt.Set {
+		saleEndsAt = req.SaleEndsAt.Value
+	}
+	dailyPurchaseLimit := current.DailyPurchaseLimit
+	if req.DailyPurchaseLimit != nil {
+		dailyPurchaseLimit = *req.DailyPurchaseLimit
+	}
+	dailySaleStartsAt := current.DailySaleStartsAt
+	if req.DailySaleStartsAt.Set {
+		dailySaleStartsAt = req.DailySaleStartsAt.Value
+	}
+	dailySaleEndsAt := current.DailySaleEndsAt
+	if req.DailySaleEndsAt.Set {
+		dailySaleEndsAt = req.DailySaleEndsAt.Value
+	}
+	if dailySaleStartsAt != nil {
+		dailySaleStartsAt = normalizeOptionalString(*dailySaleStartsAt)
+	}
+	if dailySaleEndsAt != nil {
+		dailySaleEndsAt = normalizeOptionalString(*dailySaleEndsAt)
+	}
+	if err := validatePlanSaleControls(saleStartsAt, saleEndsAt, dailyPurchaseLimit, dailySaleStartsAt, dailySaleEndsAt); err != nil {
 		return nil, err
 	}
 	u := s.entClient.SubscriptionPlan.UpdateOneID(id)
@@ -172,6 +390,37 @@ func (s *PaymentConfigService) UpdatePlan(ctx context.Context, id int64, req Upd
 	}
 	if req.ForSale != nil {
 		u.SetForSale(*req.ForSale)
+	}
+	if req.SaleStartsAt.Set {
+		if req.SaleStartsAt.Value == nil {
+			u.ClearSaleStartsAt()
+		} else {
+			u.SetSaleStartsAt(*req.SaleStartsAt.Value)
+		}
+	}
+	if req.SaleEndsAt.Set {
+		if req.SaleEndsAt.Value == nil {
+			u.ClearSaleEndsAt()
+		} else {
+			u.SetSaleEndsAt(*req.SaleEndsAt.Value)
+		}
+	}
+	if req.DailyPurchaseLimit != nil {
+		u.SetDailyPurchaseLimit(*req.DailyPurchaseLimit)
+	}
+	if req.DailySaleStartsAt.Set {
+		if dailySaleStartsAt == nil {
+			u.ClearDailySaleStartsAt()
+		} else {
+			u.SetDailySaleStartsAt(*dailySaleStartsAt)
+		}
+	}
+	if req.DailySaleEndsAt.Set {
+		if dailySaleEndsAt == nil {
+			u.ClearDailySaleEndsAt()
+		} else {
+			u.SetDailySaleEndsAt(*dailySaleEndsAt)
+		}
 	}
 	if req.SortOrder != nil {
 		u.SetSortOrder(*req.SortOrder)

@@ -131,6 +131,28 @@ func i64p(v int64) *int64 {
 	return &v
 }
 
+type openAIRecordUsageSettingRepoStub struct {
+	SettingRepository
+	values map[string]string
+}
+
+func (s *openAIRecordUsageSettingRepoStub) GetValue(_ context.Context, key string) (string, error) {
+	if value, ok := s.values[key]; ok {
+		return value, nil
+	}
+	return "", ErrSettingNotFound
+}
+
+func (s *openAIRecordUsageSettingRepoStub) GetMultiple(_ context.Context, keys []string) (map[string]string, error) {
+	out := make(map[string]string, len(keys))
+	for _, key := range keys {
+		if value, ok := s.values[key]; ok {
+			out[key] = value
+		}
+	}
+	return out, nil
+}
+
 func newOpenAIRecordUsageServiceForTest(usageRepo UsageLogRepository, userRepo UserRepository, subRepo UserSubscriptionRepository, rateRepo UserGroupRateRepository) *OpenAIGatewayService {
 	cfg := &config.Config{}
 	cfg.Default.RateMultiplier = 1.1
@@ -156,6 +178,7 @@ func newOpenAIRecordUsageServiceForTest(usageRepo UsageLogRepository, userRepo U
 		nil,
 		nil,
 		nil,
+		nil, // userPlatformQuotaRepo
 	)
 	svc.userGroupRateResolver = newUserGroupRateResolver(
 		rateRepo,
@@ -348,7 +371,7 @@ func TestOpenAIGatewayServiceRecordUsage_MemberLevelDisabledKeepsGroupRateForBal
 	subRepo := &openAIRecordUsageSubRepoStub{}
 	svc := newOpenAIRecordUsageServiceForTest(usageRepo, userRepo, subRepo, nil)
 	svc.paymentService = &PaymentService{
-		configService: NewPaymentConfigService(nil, &settingPublicRepoStub{values: map[string]string{
+		configService: NewPaymentConfigService(nil, &openAIRecordUsageSettingRepoStub{values: map[string]string{
 			SettingKeyMemberLevelEnabled: "false",
 		}}, nil),
 	}

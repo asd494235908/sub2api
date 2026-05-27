@@ -409,6 +409,7 @@ func (s *UserRepoSuite) TestUpdateBalance() {
 	got, err := s.repo.GetByID(s.ctx, user.ID)
 	s.Require().NoError(err)
 	s.Require().InDelta(12.5, got.Balance, 1e-6)
+	s.Require().InDelta(0.0, got.TotalRecharged, 1e-6)
 }
 
 func (s *UserRepoSuite) TestUpdateBalance_Negative() {

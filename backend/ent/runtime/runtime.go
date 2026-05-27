@@ -39,6 +39,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/userallowedgroup"
 	"github.com/Wei-Shaw/sub2api/ent/userattributedefinition"
 	"github.com/Wei-Shaw/sub2api/ent/userattributevalue"
+	"github.com/Wei-Shaw/sub2api/ent/userplatformquota"
 	"github.com/Wei-Shaw/sub2api/ent/usersubscription"
 	"github.com/Wei-Shaw/sub2api/internal/domain"
 )
@@ -1512,16 +1513,30 @@ func init() {
 	subscriptionplanDescForSale := subscriptionplanFields[9].Descriptor()
 	// subscriptionplan.DefaultForSale holds the default value on creation for the for_sale field.
 	subscriptionplan.DefaultForSale = subscriptionplanDescForSale.Default.(bool)
+	// subscriptionplanDescDailyPurchaseLimit is the schema descriptor for daily_purchase_limit field.
+	subscriptionplanDescDailyPurchaseLimit := subscriptionplanFields[12].Descriptor()
+	// subscriptionplan.DefaultDailyPurchaseLimit holds the default value on creation for the daily_purchase_limit field.
+	subscriptionplan.DefaultDailyPurchaseLimit = subscriptionplanDescDailyPurchaseLimit.Default.(int)
+	// subscriptionplan.DailyPurchaseLimitValidator is a validator for the "daily_purchase_limit" field. It is called by the builders before save.
+	subscriptionplan.DailyPurchaseLimitValidator = subscriptionplanDescDailyPurchaseLimit.Validators[0].(func(int) error)
+	// subscriptionplanDescDailySaleStartsAt is the schema descriptor for daily_sale_starts_at field.
+	subscriptionplanDescDailySaleStartsAt := subscriptionplanFields[13].Descriptor()
+	// subscriptionplan.DailySaleStartsAtValidator is a validator for the "daily_sale_starts_at" field. It is called by the builders before save.
+	subscriptionplan.DailySaleStartsAtValidator = subscriptionplanDescDailySaleStartsAt.Validators[0].(func(string) error)
+	// subscriptionplanDescDailySaleEndsAt is the schema descriptor for daily_sale_ends_at field.
+	subscriptionplanDescDailySaleEndsAt := subscriptionplanFields[14].Descriptor()
+	// subscriptionplan.DailySaleEndsAtValidator is a validator for the "daily_sale_ends_at" field. It is called by the builders before save.
+	subscriptionplan.DailySaleEndsAtValidator = subscriptionplanDescDailySaleEndsAt.Validators[0].(func(string) error)
 	// subscriptionplanDescSortOrder is the schema descriptor for sort_order field.
-	subscriptionplanDescSortOrder := subscriptionplanFields[10].Descriptor()
+	subscriptionplanDescSortOrder := subscriptionplanFields[15].Descriptor()
 	// subscriptionplan.DefaultSortOrder holds the default value on creation for the sort_order field.
 	subscriptionplan.DefaultSortOrder = subscriptionplanDescSortOrder.Default.(int)
 	// subscriptionplanDescCreatedAt is the schema descriptor for created_at field.
-	subscriptionplanDescCreatedAt := subscriptionplanFields[11].Descriptor()
+	subscriptionplanDescCreatedAt := subscriptionplanFields[16].Descriptor()
 	// subscriptionplan.DefaultCreatedAt holds the default value on creation for the created_at field.
 	subscriptionplan.DefaultCreatedAt = subscriptionplanDescCreatedAt.Default.(func() time.Time)
 	// subscriptionplanDescUpdatedAt is the schema descriptor for updated_at field.
-	subscriptionplanDescUpdatedAt := subscriptionplanFields[12].Descriptor()
+	subscriptionplanDescUpdatedAt := subscriptionplanFields[17].Descriptor()
 	// subscriptionplan.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	subscriptionplan.DefaultUpdatedAt = subscriptionplanDescUpdatedAt.Default.(func() time.Time)
 	// subscriptionplan.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -2003,6 +2018,56 @@ func init() {
 	userattributevalueDescValue := userattributevalueFields[2].Descriptor()
 	// userattributevalue.DefaultValue holds the default value on creation for the value field.
 	userattributevalue.DefaultValue = userattributevalueDescValue.Default.(string)
+	userplatformquotaMixin := schema.UserPlatformQuota{}.Mixin()
+	userplatformquotaMixinHooks1 := userplatformquotaMixin[1].Hooks()
+	userplatformquota.Hooks[0] = userplatformquotaMixinHooks1[0]
+	userplatformquotaMixinInters1 := userplatformquotaMixin[1].Interceptors()
+	userplatformquota.Interceptors[0] = userplatformquotaMixinInters1[0]
+	userplatformquotaMixinFields0 := userplatformquotaMixin[0].Fields()
+	_ = userplatformquotaMixinFields0
+	userplatformquotaFields := schema.UserPlatformQuota{}.Fields()
+	_ = userplatformquotaFields
+	// userplatformquotaDescCreatedAt is the schema descriptor for created_at field.
+	userplatformquotaDescCreatedAt := userplatformquotaMixinFields0[0].Descriptor()
+	// userplatformquota.DefaultCreatedAt holds the default value on creation for the created_at field.
+	userplatformquota.DefaultCreatedAt = userplatformquotaDescCreatedAt.Default.(func() time.Time)
+	// userplatformquotaDescUpdatedAt is the schema descriptor for updated_at field.
+	userplatformquotaDescUpdatedAt := userplatformquotaMixinFields0[1].Descriptor()
+	// userplatformquota.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	userplatformquota.DefaultUpdatedAt = userplatformquotaDescUpdatedAt.Default.(func() time.Time)
+	// userplatformquota.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	userplatformquota.UpdateDefaultUpdatedAt = userplatformquotaDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// userplatformquotaDescPlatform is the schema descriptor for platform field.
+	userplatformquotaDescPlatform := userplatformquotaFields[1].Descriptor()
+	// userplatformquota.PlatformValidator is a validator for the "platform" field. It is called by the builders before save.
+	userplatformquota.PlatformValidator = func() func(string) error {
+		validators := userplatformquotaDescPlatform.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+			validators[2].(func(string) error),
+		}
+		return func(platform string) error {
+			for _, fn := range fns {
+				if err := fn(platform); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// userplatformquotaDescDailyUsageUsd is the schema descriptor for daily_usage_usd field.
+	userplatformquotaDescDailyUsageUsd := userplatformquotaFields[5].Descriptor()
+	// userplatformquota.DefaultDailyUsageUsd holds the default value on creation for the daily_usage_usd field.
+	userplatformquota.DefaultDailyUsageUsd = userplatformquotaDescDailyUsageUsd.Default.(float64)
+	// userplatformquotaDescWeeklyUsageUsd is the schema descriptor for weekly_usage_usd field.
+	userplatformquotaDescWeeklyUsageUsd := userplatformquotaFields[6].Descriptor()
+	// userplatformquota.DefaultWeeklyUsageUsd holds the default value on creation for the weekly_usage_usd field.
+	userplatformquota.DefaultWeeklyUsageUsd = userplatformquotaDescWeeklyUsageUsd.Default.(float64)
+	// userplatformquotaDescMonthlyUsageUsd is the schema descriptor for monthly_usage_usd field.
+	userplatformquotaDescMonthlyUsageUsd := userplatformquotaFields[7].Descriptor()
+	// userplatformquota.DefaultMonthlyUsageUsd holds the default value on creation for the monthly_usage_usd field.
+	userplatformquota.DefaultMonthlyUsageUsd = userplatformquotaDescMonthlyUsageUsd.Default.(float64)
 	usersubscriptionMixin := schema.UserSubscription{}.Mixin()
 	usersubscriptionMixinHooks1 := usersubscriptionMixin[1].Hooks()
 	usersubscription.Hooks[0] = usersubscriptionMixinHooks1[0]

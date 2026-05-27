@@ -171,6 +171,15 @@ export interface SubscriptionPlan {
   /** Stored as JSON string in backend; API layer should parse before use */
   features: string[]
   for_sale: boolean
+  sale_starts_at?: string | null
+  sale_ends_at?: string | null
+  daily_purchase_limit: number
+  daily_purchase_remaining?: number | null
+  daily_sale_starts_at?: string | null
+  daily_sale_ends_at?: string | null
+  daily_sale_status?: 'available' | 'pending' | 'sold_out' | 'unavailable'
+  daily_sale_countdown_seconds?: number
+  daily_sale_available_for_payment?: boolean
   sort_order: number
 }
 

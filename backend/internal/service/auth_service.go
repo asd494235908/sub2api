@@ -64,19 +64,20 @@ type JWTClaims struct {
 
 // AuthService 认证服务
 type AuthService struct {
-	entClient          *dbent.Client
-	userRepo           UserRepository
-	redeemRepo         RedeemCodeRepository
-	refreshTokenCache  RefreshTokenCache
-	cfg                *config.Config
-	settingService     *SettingService
-	emailService       *EmailService
-	smsService         *SMSService
-	turnstileService   *TurnstileService
-	emailQueueService  AuthEmailQueue
-	promoService       *PromoService
-	affiliateService   *AffiliateService
-	defaultSubAssigner DefaultSubscriptionAssigner
+	entClient             *dbent.Client
+	userRepo              UserRepository
+	redeemRepo            RedeemCodeRepository
+	refreshTokenCache     RefreshTokenCache
+	cfg                   *config.Config
+	settingService        *SettingService
+	emailService          *EmailService
+	smsService            *SMSService
+	turnstileService      *TurnstileService
+	emailQueueService     AuthEmailQueue
+	promoService          *PromoService
+	affiliateService      *AffiliateService
+	defaultSubAssigner    DefaultSubscriptionAssigner
+	userPlatformQuotaRepo UserPlatformQuotaRepository
 }
 
 type DefaultSubscriptionAssigner interface {
@@ -84,9 +85,10 @@ type DefaultSubscriptionAssigner interface {
 }
 
 type signupGrantPlan struct {
-	Balance       float64
-	Concurrency   int
-	Subscriptions []DefaultSubscriptionSetting
+	Balance        float64
+	Concurrency    int
+	Subscriptions  []DefaultSubscriptionSetting
+	PlatformQuotas map[string]*DefaultPlatformQuotaSetting
 }
 
 func (s *AuthService) SetSMSService(smsService *SMSService) {
@@ -117,20 +119,22 @@ func NewAuthService(
 	promoService *PromoService,
 	defaultSubAssigner DefaultSubscriptionAssigner,
 	affiliateService *AffiliateService,
+	userPlatformQuotaRepo UserPlatformQuotaRepository,
 ) *AuthService {
 	return &AuthService{
-		entClient:          entClient,
-		userRepo:           userRepo,
-		redeemRepo:         redeemRepo,
-		refreshTokenCache:  refreshTokenCache,
-		cfg:                cfg,
-		settingService:     settingService,
-		emailService:       emailService,
-		turnstileService:   turnstileService,
-		emailQueueService:  emailQueueService,
-		promoService:       promoService,
-		affiliateService:   affiliateService,
-		defaultSubAssigner: defaultSubAssigner,
+		entClient:             entClient,
+		userRepo:              userRepo,
+		redeemRepo:            redeemRepo,
+		refreshTokenCache:     refreshTokenCache,
+		cfg:                   cfg,
+		settingService:        settingService,
+		emailService:          emailService,
+		turnstileService:      turnstileService,
+		emailQueueService:     emailQueueService,
+		promoService:          promoService,
+		affiliateService:      affiliateService,
+		defaultSubAssigner:    defaultSubAssigner,
+		userPlatformQuotaRepo: userPlatformQuotaRepo,
 	}
 }
 
@@ -268,6 +272,7 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, phone
 	}
 	s.postAuthUserBootstrap(ctx, user, "email", true)
 	s.assignSubscriptions(ctx, user.ID, grantPlan.Subscriptions, "auto assigned by signup defaults")
+	_ = s.snapshotPlatformQuotaDefaults(ctx, user.ID, &grantPlan)
 	s.bindAffiliateAndApplySignupBonus(ctx, user.ID, affiliateCode, "email")
 
 	// 标记邀请码为已使用（如果使用了邀请码）
@@ -623,6 +628,7 @@ func (s *AuthService) LoginOrRegisterOAuth(ctx context.Context, email, username 
 				user = newUser
 				s.postAuthUserBootstrap(ctx, user, signupSource, false)
 				s.assignSubscriptions(ctx, user.ID, grantPlan.Subscriptions, "auto assigned by signup defaults")
+				_ = s.snapshotPlatformQuotaDefaults(ctx, user.ID, &grantPlan)
 			}
 		} else {
 			logger.LegacyPrintf("service.auth", "[Auth] Database error during oauth login: %v", err)
@@ -773,6 +779,7 @@ func (s *AuthService) LoginOrRegisterOAuthWithTokenPair(ctx context.Context, ema
 					user = newUser
 					s.postAuthUserBootstrap(ctx, user, signupSource, false)
 					s.assignSubscriptions(ctx, user.ID, grantPlan.Subscriptions, "auto assigned by signup defaults")
+					_ = s.snapshotPlatformQuotaDefaults(ctx, user.ID, &grantPlan)
 					s.bindAffiliateAndApplySignupBonus(ctx, user.ID, affiliateCode, "oauth")
 				}
 			} else {
@@ -791,6 +798,7 @@ func (s *AuthService) LoginOrRegisterOAuthWithTokenPair(ctx context.Context, ema
 					user = newUser
 					s.postAuthUserBootstrap(ctx, user, signupSource, false)
 					s.assignSubscriptions(ctx, user.ID, grantPlan.Subscriptions, "auto assigned by signup defaults")
+					_ = s.snapshotPlatformQuotaDefaults(ctx, user.ID, &grantPlan)
 					s.bindAffiliateAndApplySignupBonus(ctx, user.ID, affiliateCode, "oauth")
 					if invitationRedeemCode != nil {
 						if err := s.redeemRepo.Use(ctx, invitationRedeemCode.ID, user.ID); err != nil {
@@ -852,6 +860,12 @@ func (s *AuthService) resolveSignupGrantPlan(ctx context.Context, signupSource s
 	plan.Concurrency = s.settingService.GetDefaultConcurrency(ctx)
 	plan.Subscriptions = s.settingService.GetDefaultSubscriptions(ctx)
 
+	if quotas, err := s.settingService.GetDefaultPlatformQuotas(ctx); err == nil {
+		plan.PlatformQuotas = quotas
+	} else {
+		logger.LegacyPrintf("service.auth", "[Auth] Warning: load default platform quotas failed: %v (fail-open)", err)
+	}
+
 	resolved, enabled, err := s.settingService.ResolveAuthSourceGrantSettings(ctx, signupSource, false)
 	if err != nil {
 		logger.LegacyPrintf("service.auth", "[Auth] Failed to load auth source signup defaults for %s: %v", signupSource, err)
@@ -864,6 +878,18 @@ func (s *AuthService) resolveSignupGrantPlan(ctx context.Context, signupSource s
 	plan.Balance = resolved.Balance
 	plan.Concurrency = resolved.Concurrency
 	plan.Subscriptions = resolved.Subscriptions
+	if sourceQuotas := s.settingService.GetAuthSourcePlatformQuotas(ctx, signupSource); len(sourceQuotas) > 0 {
+		if plan.PlatformQuotas == nil {
+			plan.PlatformQuotas = map[string]*DefaultPlatformQuotaSetting{}
+		}
+		for platform, patch := range sourceQuotas {
+			if dst := plan.PlatformQuotas[platform]; dst != nil {
+				mergePlatformQuotaDefaults(dst, patch)
+				continue
+			}
+			plan.PlatformQuotas[platform] = patch
+		}
+	}
 	return plan
 }
 
@@ -1680,4 +1706,31 @@ func resolvedTokenVersion(user *User) int64 {
 	sum := sha256.Sum256([]byte(material))
 	fingerprint := int64(binary.BigEndian.Uint64(sum[:8]) & 0x7fffffffffffffff)
 	return user.TokenVersion ^ fingerprint
+}
+
+// snapshotPlatformQuotaDefaults writes initial per-platform quota snapshots for
+// new users. It is fail-open so signup behavior remains unchanged if storage is
+// unavailable or the quota repository is not configured.
+func (s *AuthService) snapshotPlatformQuotaDefaults(ctx context.Context, userID int64, plan *signupGrantPlan) error {
+	if s == nil || s.userPlatformQuotaRepo == nil || userID <= 0 || plan == nil || len(plan.PlatformQuotas) == 0 {
+		return nil
+	}
+	records := make([]UserPlatformQuotaRecord, 0, len(plan.PlatformQuotas))
+	for platform, q := range plan.PlatformQuotas {
+		rec := UserPlatformQuotaRecord{
+			UserID:   userID,
+			Platform: platform,
+		}
+		if q != nil {
+			rec.DailyLimitUSD = q.DailyLimitUSD
+			rec.WeeklyLimitUSD = q.WeeklyLimitUSD
+			rec.MonthlyLimitUSD = q.MonthlyLimitUSD
+		}
+		records = append(records, rec)
+	}
+	if err := s.userPlatformQuotaRepo.BulkInsertInitial(ctx, records); err != nil {
+		logger.LegacyPrintf("service.auth", "[Auth] Warning: snapshot platform quota failed user=%d: %v (fail-open)", userID, err)
+		return nil
+	}
+	return nil
 }

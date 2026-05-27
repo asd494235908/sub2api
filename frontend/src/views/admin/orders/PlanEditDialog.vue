@@ -44,6 +44,15 @@
       </div>
       <div class="grid grid-cols-2 gap-4">
         <div><label class="input-label">{{ t('payment.admin.sortOrder') }}</label><input v-model.number="planForm.sort_order" type="number" min="0" class="input" /></div>
+        <div><label class="input-label">{{ t('payment.admin.dailyPurchaseLimit') }}</label><input v-model.number="planForm.daily_purchase_limit" type="number" min="0" step="1" class="input" /></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="input-label">{{ t('payment.admin.saleStartsAt') }}</label><input v-model="planForm.sale_starts_at" type="datetime-local" class="input" /></div>
+        <div><label class="input-label">{{ t('payment.admin.saleEndsAt') }}</label><input v-model="planForm.sale_ends_at" type="datetime-local" class="input" /></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="input-label">{{ t('payment.admin.dailySaleStartsAt') }}</label><input v-model="planForm.daily_sale_starts_at" type="time" class="input" /></div>
+        <div><label class="input-label">{{ t('payment.admin.dailySaleEndsAt') }}</label><input v-model="planForm.daily_sale_ends_at" type="time" class="input" /></div>
       </div>
       <div>
         <label class="input-label">{{ t('payment.admin.features') }}</label>
@@ -105,7 +114,7 @@ const { t } = useI18n()
 const appStore = useAppStore()
 
 const saving = ref(false)
-const planForm = reactive({ name: '', group_id: null as number | null, description: '', price: 0, original_price: 0, validity_days: 30, validity_unit: 'days', sort_order: 0, for_sale: true })
+const planForm = reactive({ name: '', group_id: null as number | null, description: '', price: 0, original_price: 0, validity_days: 30, validity_unit: 'days', sort_order: 0, for_sale: true, sale_starts_at: '', sale_ends_at: '', daily_purchase_limit: 0, daily_sale_starts_at: '', daily_sale_ends_at: '' })
 const planFeaturesText = ref('')
 
 const validityUnitOptions = computed(() => [
@@ -133,13 +142,33 @@ const selectedGroupInfo = computed(() => {
 watch(() => props.show, (visible) => {
   if (!visible) return
   if (props.plan) {
-    Object.assign(planForm, { name: props.plan.name, group_id: props.plan.group_id, description: props.plan.description, price: props.plan.price, original_price: props.plan.original_price || 0, validity_days: props.plan.validity_days, validity_unit: props.plan.validity_unit || 'days', sort_order: props.plan.sort_order || 0, for_sale: props.plan.for_sale })
+    Object.assign(planForm, { name: props.plan.name, group_id: props.plan.group_id, description: props.plan.description, price: props.plan.price, original_price: props.plan.original_price || 0, validity_days: props.plan.validity_days, validity_unit: props.plan.validity_unit || 'days', sort_order: props.plan.sort_order || 0, for_sale: props.plan.for_sale, sale_starts_at: toDateTimeLocal(props.plan.sale_starts_at), sale_ends_at: toDateTimeLocal(props.plan.sale_ends_at), daily_purchase_limit: props.plan.daily_purchase_limit || 0, daily_sale_starts_at: props.plan.daily_sale_starts_at || '', daily_sale_ends_at: props.plan.daily_sale_ends_at || '' })
     planFeaturesText.value = (props.plan.features || []).join('\n')
   } else {
-    Object.assign(planForm, { name: '', group_id: null, description: '', price: 0, original_price: 0, validity_days: 30, validity_unit: 'days', sort_order: 0, for_sale: true })
+    Object.assign(planForm, { name: '', group_id: null, description: '', price: 0, original_price: 0, validity_days: 30, validity_unit: 'days', sort_order: 0, for_sale: true, sale_starts_at: '', sale_ends_at: '', daily_purchase_limit: 0, daily_sale_starts_at: '', daily_sale_ends_at: '' })
     planFeaturesText.value = ''
   }
-})
+}, { immediate: true })
+
+function padDatePart(value: number) {
+  return String(value).padStart(2, '0')
+}
+
+function toDateTimeLocal(value?: string | null) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}T${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}`
+}
+
+function fromDateTimeLocal(value: string) {
+  return value ? new Date(value).toISOString() : null
+}
+
+function nullableString(value: string) {
+  const trimmed = value.trim()
+  return trimmed ? trimmed : null
+}
 
 /** Build request payload with snake_case keys matching backend JSON tags */
 function buildPlanPayload() {
@@ -154,6 +183,11 @@ function buildPlanPayload() {
     validity_unit: planForm.validity_unit,
     sort_order: planForm.sort_order,
     for_sale: planForm.for_sale,
+    sale_starts_at: fromDateTimeLocal(planForm.sale_starts_at),
+    sale_ends_at: fromDateTimeLocal(planForm.sale_ends_at),
+    daily_purchase_limit: planForm.daily_purchase_limit || 0,
+    daily_sale_starts_at: nullableString(planForm.daily_sale_starts_at),
+    daily_sale_ends_at: nullableString(planForm.daily_sale_ends_at),
     features,
   }
 }

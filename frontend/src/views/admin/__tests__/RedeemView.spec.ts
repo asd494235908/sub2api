@@ -141,7 +141,7 @@ describe('Admin RedeemView', () => {
     expect(wrapper.text()).not.toContain('admin.redeem.types.lucky_wheel_bonus')
   })
 
-  it('renders first recharge bonus value as platform quota instead of RMB', async () => {
+  it('renders first recharge bonus value without a Chinese unit', async () => {
     listRedeemCodes.mockResolvedValue({
       items: [
         {
@@ -186,7 +186,8 @@ describe('Admin RedeemView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('首冲赠送额度')
-    expect(wrapper.text()).toContain('15.00 平台额度')
+    expect(wrapper.text()).toContain('15.00')
+    expect(wrapper.text()).not.toContain('平台额度')
     expect(wrapper.text()).not.toContain('¥15.00')
   })
 })

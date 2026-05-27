@@ -104,6 +104,31 @@ func ForSale(v bool) predicate.SubscriptionPlan {
 	return predicate.SubscriptionPlan(sql.FieldEQ(FieldForSale, v))
 }
 
+// SaleStartsAt applies equality check predicate on the "sale_starts_at" field. It's identical to SaleStartsAtEQ.
+func SaleStartsAt(v time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldEQ(FieldSaleStartsAt, v))
+}
+
+// SaleEndsAt applies equality check predicate on the "sale_ends_at" field. It's identical to SaleEndsAtEQ.
+func SaleEndsAt(v time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldEQ(FieldSaleEndsAt, v))
+}
+
+// DailyPurchaseLimit applies equality check predicate on the "daily_purchase_limit" field. It's identical to DailyPurchaseLimitEQ.
+func DailyPurchaseLimit(v int) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldEQ(FieldDailyPurchaseLimit, v))
+}
+
+// DailySaleStartsAt applies equality check predicate on the "daily_sale_starts_at" field. It's identical to DailySaleStartsAtEQ.
+func DailySaleStartsAt(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldEQ(FieldDailySaleStartsAt, v))
+}
+
+// DailySaleEndsAt applies equality check predicate on the "daily_sale_ends_at" field. It's identical to DailySaleEndsAtEQ.
+func DailySaleEndsAt(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldEQ(FieldDailySaleEndsAt, v))
+}
+
 // SortOrder applies equality check predicate on the "sort_order" field. It's identical to SortOrderEQ.
 func SortOrder(v int) predicate.SubscriptionPlan {
 	return predicate.SubscriptionPlan(sql.FieldEQ(FieldSortOrder, v))
@@ -622,6 +647,296 @@ func ForSaleEQ(v bool) predicate.SubscriptionPlan {
 // ForSaleNEQ applies the NEQ predicate on the "for_sale" field.
 func ForSaleNEQ(v bool) predicate.SubscriptionPlan {
 	return predicate.SubscriptionPlan(sql.FieldNEQ(FieldForSale, v))
+}
+
+// SaleStartsAtEQ applies the EQ predicate on the "sale_starts_at" field.
+func SaleStartsAtEQ(v time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldEQ(FieldSaleStartsAt, v))
+}
+
+// SaleStartsAtNEQ applies the NEQ predicate on the "sale_starts_at" field.
+func SaleStartsAtNEQ(v time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldNEQ(FieldSaleStartsAt, v))
+}
+
+// SaleStartsAtIn applies the In predicate on the "sale_starts_at" field.
+func SaleStartsAtIn(vs ...time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldIn(FieldSaleStartsAt, vs...))
+}
+
+// SaleStartsAtNotIn applies the NotIn predicate on the "sale_starts_at" field.
+func SaleStartsAtNotIn(vs ...time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldNotIn(FieldSaleStartsAt, vs...))
+}
+
+// SaleStartsAtGT applies the GT predicate on the "sale_starts_at" field.
+func SaleStartsAtGT(v time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldGT(FieldSaleStartsAt, v))
+}
+
+// SaleStartsAtGTE applies the GTE predicate on the "sale_starts_at" field.
+func SaleStartsAtGTE(v time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldGTE(FieldSaleStartsAt, v))
+}
+
+// SaleStartsAtLT applies the LT predicate on the "sale_starts_at" field.
+func SaleStartsAtLT(v time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldLT(FieldSaleStartsAt, v))
+}
+
+// SaleStartsAtLTE applies the LTE predicate on the "sale_starts_at" field.
+func SaleStartsAtLTE(v time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldLTE(FieldSaleStartsAt, v))
+}
+
+// SaleStartsAtIsNil applies the IsNil predicate on the "sale_starts_at" field.
+func SaleStartsAtIsNil() predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldIsNull(FieldSaleStartsAt))
+}
+
+// SaleStartsAtNotNil applies the NotNil predicate on the "sale_starts_at" field.
+func SaleStartsAtNotNil() predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldNotNull(FieldSaleStartsAt))
+}
+
+// SaleEndsAtEQ applies the EQ predicate on the "sale_ends_at" field.
+func SaleEndsAtEQ(v time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldEQ(FieldSaleEndsAt, v))
+}
+
+// SaleEndsAtNEQ applies the NEQ predicate on the "sale_ends_at" field.
+func SaleEndsAtNEQ(v time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldNEQ(FieldSaleEndsAt, v))
+}
+
+// SaleEndsAtIn applies the In predicate on the "sale_ends_at" field.
+func SaleEndsAtIn(vs ...time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldIn(FieldSaleEndsAt, vs...))
+}
+
+// SaleEndsAtNotIn applies the NotIn predicate on the "sale_ends_at" field.
+func SaleEndsAtNotIn(vs ...time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldNotIn(FieldSaleEndsAt, vs...))
+}
+
+// SaleEndsAtGT applies the GT predicate on the "sale_ends_at" field.
+func SaleEndsAtGT(v time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldGT(FieldSaleEndsAt, v))
+}
+
+// SaleEndsAtGTE applies the GTE predicate on the "sale_ends_at" field.
+func SaleEndsAtGTE(v time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldGTE(FieldSaleEndsAt, v))
+}
+
+// SaleEndsAtLT applies the LT predicate on the "sale_ends_at" field.
+func SaleEndsAtLT(v time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldLT(FieldSaleEndsAt, v))
+}
+
+// SaleEndsAtLTE applies the LTE predicate on the "sale_ends_at" field.
+func SaleEndsAtLTE(v time.Time) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldLTE(FieldSaleEndsAt, v))
+}
+
+// SaleEndsAtIsNil applies the IsNil predicate on the "sale_ends_at" field.
+func SaleEndsAtIsNil() predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldIsNull(FieldSaleEndsAt))
+}
+
+// SaleEndsAtNotNil applies the NotNil predicate on the "sale_ends_at" field.
+func SaleEndsAtNotNil() predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldNotNull(FieldSaleEndsAt))
+}
+
+// DailyPurchaseLimitEQ applies the EQ predicate on the "daily_purchase_limit" field.
+func DailyPurchaseLimitEQ(v int) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldEQ(FieldDailyPurchaseLimit, v))
+}
+
+// DailyPurchaseLimitNEQ applies the NEQ predicate on the "daily_purchase_limit" field.
+func DailyPurchaseLimitNEQ(v int) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldNEQ(FieldDailyPurchaseLimit, v))
+}
+
+// DailyPurchaseLimitIn applies the In predicate on the "daily_purchase_limit" field.
+func DailyPurchaseLimitIn(vs ...int) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldIn(FieldDailyPurchaseLimit, vs...))
+}
+
+// DailyPurchaseLimitNotIn applies the NotIn predicate on the "daily_purchase_limit" field.
+func DailyPurchaseLimitNotIn(vs ...int) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldNotIn(FieldDailyPurchaseLimit, vs...))
+}
+
+// DailyPurchaseLimitGT applies the GT predicate on the "daily_purchase_limit" field.
+func DailyPurchaseLimitGT(v int) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldGT(FieldDailyPurchaseLimit, v))
+}
+
+// DailyPurchaseLimitGTE applies the GTE predicate on the "daily_purchase_limit" field.
+func DailyPurchaseLimitGTE(v int) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldGTE(FieldDailyPurchaseLimit, v))
+}
+
+// DailyPurchaseLimitLT applies the LT predicate on the "daily_purchase_limit" field.
+func DailyPurchaseLimitLT(v int) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldLT(FieldDailyPurchaseLimit, v))
+}
+
+// DailyPurchaseLimitLTE applies the LTE predicate on the "daily_purchase_limit" field.
+func DailyPurchaseLimitLTE(v int) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldLTE(FieldDailyPurchaseLimit, v))
+}
+
+// DailySaleStartsAtEQ applies the EQ predicate on the "daily_sale_starts_at" field.
+func DailySaleStartsAtEQ(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldEQ(FieldDailySaleStartsAt, v))
+}
+
+// DailySaleStartsAtNEQ applies the NEQ predicate on the "daily_sale_starts_at" field.
+func DailySaleStartsAtNEQ(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldNEQ(FieldDailySaleStartsAt, v))
+}
+
+// DailySaleStartsAtIn applies the In predicate on the "daily_sale_starts_at" field.
+func DailySaleStartsAtIn(vs ...string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldIn(FieldDailySaleStartsAt, vs...))
+}
+
+// DailySaleStartsAtNotIn applies the NotIn predicate on the "daily_sale_starts_at" field.
+func DailySaleStartsAtNotIn(vs ...string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldNotIn(FieldDailySaleStartsAt, vs...))
+}
+
+// DailySaleStartsAtGT applies the GT predicate on the "daily_sale_starts_at" field.
+func DailySaleStartsAtGT(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldGT(FieldDailySaleStartsAt, v))
+}
+
+// DailySaleStartsAtGTE applies the GTE predicate on the "daily_sale_starts_at" field.
+func DailySaleStartsAtGTE(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldGTE(FieldDailySaleStartsAt, v))
+}
+
+// DailySaleStartsAtLT applies the LT predicate on the "daily_sale_starts_at" field.
+func DailySaleStartsAtLT(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldLT(FieldDailySaleStartsAt, v))
+}
+
+// DailySaleStartsAtLTE applies the LTE predicate on the "daily_sale_starts_at" field.
+func DailySaleStartsAtLTE(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldLTE(FieldDailySaleStartsAt, v))
+}
+
+// DailySaleStartsAtContains applies the Contains predicate on the "daily_sale_starts_at" field.
+func DailySaleStartsAtContains(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldContains(FieldDailySaleStartsAt, v))
+}
+
+// DailySaleStartsAtHasPrefix applies the HasPrefix predicate on the "daily_sale_starts_at" field.
+func DailySaleStartsAtHasPrefix(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldHasPrefix(FieldDailySaleStartsAt, v))
+}
+
+// DailySaleStartsAtHasSuffix applies the HasSuffix predicate on the "daily_sale_starts_at" field.
+func DailySaleStartsAtHasSuffix(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldHasSuffix(FieldDailySaleStartsAt, v))
+}
+
+// DailySaleStartsAtIsNil applies the IsNil predicate on the "daily_sale_starts_at" field.
+func DailySaleStartsAtIsNil() predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldIsNull(FieldDailySaleStartsAt))
+}
+
+// DailySaleStartsAtNotNil applies the NotNil predicate on the "daily_sale_starts_at" field.
+func DailySaleStartsAtNotNil() predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldNotNull(FieldDailySaleStartsAt))
+}
+
+// DailySaleStartsAtEqualFold applies the EqualFold predicate on the "daily_sale_starts_at" field.
+func DailySaleStartsAtEqualFold(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldEqualFold(FieldDailySaleStartsAt, v))
+}
+
+// DailySaleStartsAtContainsFold applies the ContainsFold predicate on the "daily_sale_starts_at" field.
+func DailySaleStartsAtContainsFold(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldContainsFold(FieldDailySaleStartsAt, v))
+}
+
+// DailySaleEndsAtEQ applies the EQ predicate on the "daily_sale_ends_at" field.
+func DailySaleEndsAtEQ(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldEQ(FieldDailySaleEndsAt, v))
+}
+
+// DailySaleEndsAtNEQ applies the NEQ predicate on the "daily_sale_ends_at" field.
+func DailySaleEndsAtNEQ(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldNEQ(FieldDailySaleEndsAt, v))
+}
+
+// DailySaleEndsAtIn applies the In predicate on the "daily_sale_ends_at" field.
+func DailySaleEndsAtIn(vs ...string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldIn(FieldDailySaleEndsAt, vs...))
+}
+
+// DailySaleEndsAtNotIn applies the NotIn predicate on the "daily_sale_ends_at" field.
+func DailySaleEndsAtNotIn(vs ...string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldNotIn(FieldDailySaleEndsAt, vs...))
+}
+
+// DailySaleEndsAtGT applies the GT predicate on the "daily_sale_ends_at" field.
+func DailySaleEndsAtGT(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldGT(FieldDailySaleEndsAt, v))
+}
+
+// DailySaleEndsAtGTE applies the GTE predicate on the "daily_sale_ends_at" field.
+func DailySaleEndsAtGTE(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldGTE(FieldDailySaleEndsAt, v))
+}
+
+// DailySaleEndsAtLT applies the LT predicate on the "daily_sale_ends_at" field.
+func DailySaleEndsAtLT(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldLT(FieldDailySaleEndsAt, v))
+}
+
+// DailySaleEndsAtLTE applies the LTE predicate on the "daily_sale_ends_at" field.
+func DailySaleEndsAtLTE(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldLTE(FieldDailySaleEndsAt, v))
+}
+
+// DailySaleEndsAtContains applies the Contains predicate on the "daily_sale_ends_at" field.
+func DailySaleEndsAtContains(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldContains(FieldDailySaleEndsAt, v))
+}
+
+// DailySaleEndsAtHasPrefix applies the HasPrefix predicate on the "daily_sale_ends_at" field.
+func DailySaleEndsAtHasPrefix(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldHasPrefix(FieldDailySaleEndsAt, v))
+}
+
+// DailySaleEndsAtHasSuffix applies the HasSuffix predicate on the "daily_sale_ends_at" field.
+func DailySaleEndsAtHasSuffix(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldHasSuffix(FieldDailySaleEndsAt, v))
+}
+
+// DailySaleEndsAtIsNil applies the IsNil predicate on the "daily_sale_ends_at" field.
+func DailySaleEndsAtIsNil() predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldIsNull(FieldDailySaleEndsAt))
+}
+
+// DailySaleEndsAtNotNil applies the NotNil predicate on the "daily_sale_ends_at" field.
+func DailySaleEndsAtNotNil() predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldNotNull(FieldDailySaleEndsAt))
+}
+
+// DailySaleEndsAtEqualFold applies the EqualFold predicate on the "daily_sale_ends_at" field.
+func DailySaleEndsAtEqualFold(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldEqualFold(FieldDailySaleEndsAt, v))
+}
+
+// DailySaleEndsAtContainsFold applies the ContainsFold predicate on the "daily_sale_ends_at" field.
+func DailySaleEndsAtContainsFold(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldContainsFold(FieldDailySaleEndsAt, v))
 }
 
 // SortOrderEQ applies the EQ predicate on the "sort_order" field.

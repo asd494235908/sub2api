@@ -202,6 +202,107 @@ func (_u *SubscriptionPlanUpdate) SetNillableForSale(v *bool) *SubscriptionPlanU
 	return _u
 }
 
+// SetSaleStartsAt sets the "sale_starts_at" field.
+func (_u *SubscriptionPlanUpdate) SetSaleStartsAt(v time.Time) *SubscriptionPlanUpdate {
+	_u.mutation.SetSaleStartsAt(v)
+	return _u
+}
+
+// SetNillableSaleStartsAt sets the "sale_starts_at" field if the given value is not nil.
+func (_u *SubscriptionPlanUpdate) SetNillableSaleStartsAt(v *time.Time) *SubscriptionPlanUpdate {
+	if v != nil {
+		_u.SetSaleStartsAt(*v)
+	}
+	return _u
+}
+
+// ClearSaleStartsAt clears the value of the "sale_starts_at" field.
+func (_u *SubscriptionPlanUpdate) ClearSaleStartsAt() *SubscriptionPlanUpdate {
+	_u.mutation.ClearSaleStartsAt()
+	return _u
+}
+
+// SetSaleEndsAt sets the "sale_ends_at" field.
+func (_u *SubscriptionPlanUpdate) SetSaleEndsAt(v time.Time) *SubscriptionPlanUpdate {
+	_u.mutation.SetSaleEndsAt(v)
+	return _u
+}
+
+// SetNillableSaleEndsAt sets the "sale_ends_at" field if the given value is not nil.
+func (_u *SubscriptionPlanUpdate) SetNillableSaleEndsAt(v *time.Time) *SubscriptionPlanUpdate {
+	if v != nil {
+		_u.SetSaleEndsAt(*v)
+	}
+	return _u
+}
+
+// ClearSaleEndsAt clears the value of the "sale_ends_at" field.
+func (_u *SubscriptionPlanUpdate) ClearSaleEndsAt() *SubscriptionPlanUpdate {
+	_u.mutation.ClearSaleEndsAt()
+	return _u
+}
+
+// SetDailyPurchaseLimit sets the "daily_purchase_limit" field.
+func (_u *SubscriptionPlanUpdate) SetDailyPurchaseLimit(v int) *SubscriptionPlanUpdate {
+	_u.mutation.ResetDailyPurchaseLimit()
+	_u.mutation.SetDailyPurchaseLimit(v)
+	return _u
+}
+
+// SetNillableDailyPurchaseLimit sets the "daily_purchase_limit" field if the given value is not nil.
+func (_u *SubscriptionPlanUpdate) SetNillableDailyPurchaseLimit(v *int) *SubscriptionPlanUpdate {
+	if v != nil {
+		_u.SetDailyPurchaseLimit(*v)
+	}
+	return _u
+}
+
+// AddDailyPurchaseLimit adds value to the "daily_purchase_limit" field.
+func (_u *SubscriptionPlanUpdate) AddDailyPurchaseLimit(v int) *SubscriptionPlanUpdate {
+	_u.mutation.AddDailyPurchaseLimit(v)
+	return _u
+}
+
+// SetDailySaleStartsAt sets the "daily_sale_starts_at" field.
+func (_u *SubscriptionPlanUpdate) SetDailySaleStartsAt(v string) *SubscriptionPlanUpdate {
+	_u.mutation.SetDailySaleStartsAt(v)
+	return _u
+}
+
+// SetNillableDailySaleStartsAt sets the "daily_sale_starts_at" field if the given value is not nil.
+func (_u *SubscriptionPlanUpdate) SetNillableDailySaleStartsAt(v *string) *SubscriptionPlanUpdate {
+	if v != nil {
+		_u.SetDailySaleStartsAt(*v)
+	}
+	return _u
+}
+
+// ClearDailySaleStartsAt clears the value of the "daily_sale_starts_at" field.
+func (_u *SubscriptionPlanUpdate) ClearDailySaleStartsAt() *SubscriptionPlanUpdate {
+	_u.mutation.ClearDailySaleStartsAt()
+	return _u
+}
+
+// SetDailySaleEndsAt sets the "daily_sale_ends_at" field.
+func (_u *SubscriptionPlanUpdate) SetDailySaleEndsAt(v string) *SubscriptionPlanUpdate {
+	_u.mutation.SetDailySaleEndsAt(v)
+	return _u
+}
+
+// SetNillableDailySaleEndsAt sets the "daily_sale_ends_at" field if the given value is not nil.
+func (_u *SubscriptionPlanUpdate) SetNillableDailySaleEndsAt(v *string) *SubscriptionPlanUpdate {
+	if v != nil {
+		_u.SetDailySaleEndsAt(*v)
+	}
+	return _u
+}
+
+// ClearDailySaleEndsAt clears the value of the "daily_sale_ends_at" field.
+func (_u *SubscriptionPlanUpdate) ClearDailySaleEndsAt() *SubscriptionPlanUpdate {
+	_u.mutation.ClearDailySaleEndsAt()
+	return _u
+}
+
 // SetSortOrder sets the "sort_order" field.
 func (_u *SubscriptionPlanUpdate) SetSortOrder(v int) *SubscriptionPlanUpdate {
 	_u.mutation.ResetSortOrder()
@@ -287,6 +388,21 @@ func (_u *SubscriptionPlanUpdate) check() error {
 			return &ValidationError{Name: "product_name", err: fmt.Errorf(`ent: validator failed for field "SubscriptionPlan.product_name": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.DailyPurchaseLimit(); ok {
+		if err := subscriptionplan.DailyPurchaseLimitValidator(v); err != nil {
+			return &ValidationError{Name: "daily_purchase_limit", err: fmt.Errorf(`ent: validator failed for field "SubscriptionPlan.daily_purchase_limit": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.DailySaleStartsAt(); ok {
+		if err := subscriptionplan.DailySaleStartsAtValidator(v); err != nil {
+			return &ValidationError{Name: "daily_sale_starts_at", err: fmt.Errorf(`ent: validator failed for field "SubscriptionPlan.daily_sale_starts_at": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.DailySaleEndsAt(); ok {
+		if err := subscriptionplan.DailySaleEndsAtValidator(v); err != nil {
+			return &ValidationError{Name: "daily_sale_ends_at", err: fmt.Errorf(`ent: validator failed for field "SubscriptionPlan.daily_sale_ends_at": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -346,6 +462,36 @@ func (_u *SubscriptionPlanUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if value, ok := _u.mutation.ForSale(); ok {
 		_spec.SetField(subscriptionplan.FieldForSale, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.SaleStartsAt(); ok {
+		_spec.SetField(subscriptionplan.FieldSaleStartsAt, field.TypeTime, value)
+	}
+	if _u.mutation.SaleStartsAtCleared() {
+		_spec.ClearField(subscriptionplan.FieldSaleStartsAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.SaleEndsAt(); ok {
+		_spec.SetField(subscriptionplan.FieldSaleEndsAt, field.TypeTime, value)
+	}
+	if _u.mutation.SaleEndsAtCleared() {
+		_spec.ClearField(subscriptionplan.FieldSaleEndsAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.DailyPurchaseLimit(); ok {
+		_spec.SetField(subscriptionplan.FieldDailyPurchaseLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDailyPurchaseLimit(); ok {
+		_spec.AddField(subscriptionplan.FieldDailyPurchaseLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.DailySaleStartsAt(); ok {
+		_spec.SetField(subscriptionplan.FieldDailySaleStartsAt, field.TypeString, value)
+	}
+	if _u.mutation.DailySaleStartsAtCleared() {
+		_spec.ClearField(subscriptionplan.FieldDailySaleStartsAt, field.TypeString)
+	}
+	if value, ok := _u.mutation.DailySaleEndsAt(); ok {
+		_spec.SetField(subscriptionplan.FieldDailySaleEndsAt, field.TypeString, value)
+	}
+	if _u.mutation.DailySaleEndsAtCleared() {
+		_spec.ClearField(subscriptionplan.FieldDailySaleEndsAt, field.TypeString)
 	}
 	if value, ok := _u.mutation.SortOrder(); ok {
 		_spec.SetField(subscriptionplan.FieldSortOrder, field.TypeInt, value)
@@ -550,6 +696,107 @@ func (_u *SubscriptionPlanUpdateOne) SetNillableForSale(v *bool) *SubscriptionPl
 	return _u
 }
 
+// SetSaleStartsAt sets the "sale_starts_at" field.
+func (_u *SubscriptionPlanUpdateOne) SetSaleStartsAt(v time.Time) *SubscriptionPlanUpdateOne {
+	_u.mutation.SetSaleStartsAt(v)
+	return _u
+}
+
+// SetNillableSaleStartsAt sets the "sale_starts_at" field if the given value is not nil.
+func (_u *SubscriptionPlanUpdateOne) SetNillableSaleStartsAt(v *time.Time) *SubscriptionPlanUpdateOne {
+	if v != nil {
+		_u.SetSaleStartsAt(*v)
+	}
+	return _u
+}
+
+// ClearSaleStartsAt clears the value of the "sale_starts_at" field.
+func (_u *SubscriptionPlanUpdateOne) ClearSaleStartsAt() *SubscriptionPlanUpdateOne {
+	_u.mutation.ClearSaleStartsAt()
+	return _u
+}
+
+// SetSaleEndsAt sets the "sale_ends_at" field.
+func (_u *SubscriptionPlanUpdateOne) SetSaleEndsAt(v time.Time) *SubscriptionPlanUpdateOne {
+	_u.mutation.SetSaleEndsAt(v)
+	return _u
+}
+
+// SetNillableSaleEndsAt sets the "sale_ends_at" field if the given value is not nil.
+func (_u *SubscriptionPlanUpdateOne) SetNillableSaleEndsAt(v *time.Time) *SubscriptionPlanUpdateOne {
+	if v != nil {
+		_u.SetSaleEndsAt(*v)
+	}
+	return _u
+}
+
+// ClearSaleEndsAt clears the value of the "sale_ends_at" field.
+func (_u *SubscriptionPlanUpdateOne) ClearSaleEndsAt() *SubscriptionPlanUpdateOne {
+	_u.mutation.ClearSaleEndsAt()
+	return _u
+}
+
+// SetDailyPurchaseLimit sets the "daily_purchase_limit" field.
+func (_u *SubscriptionPlanUpdateOne) SetDailyPurchaseLimit(v int) *SubscriptionPlanUpdateOne {
+	_u.mutation.ResetDailyPurchaseLimit()
+	_u.mutation.SetDailyPurchaseLimit(v)
+	return _u
+}
+
+// SetNillableDailyPurchaseLimit sets the "daily_purchase_limit" field if the given value is not nil.
+func (_u *SubscriptionPlanUpdateOne) SetNillableDailyPurchaseLimit(v *int) *SubscriptionPlanUpdateOne {
+	if v != nil {
+		_u.SetDailyPurchaseLimit(*v)
+	}
+	return _u
+}
+
+// AddDailyPurchaseLimit adds value to the "daily_purchase_limit" field.
+func (_u *SubscriptionPlanUpdateOne) AddDailyPurchaseLimit(v int) *SubscriptionPlanUpdateOne {
+	_u.mutation.AddDailyPurchaseLimit(v)
+	return _u
+}
+
+// SetDailySaleStartsAt sets the "daily_sale_starts_at" field.
+func (_u *SubscriptionPlanUpdateOne) SetDailySaleStartsAt(v string) *SubscriptionPlanUpdateOne {
+	_u.mutation.SetDailySaleStartsAt(v)
+	return _u
+}
+
+// SetNillableDailySaleStartsAt sets the "daily_sale_starts_at" field if the given value is not nil.
+func (_u *SubscriptionPlanUpdateOne) SetNillableDailySaleStartsAt(v *string) *SubscriptionPlanUpdateOne {
+	if v != nil {
+		_u.SetDailySaleStartsAt(*v)
+	}
+	return _u
+}
+
+// ClearDailySaleStartsAt clears the value of the "daily_sale_starts_at" field.
+func (_u *SubscriptionPlanUpdateOne) ClearDailySaleStartsAt() *SubscriptionPlanUpdateOne {
+	_u.mutation.ClearDailySaleStartsAt()
+	return _u
+}
+
+// SetDailySaleEndsAt sets the "daily_sale_ends_at" field.
+func (_u *SubscriptionPlanUpdateOne) SetDailySaleEndsAt(v string) *SubscriptionPlanUpdateOne {
+	_u.mutation.SetDailySaleEndsAt(v)
+	return _u
+}
+
+// SetNillableDailySaleEndsAt sets the "daily_sale_ends_at" field if the given value is not nil.
+func (_u *SubscriptionPlanUpdateOne) SetNillableDailySaleEndsAt(v *string) *SubscriptionPlanUpdateOne {
+	if v != nil {
+		_u.SetDailySaleEndsAt(*v)
+	}
+	return _u
+}
+
+// ClearDailySaleEndsAt clears the value of the "daily_sale_ends_at" field.
+func (_u *SubscriptionPlanUpdateOne) ClearDailySaleEndsAt() *SubscriptionPlanUpdateOne {
+	_u.mutation.ClearDailySaleEndsAt()
+	return _u
+}
+
 // SetSortOrder sets the "sort_order" field.
 func (_u *SubscriptionPlanUpdateOne) SetSortOrder(v int) *SubscriptionPlanUpdateOne {
 	_u.mutation.ResetSortOrder()
@@ -648,6 +895,21 @@ func (_u *SubscriptionPlanUpdateOne) check() error {
 			return &ValidationError{Name: "product_name", err: fmt.Errorf(`ent: validator failed for field "SubscriptionPlan.product_name": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.DailyPurchaseLimit(); ok {
+		if err := subscriptionplan.DailyPurchaseLimitValidator(v); err != nil {
+			return &ValidationError{Name: "daily_purchase_limit", err: fmt.Errorf(`ent: validator failed for field "SubscriptionPlan.daily_purchase_limit": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.DailySaleStartsAt(); ok {
+		if err := subscriptionplan.DailySaleStartsAtValidator(v); err != nil {
+			return &ValidationError{Name: "daily_sale_starts_at", err: fmt.Errorf(`ent: validator failed for field "SubscriptionPlan.daily_sale_starts_at": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.DailySaleEndsAt(); ok {
+		if err := subscriptionplan.DailySaleEndsAtValidator(v); err != nil {
+			return &ValidationError{Name: "daily_sale_ends_at", err: fmt.Errorf(`ent: validator failed for field "SubscriptionPlan.daily_sale_ends_at": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -724,6 +986,36 @@ func (_u *SubscriptionPlanUpdateOne) sqlSave(ctx context.Context) (_node *Subscr
 	}
 	if value, ok := _u.mutation.ForSale(); ok {
 		_spec.SetField(subscriptionplan.FieldForSale, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.SaleStartsAt(); ok {
+		_spec.SetField(subscriptionplan.FieldSaleStartsAt, field.TypeTime, value)
+	}
+	if _u.mutation.SaleStartsAtCleared() {
+		_spec.ClearField(subscriptionplan.FieldSaleStartsAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.SaleEndsAt(); ok {
+		_spec.SetField(subscriptionplan.FieldSaleEndsAt, field.TypeTime, value)
+	}
+	if _u.mutation.SaleEndsAtCleared() {
+		_spec.ClearField(subscriptionplan.FieldSaleEndsAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.DailyPurchaseLimit(); ok {
+		_spec.SetField(subscriptionplan.FieldDailyPurchaseLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDailyPurchaseLimit(); ok {
+		_spec.AddField(subscriptionplan.FieldDailyPurchaseLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.DailySaleStartsAt(); ok {
+		_spec.SetField(subscriptionplan.FieldDailySaleStartsAt, field.TypeString, value)
+	}
+	if _u.mutation.DailySaleStartsAtCleared() {
+		_spec.ClearField(subscriptionplan.FieldDailySaleStartsAt, field.TypeString)
+	}
+	if value, ok := _u.mutation.DailySaleEndsAt(); ok {
+		_spec.SetField(subscriptionplan.FieldDailySaleEndsAt, field.TypeString, value)
+	}
+	if _u.mutation.DailySaleEndsAtCleared() {
+		_spec.ClearField(subscriptionplan.FieldDailySaleEndsAt, field.TypeString)
 	}
 	if value, ok := _u.mutation.SortOrder(); ok {
 		_spec.SetField(subscriptionplan.FieldSortOrder, field.TypeInt, value)

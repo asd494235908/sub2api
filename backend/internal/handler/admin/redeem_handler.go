@@ -307,6 +307,51 @@ func (h *RedeemHandler) BatchDelete(c *gin.Context) {
 	})
 }
 
+// BatchUpdate handles batch updating redeem codes
+// POST /api/v1/admin/redeem-codes/batch-update
+func (h *RedeemHandler) BatchUpdate(c *gin.Context) {
+	if h.redeemService == nil {
+		response.InternalError(c, "redeem service not configured")
+		return
+	}
+
+	var req dto.BatchUpdateRedeemCodesRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	result, err := h.redeemService.BatchUpdate(c.Request.Context(), &service.RedeemCodeBatchUpdateInput{
+		IDs:    req.IDs,
+		Fields: redeemBatchUpdateFieldsFromDTO(req.Fields),
+	})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, gin.H{
+		"updated": result.Updated,
+		"message": "Redeem codes updated successfully",
+	})
+}
+
+func redeemBatchUpdateFieldsFromDTO(in dto.BatchUpdateRedeemCodeFields) service.RedeemCodeBatchUpdateFields {
+	out := service.RedeemCodeBatchUpdateFields{
+		Status: in.Status,
+		Notes:  in.Notes,
+		Type:   in.Type,
+		Value:  in.Value,
+	}
+	if in.ExpiresAt.Set {
+		out.ExpiresAt = service.NullableTimeUpdate{Set: true, Value: in.ExpiresAt.Value}
+	}
+	if in.GroupID.Set {
+		out.GroupID = service.NullableInt64Update{Set: true, Value: in.GroupID.Value}
+	}
+	return out
+}
+
 // Expire handles expiring a redeem code
 // POST /api/v1/admin/redeem-codes/:id/expire
 func (h *RedeemHandler) Expire(c *gin.Context) {
@@ -374,33 +419,37 @@ func (h *RedeemHandler) Export(c *gin.Context) {
 
 	// Write data rows
 	for _, code := range codes {
+		out := dto.RedeemCodeFromServiceAdmin(&code)
+		if out == nil {
+			continue
+		}
 		usedBy := ""
-		if code.UsedBy != nil {
-			usedBy = fmt.Sprintf("%d", *code.UsedBy)
+		if out.UsedBy != nil {
+			usedBy = fmt.Sprintf("%d", *out.UsedBy)
 		}
 		usedByEmail := ""
-		if code.User != nil {
-			usedByEmail = code.User.Email
+		if out.User != nil {
+			usedByEmail = out.User.Email
 		}
 		usedAt := ""
-		if code.UsedAt != nil {
-			usedAt = code.UsedAt.Format("2006-01-02 15:04:05")
+		if out.UsedAt != nil {
+			usedAt = out.UsedAt.Format("2006-01-02 15:04:05")
 		}
 		expiresAt := ""
-		if code.ExpiresAt != nil {
-			expiresAt = code.ExpiresAt.Format("2006-01-02 15:04:05")
+		if out.ExpiresAt != nil {
+			expiresAt = out.ExpiresAt.Format("2006-01-02 15:04:05")
 		}
 		if err := writer.Write([]string{
-			fmt.Sprintf("%d", code.ID),
-			code.Code,
-			code.Type,
-			fmt.Sprintf("%.2f", code.Value),
-			code.Status,
+			fmt.Sprintf("%d", out.ID),
+			out.Code,
+			out.Type,
+			fmt.Sprintf("%.2f", out.Value),
+			out.Status,
 			usedBy,
 			usedByEmail,
 			usedAt,
 			expiresAt,
-			code.CreatedAt.Format("2006-01-02 15:04:05"),
+			out.CreatedAt.Format("2006-01-02 15:04:05"),
 		}); err != nil {
 			response.InternalError(c, "Failed to export redeem codes: "+err.Error())
 			return

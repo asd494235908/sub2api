@@ -138,6 +138,76 @@ func (_c *SubscriptionPlanCreate) SetNillableForSale(v *bool) *SubscriptionPlanC
 	return _c
 }
 
+// SetSaleStartsAt sets the "sale_starts_at" field.
+func (_c *SubscriptionPlanCreate) SetSaleStartsAt(v time.Time) *SubscriptionPlanCreate {
+	_c.mutation.SetSaleStartsAt(v)
+	return _c
+}
+
+// SetNillableSaleStartsAt sets the "sale_starts_at" field if the given value is not nil.
+func (_c *SubscriptionPlanCreate) SetNillableSaleStartsAt(v *time.Time) *SubscriptionPlanCreate {
+	if v != nil {
+		_c.SetSaleStartsAt(*v)
+	}
+	return _c
+}
+
+// SetSaleEndsAt sets the "sale_ends_at" field.
+func (_c *SubscriptionPlanCreate) SetSaleEndsAt(v time.Time) *SubscriptionPlanCreate {
+	_c.mutation.SetSaleEndsAt(v)
+	return _c
+}
+
+// SetNillableSaleEndsAt sets the "sale_ends_at" field if the given value is not nil.
+func (_c *SubscriptionPlanCreate) SetNillableSaleEndsAt(v *time.Time) *SubscriptionPlanCreate {
+	if v != nil {
+		_c.SetSaleEndsAt(*v)
+	}
+	return _c
+}
+
+// SetDailyPurchaseLimit sets the "daily_purchase_limit" field.
+func (_c *SubscriptionPlanCreate) SetDailyPurchaseLimit(v int) *SubscriptionPlanCreate {
+	_c.mutation.SetDailyPurchaseLimit(v)
+	return _c
+}
+
+// SetNillableDailyPurchaseLimit sets the "daily_purchase_limit" field if the given value is not nil.
+func (_c *SubscriptionPlanCreate) SetNillableDailyPurchaseLimit(v *int) *SubscriptionPlanCreate {
+	if v != nil {
+		_c.SetDailyPurchaseLimit(*v)
+	}
+	return _c
+}
+
+// SetDailySaleStartsAt sets the "daily_sale_starts_at" field.
+func (_c *SubscriptionPlanCreate) SetDailySaleStartsAt(v string) *SubscriptionPlanCreate {
+	_c.mutation.SetDailySaleStartsAt(v)
+	return _c
+}
+
+// SetNillableDailySaleStartsAt sets the "daily_sale_starts_at" field if the given value is not nil.
+func (_c *SubscriptionPlanCreate) SetNillableDailySaleStartsAt(v *string) *SubscriptionPlanCreate {
+	if v != nil {
+		_c.SetDailySaleStartsAt(*v)
+	}
+	return _c
+}
+
+// SetDailySaleEndsAt sets the "daily_sale_ends_at" field.
+func (_c *SubscriptionPlanCreate) SetDailySaleEndsAt(v string) *SubscriptionPlanCreate {
+	_c.mutation.SetDailySaleEndsAt(v)
+	return _c
+}
+
+// SetNillableDailySaleEndsAt sets the "daily_sale_ends_at" field if the given value is not nil.
+func (_c *SubscriptionPlanCreate) SetNillableDailySaleEndsAt(v *string) *SubscriptionPlanCreate {
+	if v != nil {
+		_c.SetDailySaleEndsAt(*v)
+	}
+	return _c
+}
+
 // SetSortOrder sets the "sort_order" field.
 func (_c *SubscriptionPlanCreate) SetSortOrder(v int) *SubscriptionPlanCreate {
 	_c.mutation.SetSortOrder(v)
@@ -239,6 +309,10 @@ func (_c *SubscriptionPlanCreate) defaults() {
 		v := subscriptionplan.DefaultForSale
 		_c.mutation.SetForSale(v)
 	}
+	if _, ok := _c.mutation.DailyPurchaseLimit(); !ok {
+		v := subscriptionplan.DefaultDailyPurchaseLimit
+		_c.mutation.SetDailyPurchaseLimit(v)
+	}
 	if _, ok := _c.mutation.SortOrder(); !ok {
 		v := subscriptionplan.DefaultSortOrder
 		_c.mutation.SetSortOrder(v)
@@ -296,6 +370,24 @@ func (_c *SubscriptionPlanCreate) check() error {
 	}
 	if _, ok := _c.mutation.ForSale(); !ok {
 		return &ValidationError{Name: "for_sale", err: errors.New(`ent: missing required field "SubscriptionPlan.for_sale"`)}
+	}
+	if _, ok := _c.mutation.DailyPurchaseLimit(); !ok {
+		return &ValidationError{Name: "daily_purchase_limit", err: errors.New(`ent: missing required field "SubscriptionPlan.daily_purchase_limit"`)}
+	}
+	if v, ok := _c.mutation.DailyPurchaseLimit(); ok {
+		if err := subscriptionplan.DailyPurchaseLimitValidator(v); err != nil {
+			return &ValidationError{Name: "daily_purchase_limit", err: fmt.Errorf(`ent: validator failed for field "SubscriptionPlan.daily_purchase_limit": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.DailySaleStartsAt(); ok {
+		if err := subscriptionplan.DailySaleStartsAtValidator(v); err != nil {
+			return &ValidationError{Name: "daily_sale_starts_at", err: fmt.Errorf(`ent: validator failed for field "SubscriptionPlan.daily_sale_starts_at": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.DailySaleEndsAt(); ok {
+		if err := subscriptionplan.DailySaleEndsAtValidator(v); err != nil {
+			return &ValidationError{Name: "daily_sale_ends_at", err: fmt.Errorf(`ent: validator failed for field "SubscriptionPlan.daily_sale_ends_at": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.SortOrder(); !ok {
 		return &ValidationError{Name: "sort_order", err: errors.New(`ent: missing required field "SubscriptionPlan.sort_order"`)}
@@ -372,6 +464,26 @@ func (_c *SubscriptionPlanCreate) createSpec() (*SubscriptionPlan, *sqlgraph.Cre
 	if value, ok := _c.mutation.ForSale(); ok {
 		_spec.SetField(subscriptionplan.FieldForSale, field.TypeBool, value)
 		_node.ForSale = value
+	}
+	if value, ok := _c.mutation.SaleStartsAt(); ok {
+		_spec.SetField(subscriptionplan.FieldSaleStartsAt, field.TypeTime, value)
+		_node.SaleStartsAt = &value
+	}
+	if value, ok := _c.mutation.SaleEndsAt(); ok {
+		_spec.SetField(subscriptionplan.FieldSaleEndsAt, field.TypeTime, value)
+		_node.SaleEndsAt = &value
+	}
+	if value, ok := _c.mutation.DailyPurchaseLimit(); ok {
+		_spec.SetField(subscriptionplan.FieldDailyPurchaseLimit, field.TypeInt, value)
+		_node.DailyPurchaseLimit = value
+	}
+	if value, ok := _c.mutation.DailySaleStartsAt(); ok {
+		_spec.SetField(subscriptionplan.FieldDailySaleStartsAt, field.TypeString, value)
+		_node.DailySaleStartsAt = &value
+	}
+	if value, ok := _c.mutation.DailySaleEndsAt(); ok {
+		_spec.SetField(subscriptionplan.FieldDailySaleEndsAt, field.TypeString, value)
+		_node.DailySaleEndsAt = &value
 	}
 	if value, ok := _c.mutation.SortOrder(); ok {
 		_spec.SetField(subscriptionplan.FieldSortOrder, field.TypeInt, value)
@@ -584,6 +696,96 @@ func (u *SubscriptionPlanUpsert) SetForSale(v bool) *SubscriptionPlanUpsert {
 // UpdateForSale sets the "for_sale" field to the value that was provided on create.
 func (u *SubscriptionPlanUpsert) UpdateForSale() *SubscriptionPlanUpsert {
 	u.SetExcluded(subscriptionplan.FieldForSale)
+	return u
+}
+
+// SetSaleStartsAt sets the "sale_starts_at" field.
+func (u *SubscriptionPlanUpsert) SetSaleStartsAt(v time.Time) *SubscriptionPlanUpsert {
+	u.Set(subscriptionplan.FieldSaleStartsAt, v)
+	return u
+}
+
+// UpdateSaleStartsAt sets the "sale_starts_at" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsert) UpdateSaleStartsAt() *SubscriptionPlanUpsert {
+	u.SetExcluded(subscriptionplan.FieldSaleStartsAt)
+	return u
+}
+
+// ClearSaleStartsAt clears the value of the "sale_starts_at" field.
+func (u *SubscriptionPlanUpsert) ClearSaleStartsAt() *SubscriptionPlanUpsert {
+	u.SetNull(subscriptionplan.FieldSaleStartsAt)
+	return u
+}
+
+// SetSaleEndsAt sets the "sale_ends_at" field.
+func (u *SubscriptionPlanUpsert) SetSaleEndsAt(v time.Time) *SubscriptionPlanUpsert {
+	u.Set(subscriptionplan.FieldSaleEndsAt, v)
+	return u
+}
+
+// UpdateSaleEndsAt sets the "sale_ends_at" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsert) UpdateSaleEndsAt() *SubscriptionPlanUpsert {
+	u.SetExcluded(subscriptionplan.FieldSaleEndsAt)
+	return u
+}
+
+// ClearSaleEndsAt clears the value of the "sale_ends_at" field.
+func (u *SubscriptionPlanUpsert) ClearSaleEndsAt() *SubscriptionPlanUpsert {
+	u.SetNull(subscriptionplan.FieldSaleEndsAt)
+	return u
+}
+
+// SetDailyPurchaseLimit sets the "daily_purchase_limit" field.
+func (u *SubscriptionPlanUpsert) SetDailyPurchaseLimit(v int) *SubscriptionPlanUpsert {
+	u.Set(subscriptionplan.FieldDailyPurchaseLimit, v)
+	return u
+}
+
+// UpdateDailyPurchaseLimit sets the "daily_purchase_limit" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsert) UpdateDailyPurchaseLimit() *SubscriptionPlanUpsert {
+	u.SetExcluded(subscriptionplan.FieldDailyPurchaseLimit)
+	return u
+}
+
+// AddDailyPurchaseLimit adds v to the "daily_purchase_limit" field.
+func (u *SubscriptionPlanUpsert) AddDailyPurchaseLimit(v int) *SubscriptionPlanUpsert {
+	u.Add(subscriptionplan.FieldDailyPurchaseLimit, v)
+	return u
+}
+
+// SetDailySaleStartsAt sets the "daily_sale_starts_at" field.
+func (u *SubscriptionPlanUpsert) SetDailySaleStartsAt(v string) *SubscriptionPlanUpsert {
+	u.Set(subscriptionplan.FieldDailySaleStartsAt, v)
+	return u
+}
+
+// UpdateDailySaleStartsAt sets the "daily_sale_starts_at" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsert) UpdateDailySaleStartsAt() *SubscriptionPlanUpsert {
+	u.SetExcluded(subscriptionplan.FieldDailySaleStartsAt)
+	return u
+}
+
+// ClearDailySaleStartsAt clears the value of the "daily_sale_starts_at" field.
+func (u *SubscriptionPlanUpsert) ClearDailySaleStartsAt() *SubscriptionPlanUpsert {
+	u.SetNull(subscriptionplan.FieldDailySaleStartsAt)
+	return u
+}
+
+// SetDailySaleEndsAt sets the "daily_sale_ends_at" field.
+func (u *SubscriptionPlanUpsert) SetDailySaleEndsAt(v string) *SubscriptionPlanUpsert {
+	u.Set(subscriptionplan.FieldDailySaleEndsAt, v)
+	return u
+}
+
+// UpdateDailySaleEndsAt sets the "daily_sale_ends_at" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsert) UpdateDailySaleEndsAt() *SubscriptionPlanUpsert {
+	u.SetExcluded(subscriptionplan.FieldDailySaleEndsAt)
+	return u
+}
+
+// ClearDailySaleEndsAt clears the value of the "daily_sale_ends_at" field.
+func (u *SubscriptionPlanUpsert) ClearDailySaleEndsAt() *SubscriptionPlanUpsert {
+	u.SetNull(subscriptionplan.FieldDailySaleEndsAt)
 	return u
 }
 
@@ -834,6 +1036,111 @@ func (u *SubscriptionPlanUpsertOne) SetForSale(v bool) *SubscriptionPlanUpsertOn
 func (u *SubscriptionPlanUpsertOne) UpdateForSale() *SubscriptionPlanUpsertOne {
 	return u.Update(func(s *SubscriptionPlanUpsert) {
 		s.UpdateForSale()
+	})
+}
+
+// SetSaleStartsAt sets the "sale_starts_at" field.
+func (u *SubscriptionPlanUpsertOne) SetSaleStartsAt(v time.Time) *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetSaleStartsAt(v)
+	})
+}
+
+// UpdateSaleStartsAt sets the "sale_starts_at" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertOne) UpdateSaleStartsAt() *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateSaleStartsAt()
+	})
+}
+
+// ClearSaleStartsAt clears the value of the "sale_starts_at" field.
+func (u *SubscriptionPlanUpsertOne) ClearSaleStartsAt() *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.ClearSaleStartsAt()
+	})
+}
+
+// SetSaleEndsAt sets the "sale_ends_at" field.
+func (u *SubscriptionPlanUpsertOne) SetSaleEndsAt(v time.Time) *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetSaleEndsAt(v)
+	})
+}
+
+// UpdateSaleEndsAt sets the "sale_ends_at" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertOne) UpdateSaleEndsAt() *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateSaleEndsAt()
+	})
+}
+
+// ClearSaleEndsAt clears the value of the "sale_ends_at" field.
+func (u *SubscriptionPlanUpsertOne) ClearSaleEndsAt() *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.ClearSaleEndsAt()
+	})
+}
+
+// SetDailyPurchaseLimit sets the "daily_purchase_limit" field.
+func (u *SubscriptionPlanUpsertOne) SetDailyPurchaseLimit(v int) *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetDailyPurchaseLimit(v)
+	})
+}
+
+// AddDailyPurchaseLimit adds v to the "daily_purchase_limit" field.
+func (u *SubscriptionPlanUpsertOne) AddDailyPurchaseLimit(v int) *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.AddDailyPurchaseLimit(v)
+	})
+}
+
+// UpdateDailyPurchaseLimit sets the "daily_purchase_limit" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertOne) UpdateDailyPurchaseLimit() *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateDailyPurchaseLimit()
+	})
+}
+
+// SetDailySaleStartsAt sets the "daily_sale_starts_at" field.
+func (u *SubscriptionPlanUpsertOne) SetDailySaleStartsAt(v string) *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetDailySaleStartsAt(v)
+	})
+}
+
+// UpdateDailySaleStartsAt sets the "daily_sale_starts_at" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertOne) UpdateDailySaleStartsAt() *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateDailySaleStartsAt()
+	})
+}
+
+// ClearDailySaleStartsAt clears the value of the "daily_sale_starts_at" field.
+func (u *SubscriptionPlanUpsertOne) ClearDailySaleStartsAt() *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.ClearDailySaleStartsAt()
+	})
+}
+
+// SetDailySaleEndsAt sets the "daily_sale_ends_at" field.
+func (u *SubscriptionPlanUpsertOne) SetDailySaleEndsAt(v string) *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetDailySaleEndsAt(v)
+	})
+}
+
+// UpdateDailySaleEndsAt sets the "daily_sale_ends_at" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertOne) UpdateDailySaleEndsAt() *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateDailySaleEndsAt()
+	})
+}
+
+// ClearDailySaleEndsAt clears the value of the "daily_sale_ends_at" field.
+func (u *SubscriptionPlanUpsertOne) ClearDailySaleEndsAt() *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.ClearDailySaleEndsAt()
 	})
 }
 
@@ -1255,6 +1562,111 @@ func (u *SubscriptionPlanUpsertBulk) SetForSale(v bool) *SubscriptionPlanUpsertB
 func (u *SubscriptionPlanUpsertBulk) UpdateForSale() *SubscriptionPlanUpsertBulk {
 	return u.Update(func(s *SubscriptionPlanUpsert) {
 		s.UpdateForSale()
+	})
+}
+
+// SetSaleStartsAt sets the "sale_starts_at" field.
+func (u *SubscriptionPlanUpsertBulk) SetSaleStartsAt(v time.Time) *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetSaleStartsAt(v)
+	})
+}
+
+// UpdateSaleStartsAt sets the "sale_starts_at" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertBulk) UpdateSaleStartsAt() *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateSaleStartsAt()
+	})
+}
+
+// ClearSaleStartsAt clears the value of the "sale_starts_at" field.
+func (u *SubscriptionPlanUpsertBulk) ClearSaleStartsAt() *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.ClearSaleStartsAt()
+	})
+}
+
+// SetSaleEndsAt sets the "sale_ends_at" field.
+func (u *SubscriptionPlanUpsertBulk) SetSaleEndsAt(v time.Time) *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetSaleEndsAt(v)
+	})
+}
+
+// UpdateSaleEndsAt sets the "sale_ends_at" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertBulk) UpdateSaleEndsAt() *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateSaleEndsAt()
+	})
+}
+
+// ClearSaleEndsAt clears the value of the "sale_ends_at" field.
+func (u *SubscriptionPlanUpsertBulk) ClearSaleEndsAt() *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.ClearSaleEndsAt()
+	})
+}
+
+// SetDailyPurchaseLimit sets the "daily_purchase_limit" field.
+func (u *SubscriptionPlanUpsertBulk) SetDailyPurchaseLimit(v int) *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetDailyPurchaseLimit(v)
+	})
+}
+
+// AddDailyPurchaseLimit adds v to the "daily_purchase_limit" field.
+func (u *SubscriptionPlanUpsertBulk) AddDailyPurchaseLimit(v int) *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.AddDailyPurchaseLimit(v)
+	})
+}
+
+// UpdateDailyPurchaseLimit sets the "daily_purchase_limit" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertBulk) UpdateDailyPurchaseLimit() *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateDailyPurchaseLimit()
+	})
+}
+
+// SetDailySaleStartsAt sets the "daily_sale_starts_at" field.
+func (u *SubscriptionPlanUpsertBulk) SetDailySaleStartsAt(v string) *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetDailySaleStartsAt(v)
+	})
+}
+
+// UpdateDailySaleStartsAt sets the "daily_sale_starts_at" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertBulk) UpdateDailySaleStartsAt() *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateDailySaleStartsAt()
+	})
+}
+
+// ClearDailySaleStartsAt clears the value of the "daily_sale_starts_at" field.
+func (u *SubscriptionPlanUpsertBulk) ClearDailySaleStartsAt() *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.ClearDailySaleStartsAt()
+	})
+}
+
+// SetDailySaleEndsAt sets the "daily_sale_ends_at" field.
+func (u *SubscriptionPlanUpsertBulk) SetDailySaleEndsAt(v string) *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetDailySaleEndsAt(v)
+	})
+}
+
+// UpdateDailySaleEndsAt sets the "daily_sale_ends_at" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertBulk) UpdateDailySaleEndsAt() *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateDailySaleEndsAt()
+	})
+}
+
+// ClearDailySaleEndsAt clears the value of the "daily_sale_ends_at" field.
+func (u *SubscriptionPlanUpsertBulk) ClearDailySaleEndsAt() *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.ClearDailySaleEndsAt()
 	})
 }
 

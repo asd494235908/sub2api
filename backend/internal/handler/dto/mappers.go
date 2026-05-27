@@ -600,7 +600,9 @@ func redeemCodeFromServiceBase(rc *service.RedeemCode) RedeemCode {
 		Group:        GroupFromServiceShallow(rc.Group),
 		Source:       rc.Source,
 	}
-	if rc.IsExpired() {
+	if rc.Status == service.StatusUsed || rc.UsedBy != nil || rc.UsedAt != nil {
+		out.Status = service.StatusUsed
+	} else if rc.IsExpired() {
 		out.Status = service.StatusExpired
 	}
 

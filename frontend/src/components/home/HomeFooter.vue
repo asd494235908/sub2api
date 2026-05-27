@@ -51,7 +51,16 @@
               class="min-w-[11rem] rounded-[20px] border border-white/10 bg-white/5 px-4 py-3 text-left dark:border-cyan-400/10 dark:bg-slate-900/70"
             >
               <p class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{{ item.label }}</p>
-              <p class="mt-2 text-sm font-semibold text-white">{{ item.value }}</p>
+              <div class="mt-2 space-y-1">
+                <p
+                  v-for="value in item.values"
+                  :key="value"
+                  data-test="footer-contact-line"
+                  class="break-all text-sm font-semibold leading-6 text-white"
+                >
+                  {{ value }}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -90,7 +99,7 @@ defineProps<{
   socialDots: string[]
   columns: Array<{ title: string; items: Array<{ label: string; href: string; external?: boolean }> }>
   followLabel: string
-  contactItems: Array<{ label: string; value: string }>
+  contactItems: Array<{ label: string; values: string[] }>
   copyrightOwner: string
   filingLabel: string
   docUrl: string

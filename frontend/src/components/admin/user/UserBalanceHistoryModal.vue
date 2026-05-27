@@ -334,7 +334,7 @@ const getItemTitle = (item: BalanceHistoryItem) => {
 const formatValue = (item: BalanceHistoryItem) => {
   if (item.type === 'first_recharge_bonus') {
     const sign = item.value >= 0 ? '+' : ''
-    return `${sign}${item.value.toFixed(2)} 平台额度`
+    return `${sign}${item.value.toFixed(2)}`
   }
   if (isBalanceType(item.type)) {
     const sign = item.value >= 0 ? '+' : ''

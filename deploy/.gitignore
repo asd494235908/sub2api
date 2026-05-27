@@ -6,6 +6,7 @@
 data/
 postgres_data/
 redis_data/
+all_in_one_data/
 
 # Environment configuration (contains sensitive information)
 .env

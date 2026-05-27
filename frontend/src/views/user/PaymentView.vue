@@ -10,6 +10,7 @@
           <button v-for="tab in tabs" :key="tab.key"
             class="flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-all"
             :class="activeTab === tab.key ? 'bg-white text-gray-900 shadow dark:bg-dark-700 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'"
+            :data-test="`tab-${tab.key}`"
             @click="activeTab = tab.key">{{ tab.label }}</button>
         </div>
         <!-- Payment in progress (shared by recharge and subscription) -->
@@ -44,34 +45,10 @@
             <div class="card p-6">
               <AmountInput
                 v-model="amount"
-                :amounts="[10, 20, 50, 100, 200, 500, 1000, 2000, 5000]"
+                :amounts="[20, 50, 100, 200, 500, 1000, 2000, 5000]"
                 :min="globalMinAmount"
                 :max="globalMaxAmount"
               />
-              <div v-if="firstRechargeTiers.length" class="mt-5 border-t border-gray-100 pt-4 dark:border-dark-700">
-                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  首冲赠送额度
-                </label>
-                <div class="grid grid-cols-3 gap-2">
-                  <button
-                    v-for="tier in firstRechargeTiers"
-                    :key="tier.id"
-                    type="button"
-                    :class="[
-                      'rounded-lg border-2 px-4 py-3 text-center transition-colors',
-                      amount === tier.pay_amount
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-900/30 dark:text-emerald-300'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-emerald-300 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-200 dark:hover:border-emerald-700',
-                    ]"
-                    @click="amount = tier.pay_amount"
-                  >
-                    <span class="block text-base font-medium leading-5">{{ tier.pay_amount }}</span>
-                    <span class="mt-1 block text-xs font-semibold leading-4 text-emerald-600 dark:text-emerald-400">
-                      送 {{ tier.bonus_amount.toFixed(2) }} 平台额度
-                    </span>
-                  </button>
-                </div>
-              </div>
               <p v-if="amountError" class="mt-2 text-xs text-amber-600 dark:text-amber-300">{{ amountError }}</p>
             </div>
             <div v-if="enabledMethods.length >= 1" class="card p-6">
@@ -98,10 +75,6 @@
                 <div v-if="balanceRechargeMultiplier !== 1" class="flex justify-between" :class="{ 'border-t border-gray-200 pt-2 dark:border-dark-600': feeRate <= 0 }">
                   <span class="text-gray-500 dark:text-gray-400">{{ t('payment.creditedBalance') }}</span>
                   <span class="text-gray-900 dark:text-white">{{ creditedAmount.toFixed(2) }} 平台额度</span>
-                </div>
-                <div v-if="firstRechargeBonus > 0" class="flex justify-between border-t border-gray-200 pt-2 dark:border-dark-600">
-                  <span class="text-gray-500 dark:text-gray-400">首冲赠送额度</span>
-                  <span class="font-semibold text-emerald-600 dark:text-emerald-400">+{{ firstRechargeBonus.toFixed(2) }} 平台额度</span>
                 </div>
                 <p v-if="balanceRechargeMultiplier !== 1" class="border-t border-gray-200 pt-2 text-xs text-gray-500 dark:border-dark-600 dark:text-gray-400">
                   {{ t('payment.rechargeRatePreview', { usd: balanceRechargeMultiplier.toFixed(2) }) }}
@@ -165,6 +138,17 @@
                     <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payment.planCard.quota') }}</span>
                     <div class="text-lg font-semibold text-gray-800 dark:text-gray-200">{{ t('payment.planCard.unlimited') }}</div>
                   </div>
+                </div>
+                <div v-if="selectedPlanDailySaleVisible" class="mt-4 rounded-lg border border-amber-100 bg-amber-50 p-3 text-sm dark:border-amber-900/40 dark:bg-amber-950/20">
+                  <div class="flex items-center justify-between gap-3">
+                    <span class="text-amber-700 dark:text-amber-300">{{ t('payment.planCard.dailySaleTime') }}</span>
+                    <span class="font-medium tabular-nums text-amber-900 dark:text-amber-100">{{ selectedPlanDailySaleRange }}</span>
+                  </div>
+                  <div class="mt-1 flex items-center justify-between gap-3">
+                    <span class="text-amber-700 dark:text-amber-300">{{ selectedPlanDailySaleStatusText }}</span>
+                    <span v-if="selectedPlanDailySaleCountdownText" class="font-semibold tabular-nums text-amber-900 dark:text-amber-100">{{ selectedPlanDailySaleCountdownText }}</span>
+                  </div>
+                  <p v-if="selectedPlanDailyRemainingText" class="mt-1 font-medium text-amber-800 dark:text-amber-200">{{ selectedPlanDailyRemainingText }}</p>
                 </div>
               </div>
               <div v-if="enabledMethods.length >= 1" class="card p-6">
@@ -231,6 +215,100 @@
                   </div>
                 </div>
               </div>
+              <template v-if="!checkout.balance_disabled && firstRechargeTiers.length > 0">
+                <div class="space-y-4" data-test="subscription-first-recharge">
+                  <div class="card p-5">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p class="text-xs font-medium text-gray-400 dark:text-gray-500">{{ t('payment.rechargeAccount') }}</p>
+                        <p class="mt-1 text-base font-semibold text-gray-900 dark:text-white">{{ user?.username || '' }}</p>
+                        <p class="mt-0.5 text-sm font-medium text-green-600 dark:text-green-400">{{ t('payment.currentBalance') }}: {{ user?.balance?.toFixed(2) || '0.00' }}</p>
+                      </div>
+                      <div class="text-left sm:text-right">
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">首冲赠送额度</p>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">选择充值档位，支付后到账平台额度并领取首冲赠送额度</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-if="enabledMethods.length === 0" class="card py-16 text-center">
+                    <p class="text-gray-500 dark:text-gray-400">{{ t('payment.notAvailable') }}</p>
+                  </div>
+                  <template v-else>
+                    <div class="card p-6">
+                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        首冲赠送额度
+                      </label>
+                      <div class="grid grid-cols-3 gap-2">
+                        <button
+                          v-for="tier in firstRechargeTiers"
+                          :key="tier.id"
+                          type="button"
+                          :data-test="`first-recharge-tier-${tier.id}`"
+                          :class="[
+                            'rounded-lg border-2 px-4 py-3 text-center transition-colors',
+                            amount === tier.pay_amount
+                              ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-900/30 dark:text-emerald-300'
+                              : 'border-gray-200 bg-white text-gray-700 hover:border-emerald-300 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-200 dark:hover:border-emerald-700',
+                          ]"
+                          @click="amount = tier.pay_amount"
+                        >
+                          <span class="block text-base font-medium leading-5">{{ tier.pay_amount }}</span>
+                          <span class="mt-1 block text-xs font-semibold leading-4 text-emerald-600 dark:text-emerald-400">
+                            送 {{ tier.bonus_amount.toFixed(2) }} 平台额度
+                          </span>
+                        </button>
+                      </div>
+                      <p v-if="amountError" class="mt-2 text-xs text-amber-600 dark:text-amber-300">{{ amountError }}</p>
+                    </div>
+                    <div v-if="enabledMethods.length >= 1" class="card p-6">
+                      <PaymentMethodSelector
+                        :methods="methodOptions"
+                        :selected="selectedMethod"
+                        @select="selectedMethod = $event"
+                      />
+                    </div>
+                    <div v-if="validAmount > 0" class="card p-6">
+                      <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                          <span class="text-gray-500 dark:text-gray-400">{{ t('payment.paymentAmount') }}</span>
+                          <span class="text-gray-900 dark:text-white">{{ formatSelectedPaymentAmount(validAmount) }}</span>
+                        </div>
+                        <div v-if="feeRate > 0" class="flex justify-between">
+                          <span class="text-gray-500 dark:text-gray-400">{{ t('payment.fee') }} ({{ feeRate }}%)</span>
+                          <span class="text-gray-900 dark:text-white">{{ formatSelectedPaymentAmount(feeAmount) }}</span>
+                        </div>
+                        <div v-if="feeRate > 0" class="flex justify-between border-t border-gray-200 pt-2 dark:border-dark-600">
+                          <span class="font-medium text-gray-700 dark:text-gray-300">{{ t('payment.actualPay') }}</span>
+                          <span class="text-lg font-bold text-primary-600 dark:text-primary-400">{{ formatSelectedPaymentAmount(totalAmount) }}</span>
+                        </div>
+                        <div v-if="balanceRechargeMultiplier !== 1" class="flex justify-between" :class="{ 'border-t border-gray-200 pt-2 dark:border-dark-600': feeRate <= 0 }">
+                          <span class="text-gray-500 dark:text-gray-400">{{ t('payment.creditedBalance') }}</span>
+                          <span class="text-gray-900 dark:text-white">{{ creditedAmount.toFixed(2) }} 平台额度</span>
+                        </div>
+                        <div v-if="firstRechargeBonus > 0" class="flex justify-between border-t border-gray-200 pt-2 dark:border-dark-600">
+                          <span class="text-gray-500 dark:text-gray-400">首冲赠送额度</span>
+                          <span class="font-semibold text-emerald-600 dark:text-emerald-400">+{{ firstRechargeBonus.toFixed(2) }} 平台额度</span>
+                        </div>
+                        <p v-if="balanceRechargeMultiplier !== 1" class="border-t border-gray-200 pt-2 text-xs text-gray-500 dark:border-dark-600 dark:text-gray-400">
+                          {{ t('payment.rechargeRatePreview', { usd: balanceRechargeMultiplier.toFixed(2) }) }}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      :class="['btn w-full py-3 text-base font-medium', paymentButtonClass]"
+                      :disabled="!canSubmit || submitting"
+                      data-test="subscription-first-recharge-submit"
+                      @click="handleSubmitRecharge"
+                    >
+                      <span v-if="submitting" class="flex items-center justify-center gap-2">
+                        <span class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                        {{ t('common.processing') }}
+                      </span>
+                      <span v-else>{{ t('payment.createOrder') }} {{ formatSelectedPaymentAmount(totalAmount) }}</span>
+                    </button>
+                  </template>
+                </div>
+              </template>
             </template>
           </template>
         </template>
@@ -273,7 +351,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -329,11 +407,13 @@ const loading = ref(true)
 const submitting = ref(false)
 const errorMessage = ref('')
 const errorHintMessage = ref('')
-const activeTab = ref<'recharge' | 'subscription'>('recharge')
+const activeTab = ref<'recharge' | 'subscription'>('subscription')
 const amount = ref<number | null>(null)
 const selectedMethod = ref('')
 const selectedPlan = ref<SubscriptionPlan | null>(null)
 const previewImage = ref('')
+const saleCountdownTick = ref(0)
+let saleCountdownTimer: ReturnType<typeof setInterval> | null = null
 
 const paymentPhase = ref<'select' | 'paying'>('select')
 
@@ -510,9 +590,10 @@ const checkout = ref<CheckoutInfoResponse>({
 })
 
 const tabs = computed(() => {
-  const result: { key: 'recharge' | 'subscription'; label: string }[] = []
+  const result: { key: 'recharge' | 'subscription'; label: string }[] = [
+    { key: 'subscription', label: t('payment.tabSubscribe') },
+  ]
   if (!checkout.value.balance_disabled) result.push({ key: 'recharge', label: t('payment.tabTopUp') })
-  result.push({ key: 'subscription', label: t('payment.tabSubscribe') })
   return result
 })
 
@@ -672,9 +753,18 @@ const subTotalAmount = computed(() => {
 
 const canSubmitSubscription = computed(() =>
   selectedPlan.value !== null
+    && planCanBePurchased(selectedPlan.value)
     && amountFitsMethod(selectedPlan.value.price, selectedMethod.value)
     && selectedLimit.value?.available !== false
 )
+
+function planCanBePurchased(plan: SubscriptionPlan | null): boolean {
+  if (!plan) return false
+  if (plan.daily_sale_available_for_payment === false) return false
+  if (plan.daily_sale_status === 'sold_out') return false
+  if (plan.daily_purchase_limit > 0 && (plan.daily_purchase_remaining ?? 0) <= 0) return false
+  return true
+}
 
 // Auto-switch to first available method when current selection can't handle the amount
 watch(() => [validAmount.value, selectedMethod.value] as const, ([amt, method]) => {
@@ -714,6 +804,49 @@ const planValiditySuffix = computed(() => {
   return `${selectedPlan.value.validity_days}${t('payment.days')}`
 })
 
+function formatSaleCountdown(totalSeconds: number): string {
+  const seconds = Math.max(0, Math.floor(totalSeconds))
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = seconds % 60
+  return [h, m, s].map(value => String(value).padStart(2, '0')).join(':')
+}
+
+function currentPlanCountdown(plan: SubscriptionPlan | null): number {
+  saleCountdownTick.value
+  return Math.max(0, (plan?.daily_sale_countdown_seconds ?? 0) - saleCountdownTick.value)
+}
+
+const selectedPlanDailySaleVisible = computed(() => {
+  const plan = selectedPlan.value
+  return !!plan && (!!(plan.daily_sale_starts_at && plan.daily_sale_ends_at) || plan.daily_purchase_limit > 0)
+})
+const selectedPlanDailySaleRange = computed(() => {
+  const plan = selectedPlan.value
+  if (!plan?.daily_sale_starts_at || !plan.daily_sale_ends_at) return '-'
+  return `${plan.daily_sale_starts_at} - ${plan.daily_sale_ends_at}`
+})
+const selectedPlanDailySaleStatusText = computed(() => {
+  const status = selectedPlan.value?.daily_sale_status
+  if (status === 'sold_out') return t('payment.planCard.soldOutToday')
+  if (status === 'pending' || status === 'unavailable') return t('payment.planCard.unavailableNow')
+  return t('payment.planCard.availableNow')
+})
+const selectedPlanDailySaleCountdownText = computed(() => {
+  const seconds = currentPlanCountdown(selectedPlan.value)
+  if (seconds <= 0) return ''
+  const key = selectedPlan.value?.daily_sale_status === 'available'
+    ? 'payment.planCard.dailySaleCountdownToEnd'
+    : 'payment.planCard.dailySaleCountdownToStart'
+  return t(key, { time: formatSaleCountdown(seconds) })
+})
+const selectedPlanDailyRemainingText = computed(() => {
+  const plan = selectedPlan.value
+  if (!plan || plan.daily_purchase_limit <= 0) return ''
+  if ((plan.daily_purchase_remaining ?? 0) <= 0) return t('payment.planCard.soldOutToday')
+  return t('payment.planCard.availableToday', { count: plan.daily_purchase_remaining })
+})
+
 function selectPlan(plan: SubscriptionPlan) {
   selectedPlan.value = plan
   errorMessage.value = ''
@@ -737,7 +870,7 @@ async function handleSubmitRecharge() {
 }
 
 async function confirmSubscribe() {
-  if (!selectedPlan.value || submitting.value) return
+  if (!selectedPlan.value || submitting.value || !planCanBePurchased(selectedPlan.value)) return
   await createOrder(selectedPlan.value.price, 'subscription', selectedPlan.value.id)
 }
 
@@ -1071,10 +1204,48 @@ async function resumeWechatPaymentFromQuery() {
   }
 }
 
+async function loadCheckoutInfo() {
+  const res = await paymentAPI.getCheckoutInfo()
+  checkout.value = res.data
+  saleCountdownTick.value = 0
+  if (selectedPlan.value) {
+    selectedPlan.value = checkout.value.plans.find(plan => plan.id === selectedPlan.value?.id) ?? selectedPlan.value
+  }
+  if (enabledMethods.value.length && !enabledMethods.value.includes(selectedMethod.value)) {
+    const order: readonly string[] = METHOD_ORDER
+    const sorted = [...enabledMethods.value].sort((a, b) => {
+      const ai = order.indexOf(a)
+      const bi = order.indexOf(b)
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi)
+    })
+    selectedMethod.value = sorted[0]
+  }
+}
+
+function stopSaleCountdownTimer() {
+  if (saleCountdownTimer) {
+    clearInterval(saleCountdownTimer)
+    saleCountdownTimer = null
+  }
+}
+
+function startSaleCountdownTimer() {
+  stopSaleCountdownTimer()
+  saleCountdownTimer = setInterval(() => {
+    saleCountdownTick.value += 1
+    const shouldRefresh = checkout.value.plans.some(plan =>
+      (plan.daily_sale_countdown_seconds ?? 0) > 0
+      && (plan.daily_sale_countdown_seconds ?? 0) - saleCountdownTick.value <= 0
+    )
+    if (shouldRefresh) {
+      loadCheckoutInfo().catch(() => {})
+    }
+  }, 1000)
+}
+
 onMounted(async () => {
   try {
-    const res = await paymentAPI.getCheckoutInfo()
-    checkout.value = res.data
+    await loadCheckoutInfo()
     if (enabledMethods.value.length) {
       const order: readonly string[] = METHOD_ORDER
       const sorted = [...enabledMethods.value].sort((a, b) => {
@@ -1130,5 +1301,8 @@ onMounted(async () => {
   finally { loading.value = false }
   // Fetch active subscriptions (uses cache, non-blocking)
   subscriptionStore.fetchActiveSubscriptions().catch(() => {})
+  startSaleCountdownTimer()
 })
+
+onBeforeUnmount(stopSaleCountdownTimer)
 </script>

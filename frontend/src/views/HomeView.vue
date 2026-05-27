@@ -191,11 +191,18 @@ const communityQrItems = computed(() => [
   { src: '/qq.jpg', alt: t('home.landing.community.qrAlt.qq'), label: t('home.landing.community.qrLabels.qq') },
   { src: '/wechat.jpg', alt: t('home.landing.community.qrAlt.wechat'), label: t('home.landing.community.qrLabels.wechat') }
 ])
+function splitHomepageContact(value: string | undefined) {
+  return (value || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
 const footerContactItems = computed(() =>
   [
-    { label: t('home.landing.community.qrLabels.qq'), value: appStore.cachedPublicSettings?.qq_group || '' },
-    { label: t('home.landing.community.qrLabels.wechat'), value: appStore.cachedPublicSettings?.wechat_contact || '' }
-  ].filter((item) => item.value.trim())
+    { label: t('home.landing.community.qrLabels.qq'), values: splitHomepageContact(appStore.cachedPublicSettings?.qq_group) },
+    { label: t('home.landing.community.qrLabels.wechat'), values: splitHomepageContact(appStore.cachedPublicSettings?.wechat_contact) }
+  ].filter((item) => item.values.length)
 )
 
 const headerRef = ref<HTMLElement | null>(null)

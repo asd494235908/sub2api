@@ -140,7 +140,65 @@ function checkoutInfoWithPlansFixture() {
           group_platform: 'openai',
           sort_order: 1,
           for_sale: true,
+          daily_purchase_limit: 0,
           group_name: 'OpenAI',
+        },
+      ],
+    },
+  }
+}
+
+function checkoutInfoWithFirstRechargeFixture() {
+  return {
+    data: {
+      ...checkoutInfoWithPlansFixture().data,
+      balance_recharge_multiplier: 13,
+      first_recharge: {
+        enabled: true,
+        tiers: [
+          {
+            id: 'tier-30',
+            pay_amount: 30,
+            bonus_amount: 15,
+            enabled: true,
+            sort_order: 1,
+          },
+        ],
+      },
+    },
+  }
+}
+
+function checkoutInfoWithUnavailableDailyPlanFixture() {
+  return {
+    data: {
+      ...checkoutInfoFixture().data,
+      plans: [
+        {
+          id: 8,
+          group_id: 3,
+          name: 'Flash Sale',
+          description: '',
+          price: 128,
+          original_price: 0,
+          validity_days: 30,
+          validity_unit: 'day',
+          rate_multiplier: 1,
+          daily_limit_usd: null,
+          weekly_limit_usd: null,
+          monthly_limit_usd: null,
+          features: [],
+          group_platform: 'openai',
+          sort_order: 1,
+          for_sale: true,
+          group_name: 'OpenAI',
+          daily_purchase_limit: 2,
+          daily_purchase_remaining: 0,
+          daily_sale_starts_at: '09:00',
+          daily_sale_ends_at: '18:00',
+          daily_sale_status: 'sold_out',
+          daily_sale_countdown_seconds: 3600,
+          daily_sale_available_for_payment: false,
         },
       ],
     },
@@ -426,23 +484,137 @@ describe('PaymentView WeChat JSAPI flow', () => {
   it('shows credited balance and first recharge bonus as platform quota instead of RMB', async () => {
     routeState.path = '/purchase'
     routeState.query = {}
-    getCheckoutInfo.mockResolvedValue({
-      data: {
-        ...checkoutInfoFixture().data,
-        balance_recharge_multiplier: 13,
-        first_recharge: {
-          enabled: true,
-          tiers: [
-            {
-              id: 'tier-30',
-              pay_amount: 30,
-              bonus_amount: 15,
-              enabled: true,
-              sort_order: 1,
-            },
-          ],
+    getCheckoutInfo.mockResolvedValue(checkoutInfoWithFirstRechargeFixture())
+
+    const wrapper = mount(PaymentView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          AmountInput: true,
+          PaymentMethodSelector: true,
+          PaymentStatusPanel: true,
+          SubscriptionPlanCard: true,
+          Icon: true,
+          Teleport: true,
+          Transition: false,
         },
       },
+    })
+    await flushPromises()
+    await flushPromises()
+
+    await wrapper.find('[data-test="first-recharge-tier-tier-30"]').trigger('click')
+
+    expect(wrapper.text()).toContain('390.00 平台额度')
+    expect(wrapper.text()).toContain('+15.00 平台额度')
+    expect(wrapper.text()).toContain('送 15.00 平台额度')
+    expect(wrapper.text()).not.toContain('¥390.00')
+    expect(wrapper.text()).not.toContain('+¥15.00')
+    expect(wrapper.text()).not.toContain('返 ¥15.00')
+  })
+
+  it('hides 10 and 20 from recharge quick amount buttons', async () => {
+    routeState.path = '/purchase'
+    routeState.query = {}
+
+    const wrapper = mount(PaymentView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          AmountInput: true,
+          PaymentMethodSelector: true,
+          PaymentStatusPanel: true,
+          SubscriptionPlanCard: true,
+          Icon: true,
+          Teleport: true,
+          Transition: false,
+        },
+      },
+    })
+    await flushPromises()
+    await flushPromises()
+
+    await wrapper.find('[data-test="tab-recharge"]').trigger('click')
+    await flushPromises()
+
+    const amountInput = wrapper.findComponent({ name: 'AmountInput' })
+
+    expect(amountInput.props('amounts')).toEqual([50, 100, 200, 500, 1000, 2000, 5000])
+  })
+
+  it('shows subscription tab by default on purchase page', async () => {
+    routeState.path = '/purchase'
+    routeState.query = {}
+    getCheckoutInfo.mockResolvedValue(checkoutInfoWithPlansFixture())
+
+    const wrapper = mount(PaymentView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          AmountInput: true,
+          PaymentMethodSelector: true,
+          PaymentStatusPanel: true,
+          SubscriptionPlanCard: true,
+          Icon: true,
+          Teleport: true,
+          Transition: false,
+        },
+      },
+    })
+    await flushPromises()
+    await flushPromises()
+
+    const tabButtons = wrapper.findAll('[data-test^="tab-"]')
+    expect(tabButtons[0].attributes('data-test')).toBe('tab-subscription')
+    expect(wrapper.findComponent({ name: 'SubscriptionPlanCard' }).exists()).toBe(true)
+    expect(wrapper.findComponent({ name: 'AmountInput' }).exists()).toBe(false)
+  })
+
+  it('shows first recharge tiers inside subscription tab instead of recharge tab', async () => {
+    routeState.path = '/purchase'
+    routeState.query = {}
+    getCheckoutInfo.mockResolvedValue(checkoutInfoWithFirstRechargeFixture())
+
+    const wrapper = mount(PaymentView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          AmountInput: true,
+          PaymentMethodSelector: true,
+          PaymentStatusPanel: true,
+          SubscriptionPlanCard: true,
+          Icon: true,
+          Teleport: true,
+          Transition: false,
+        },
+      },
+    })
+    await flushPromises()
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="subscription-first-recharge"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="first-recharge-tier-tier-30"]').exists()).toBe(true)
+
+    await wrapper.find('[data-test="tab-recharge"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="subscription-first-recharge"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="first-recharge-tier-tier-30"]').exists()).toBe(false)
+  })
+
+  it('creates a balance order when paying from subscription first recharge entry', async () => {
+    routeState.path = '/purchase'
+    routeState.query = {}
+    getCheckoutInfo.mockResolvedValue(checkoutInfoWithFirstRechargeFixture())
+    createOrder.mockResolvedValue({
+      order_id: 901,
+      amount: 30,
+      pay_amount: 30,
+      fee_rate: 0,
+      expires_at: '2099-01-01T00:10:00.000Z',
+      payment_type: 'wxpay',
+      qr_code: 'weixin://wxpay/bizpayurl?pr=first-recharge',
+      out_trade_no: 'sub2_first_recharge_901',
     })
 
     const wrapper = mount(PaymentView, {
@@ -462,14 +634,45 @@ describe('PaymentView WeChat JSAPI flow', () => {
     await flushPromises()
     await flushPromises()
 
-    ;(wrapper.vm as any).amount = 30
+    await wrapper.find('[data-test="first-recharge-tier-tier-30"]').trigger('click')
+    await wrapper.find('[data-test="subscription-first-recharge-submit"]').trigger('click')
     await flushPromises()
 
-    expect(wrapper.text()).toContain('390.00 平台额度')
-    expect(wrapper.text()).toContain('+15.00 平台额度')
-    expect(wrapper.text()).toContain('送 15.00 平台额度')
-    expect(wrapper.text()).not.toContain('¥390.00')
-    expect(wrapper.text()).not.toContain('+¥15.00')
-    expect(wrapper.text()).not.toContain('返 ¥15.00')
+    expect(createOrder).toHaveBeenCalledWith(expect.objectContaining({
+      amount: 30,
+      order_type: 'balance',
+    }))
+  })
+
+  it('shows daily sale details and disables subscription submit for unavailable selected plan', async () => {
+    routeState.path = '/purchase'
+    routeState.query = {}
+    getCheckoutInfo.mockResolvedValue(checkoutInfoWithUnavailableDailyPlanFixture())
+
+    const wrapper = mount(PaymentView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          AmountInput: true,
+          PaymentMethodSelector: true,
+          PaymentStatusPanel: true,
+          Icon: true,
+          Teleport: true,
+          Transition: false,
+        },
+      },
+    })
+    await flushPromises()
+    await flushPromises()
+
+    await wrapper.findComponent({ name: 'SubscriptionPlanCard' }).vm.$emit('select', checkoutInfoWithUnavailableDailyPlanFixture().data.plans[0])
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('payment.planCard.dailySaleTime')
+    expect(wrapper.text()).toContain('09:00 - 18:00')
+    expect(wrapper.text()).toContain('payment.planCard.soldOutToday')
+    const buttons = wrapper.findAll('button')
+    const submit = buttons.find(button => button.text().includes('payment.createOrder'))
+    expect(submit?.attributes('disabled')).toBeDefined()
   })
 })

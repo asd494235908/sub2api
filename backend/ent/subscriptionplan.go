@@ -37,6 +37,16 @@ type SubscriptionPlan struct {
 	ProductName string `json:"product_name,omitempty"`
 	// ForSale holds the value of the "for_sale" field.
 	ForSale bool `json:"for_sale,omitempty"`
+	// SaleStartsAt holds the value of the "sale_starts_at" field.
+	SaleStartsAt *time.Time `json:"sale_starts_at,omitempty"`
+	// SaleEndsAt holds the value of the "sale_ends_at" field.
+	SaleEndsAt *time.Time `json:"sale_ends_at,omitempty"`
+	// DailyPurchaseLimit holds the value of the "daily_purchase_limit" field.
+	DailyPurchaseLimit int `json:"daily_purchase_limit,omitempty"`
+	// DailySaleStartsAt holds the value of the "daily_sale_starts_at" field.
+	DailySaleStartsAt *string `json:"daily_sale_starts_at,omitempty"`
+	// DailySaleEndsAt holds the value of the "daily_sale_ends_at" field.
+	DailySaleEndsAt *string `json:"daily_sale_ends_at,omitempty"`
 	// SortOrder holds the value of the "sort_order" field.
 	SortOrder int `json:"sort_order,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -55,11 +65,11 @@ func (*SubscriptionPlan) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case subscriptionplan.FieldPrice, subscriptionplan.FieldOriginalPrice:
 			values[i] = new(sql.NullFloat64)
-		case subscriptionplan.FieldID, subscriptionplan.FieldGroupID, subscriptionplan.FieldValidityDays, subscriptionplan.FieldSortOrder:
+		case subscriptionplan.FieldID, subscriptionplan.FieldGroupID, subscriptionplan.FieldValidityDays, subscriptionplan.FieldDailyPurchaseLimit, subscriptionplan.FieldSortOrder:
 			values[i] = new(sql.NullInt64)
-		case subscriptionplan.FieldName, subscriptionplan.FieldDescription, subscriptionplan.FieldValidityUnit, subscriptionplan.FieldFeatures, subscriptionplan.FieldProductName:
+		case subscriptionplan.FieldName, subscriptionplan.FieldDescription, subscriptionplan.FieldValidityUnit, subscriptionplan.FieldFeatures, subscriptionplan.FieldProductName, subscriptionplan.FieldDailySaleStartsAt, subscriptionplan.FieldDailySaleEndsAt:
 			values[i] = new(sql.NullString)
-		case subscriptionplan.FieldCreatedAt, subscriptionplan.FieldUpdatedAt:
+		case subscriptionplan.FieldSaleStartsAt, subscriptionplan.FieldSaleEndsAt, subscriptionplan.FieldCreatedAt, subscriptionplan.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -142,6 +152,40 @@ func (_m *SubscriptionPlan) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field for_sale", values[i])
 			} else if value.Valid {
 				_m.ForSale = value.Bool
+			}
+		case subscriptionplan.FieldSaleStartsAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field sale_starts_at", values[i])
+			} else if value.Valid {
+				_m.SaleStartsAt = new(time.Time)
+				*_m.SaleStartsAt = value.Time
+			}
+		case subscriptionplan.FieldSaleEndsAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field sale_ends_at", values[i])
+			} else if value.Valid {
+				_m.SaleEndsAt = new(time.Time)
+				*_m.SaleEndsAt = value.Time
+			}
+		case subscriptionplan.FieldDailyPurchaseLimit:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field daily_purchase_limit", values[i])
+			} else if value.Valid {
+				_m.DailyPurchaseLimit = int(value.Int64)
+			}
+		case subscriptionplan.FieldDailySaleStartsAt:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field daily_sale_starts_at", values[i])
+			} else if value.Valid {
+				_m.DailySaleStartsAt = new(string)
+				*_m.DailySaleStartsAt = value.String
+			}
+		case subscriptionplan.FieldDailySaleEndsAt:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field daily_sale_ends_at", values[i])
+			} else if value.Valid {
+				_m.DailySaleEndsAt = new(string)
+				*_m.DailySaleEndsAt = value.String
 			}
 		case subscriptionplan.FieldSortOrder:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -228,6 +272,29 @@ func (_m *SubscriptionPlan) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("for_sale=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ForSale))
+	builder.WriteString(", ")
+	if v := _m.SaleStartsAt; v != nil {
+		builder.WriteString("sale_starts_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.SaleEndsAt; v != nil {
+		builder.WriteString("sale_ends_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("daily_purchase_limit=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DailyPurchaseLimit))
+	builder.WriteString(", ")
+	if v := _m.DailySaleStartsAt; v != nil {
+		builder.WriteString("daily_sale_starts_at=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.DailySaleEndsAt; v != nil {
+		builder.WriteString("daily_sale_ends_at=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("sort_order=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SortOrder))

@@ -402,9 +402,26 @@ func (s *PaymentService) markRefundOk(ctx context.Context, p *RefundPlan) (*Refu
 		fs = OrderStatusPartiallyRefunded
 	}
 	now := time.Now()
-	_, err := s.entClient.PaymentOrder.UpdateOneID(p.OrderID).SetStatus(fs).SetRefundAmount(p.RefundAmount).SetRefundReason(p.Reason).SetRefundAt(now).SetForceRefund(p.Force).Save(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("mark refund: %w", err)
+	if p.Order != nil && p.Order.OrderType == payment.OrderTypeBalance && p.GatewayAmount > 0 {
+		tx, err := s.entClient.Tx(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("begin refund transaction: %w", err)
+		}
+		defer func() { _ = tx.Rollback() }()
+		if _, err := tx.Client().PaymentOrder.UpdateOneID(p.OrderID).SetStatus(fs).SetRefundAmount(p.RefundAmount).SetRefundReason(p.Reason).SetRefundAt(now).SetForceRefund(p.Force).Save(ctx); err != nil {
+			return nil, fmt.Errorf("mark refund: %w", err)
+		}
+		if err := addUserTotalRecharged(ctx, tx.Client(), p.Order.UserID, -p.GatewayAmount); err != nil {
+			return nil, fmt.Errorf("subtract total recharged: %w", err)
+		}
+		if err := tx.Commit(); err != nil {
+			return nil, fmt.Errorf("commit refund transaction: %w", err)
+		}
+	} else {
+		_, err := s.entClient.PaymentOrder.UpdateOneID(p.OrderID).SetStatus(fs).SetRefundAmount(p.RefundAmount).SetRefundReason(p.Reason).SetRefundAt(now).SetForceRefund(p.Force).Save(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("mark refund: %w", err)
+		}
 	}
 	s.writeAuditLog(ctx, p.OrderID, "REFUND_SUCCESS", "admin", map[string]any{"refundAmount": p.RefundAmount, "reason": p.Reason, "balanceDeducted": p.BalanceToDeduct, "force": p.Force})
 	return &RefundResult{Success: true, BalanceDeducted: p.BalanceToDeduct, SubDaysDeducted: p.SubDaysToDeduct}, nil

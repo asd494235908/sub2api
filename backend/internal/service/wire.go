@@ -64,6 +64,7 @@ func ProvideAuthService(
 	defaultSubAssigner DefaultSubscriptionAssigner,
 	affiliateService *AffiliateService,
 	smsService *SMSService,
+	userPlatformQuotaRepo UserPlatformQuotaRepository,
 ) *AuthService {
 	svc := NewAuthService(
 		entClient,
@@ -78,6 +79,7 @@ func ProvideAuthService(
 		promoService,
 		defaultSubAssigner,
 		affiliateService,
+		userPlatformQuotaRepo,
 	)
 	svc.SetSMSService(smsService)
 	return svc
@@ -475,8 +477,13 @@ func ProvideBillingCacheService(
 	rpmCache UserRPMCache,
 	rateRepo UserGroupRateRepository,
 	cfg *config.Config,
+	userPlatformQuotaRepo UserPlatformQuotaRepository,
 ) *BillingCacheService {
-	return NewBillingCacheService(cache, userRepo, subRepo, apiKeyRepo, rpmCache, rateRepo, cfg)
+	return NewBillingCacheService(cache, userRepo, subRepo, apiKeyRepo, rpmCache, rateRepo, cfg, userPlatformQuotaRepo)
+}
+
+func ProvideAccountRuntimeBlocker(openAIGatewayService *OpenAIGatewayService) AccountRuntimeBlocker {
+	return openAIGatewayService
 }
 
 // ProvideAPIKeyService wires APIKeyService and connects rate-limit cache invalidation.
@@ -517,6 +524,7 @@ var ProviderSet = wire.NewSet(
 	NewAdminService,
 	NewGatewayService,
 	NewOpenAIGatewayService,
+	ProvideAccountRuntimeBlocker,
 	ProvideSMSService,
 	NewOAuthService,
 	NewOpenAIOAuthService,

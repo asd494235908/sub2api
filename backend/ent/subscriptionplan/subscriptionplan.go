@@ -33,6 +33,16 @@ const (
 	FieldProductName = "product_name"
 	// FieldForSale holds the string denoting the for_sale field in the database.
 	FieldForSale = "for_sale"
+	// FieldSaleStartsAt holds the string denoting the sale_starts_at field in the database.
+	FieldSaleStartsAt = "sale_starts_at"
+	// FieldSaleEndsAt holds the string denoting the sale_ends_at field in the database.
+	FieldSaleEndsAt = "sale_ends_at"
+	// FieldDailyPurchaseLimit holds the string denoting the daily_purchase_limit field in the database.
+	FieldDailyPurchaseLimit = "daily_purchase_limit"
+	// FieldDailySaleStartsAt holds the string denoting the daily_sale_starts_at field in the database.
+	FieldDailySaleStartsAt = "daily_sale_starts_at"
+	// FieldDailySaleEndsAt holds the string denoting the daily_sale_ends_at field in the database.
+	FieldDailySaleEndsAt = "daily_sale_ends_at"
 	// FieldSortOrder holds the string denoting the sort_order field in the database.
 	FieldSortOrder = "sort_order"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -56,6 +66,11 @@ var Columns = []string{
 	FieldFeatures,
 	FieldProductName,
 	FieldForSale,
+	FieldSaleStartsAt,
+	FieldSaleEndsAt,
+	FieldDailyPurchaseLimit,
+	FieldDailySaleStartsAt,
+	FieldDailySaleEndsAt,
 	FieldSortOrder,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -90,6 +105,14 @@ var (
 	ProductNameValidator func(string) error
 	// DefaultForSale holds the default value on creation for the "for_sale" field.
 	DefaultForSale bool
+	// DefaultDailyPurchaseLimit holds the default value on creation for the "daily_purchase_limit" field.
+	DefaultDailyPurchaseLimit int
+	// DailyPurchaseLimitValidator is a validator for the "daily_purchase_limit" field. It is called by the builders before save.
+	DailyPurchaseLimitValidator func(int) error
+	// DailySaleStartsAtValidator is a validator for the "daily_sale_starts_at" field. It is called by the builders before save.
+	DailySaleStartsAtValidator func(string) error
+	// DailySaleEndsAtValidator is a validator for the "daily_sale_ends_at" field. It is called by the builders before save.
+	DailySaleEndsAtValidator func(string) error
 	// DefaultSortOrder holds the default value on creation for the "sort_order" field.
 	DefaultSortOrder int
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -156,6 +179,31 @@ func ByProductName(opts ...sql.OrderTermOption) OrderOption {
 // ByForSale orders the results by the for_sale field.
 func ByForSale(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldForSale, opts...).ToFunc()
+}
+
+// BySaleStartsAt orders the results by the sale_starts_at field.
+func BySaleStartsAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSaleStartsAt, opts...).ToFunc()
+}
+
+// BySaleEndsAt orders the results by the sale_ends_at field.
+func BySaleEndsAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSaleEndsAt, opts...).ToFunc()
+}
+
+// ByDailyPurchaseLimit orders the results by the daily_purchase_limit field.
+func ByDailyPurchaseLimit(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDailyPurchaseLimit, opts...).ToFunc()
+}
+
+// ByDailySaleStartsAt orders the results by the daily_sale_starts_at field.
+func ByDailySaleStartsAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDailySaleStartsAt, opts...).ToFunc()
+}
+
+// ByDailySaleEndsAt orders the results by the daily_sale_ends_at field.
+func ByDailySaleEndsAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDailySaleEndsAt, opts...).ToFunc()
 }
 
 // BySortOrder orders the results by the sort_order field.
