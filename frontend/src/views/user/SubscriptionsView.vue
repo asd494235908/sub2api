@@ -213,12 +213,44 @@
               </p>
             </div>
 
+            <!-- Subscription Total Usage -->
+            <div v-if="subscription.total_limit_usd && subscription.total_limit_usd > 0" class="space-y-2">
+              <div class="flex items-center justify-between gap-3">
+                <span class="min-w-0 flex-1 truncate text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t('payment.planCard.cycleTotalShort') }}
+                </span>
+                <span class="shrink-0 whitespace-nowrap text-sm text-gray-500 dark:text-dark-400">
+                  ¥{{ (subscription.total_usage_usd || 0).toFixed(2) }} / ¥{{
+                    subscription.total_limit_usd.toFixed(2)
+                  }}
+                </span>
+              </div>
+              <div class="relative h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-dark-600">
+                <div
+                  class="absolute inset-y-0 left-0 rounded-full transition-all duration-300"
+                  :class="
+                    getProgressBarClass(
+                      subscription.total_usage_usd,
+                      subscription.total_limit_usd
+                    )
+                  "
+                  :style="{
+                    width: getProgressWidth(
+                      subscription.total_usage_usd,
+                      subscription.total_limit_usd
+                    )
+                  }"
+                ></div>
+              </div>
+            </div>
+
             <!-- No limits configured - Unlimited badge -->
             <div
               v-if="
                 !subscription.group?.daily_limit_usd &&
                 !subscription.group?.weekly_limit_usd &&
-                !subscription.group?.monthly_limit_usd
+                !subscription.group?.monthly_limit_usd &&
+                !(subscription.total_limit_usd && subscription.total_limit_usd > 0)
               "
               class="flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 py-6 dark:from-emerald-900/20 dark:to-teal-900/20"
             >

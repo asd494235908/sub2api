@@ -254,6 +254,33 @@ func (_u *GroupUpdate) ClearMonthlyLimitUsd() *GroupUpdate {
 	return _u
 }
 
+// SetSubscriptionTotalLimitUsd sets the "subscription_total_limit_usd" field.
+func (_u *GroupUpdate) SetSubscriptionTotalLimitUsd(v float64) *GroupUpdate {
+	_u.mutation.ResetSubscriptionTotalLimitUsd()
+	_u.mutation.SetSubscriptionTotalLimitUsd(v)
+	return _u
+}
+
+// SetNillableSubscriptionTotalLimitUsd sets the "subscription_total_limit_usd" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillableSubscriptionTotalLimitUsd(v *float64) *GroupUpdate {
+	if v != nil {
+		_u.SetSubscriptionTotalLimitUsd(*v)
+	}
+	return _u
+}
+
+// AddSubscriptionTotalLimitUsd adds value to the "subscription_total_limit_usd" field.
+func (_u *GroupUpdate) AddSubscriptionTotalLimitUsd(v float64) *GroupUpdate {
+	_u.mutation.AddSubscriptionTotalLimitUsd(v)
+	return _u
+}
+
+// ClearSubscriptionTotalLimitUsd clears the value of the "subscription_total_limit_usd" field.
+func (_u *GroupUpdate) ClearSubscriptionTotalLimitUsd() *GroupUpdate {
+	_u.mutation.ClearSubscriptionTotalLimitUsd()
+	return _u
+}
+
 // SetDefaultValidityDays sets the "default_validity_days" field.
 func (_u *GroupUpdate) SetDefaultValidityDays(v int) *GroupUpdate {
 	_u.mutation.ResetDefaultValidityDays()
@@ -1005,6 +1032,15 @@ func (_u *GroupUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.MonthlyLimitUsdCleared() {
 		_spec.ClearField(group.FieldMonthlyLimitUsd, field.TypeFloat64)
 	}
+	if value, ok := _u.mutation.SubscriptionTotalLimitUsd(); ok {
+		_spec.SetField(group.FieldSubscriptionTotalLimitUsd, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedSubscriptionTotalLimitUsd(); ok {
+		_spec.AddField(group.FieldSubscriptionTotalLimitUsd, field.TypeFloat64, value)
+	}
+	if _u.mutation.SubscriptionTotalLimitUsdCleared() {
+		_spec.ClearField(group.FieldSubscriptionTotalLimitUsd, field.TypeFloat64)
+	}
 	if value, ok := _u.mutation.DefaultValidityDays(); ok {
 		_spec.SetField(group.FieldDefaultValidityDays, field.TypeInt, value)
 	}
@@ -1647,6 +1683,33 @@ func (_u *GroupUpdateOne) AddMonthlyLimitUsd(v float64) *GroupUpdateOne {
 // ClearMonthlyLimitUsd clears the value of the "monthly_limit_usd" field.
 func (_u *GroupUpdateOne) ClearMonthlyLimitUsd() *GroupUpdateOne {
 	_u.mutation.ClearMonthlyLimitUsd()
+	return _u
+}
+
+// SetSubscriptionTotalLimitUsd sets the "subscription_total_limit_usd" field.
+func (_u *GroupUpdateOne) SetSubscriptionTotalLimitUsd(v float64) *GroupUpdateOne {
+	_u.mutation.ResetSubscriptionTotalLimitUsd()
+	_u.mutation.SetSubscriptionTotalLimitUsd(v)
+	return _u
+}
+
+// SetNillableSubscriptionTotalLimitUsd sets the "subscription_total_limit_usd" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillableSubscriptionTotalLimitUsd(v *float64) *GroupUpdateOne {
+	if v != nil {
+		_u.SetSubscriptionTotalLimitUsd(*v)
+	}
+	return _u
+}
+
+// AddSubscriptionTotalLimitUsd adds value to the "subscription_total_limit_usd" field.
+func (_u *GroupUpdateOne) AddSubscriptionTotalLimitUsd(v float64) *GroupUpdateOne {
+	_u.mutation.AddSubscriptionTotalLimitUsd(v)
+	return _u
+}
+
+// ClearSubscriptionTotalLimitUsd clears the value of the "subscription_total_limit_usd" field.
+func (_u *GroupUpdateOne) ClearSubscriptionTotalLimitUsd() *GroupUpdateOne {
+	_u.mutation.ClearSubscriptionTotalLimitUsd()
 	return _u
 }
 
@@ -2430,6 +2493,15 @@ func (_u *GroupUpdateOne) sqlSave(ctx context.Context) (_node *Group, err error)
 	}
 	if _u.mutation.MonthlyLimitUsdCleared() {
 		_spec.ClearField(group.FieldMonthlyLimitUsd, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.SubscriptionTotalLimitUsd(); ok {
+		_spec.SetField(group.FieldSubscriptionTotalLimitUsd, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedSubscriptionTotalLimitUsd(); ok {
+		_spec.AddField(group.FieldSubscriptionTotalLimitUsd, field.TypeFloat64, value)
+	}
+	if _u.mutation.SubscriptionTotalLimitUsdCleared() {
+		_spec.ClearField(group.FieldSubscriptionTotalLimitUsd, field.TypeFloat64)
 	}
 	if value, ok := _u.mutation.DefaultValidityDays(); ok {
 		_spec.SetField(group.FieldDefaultValidityDays, field.TypeInt, value)

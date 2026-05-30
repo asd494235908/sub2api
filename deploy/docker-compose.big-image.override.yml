@@ -1,0 +1,6 @@
+services:
+  sub2api:
+    image: sub2api-all-in-one:local
+    build: null
+    entrypoint: []
+    command: ["/app/sub2api"]

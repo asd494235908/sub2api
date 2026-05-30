@@ -185,12 +185,12 @@ type usageLogRepository struct {
 const (
 	usageLogCreateBatchMaxSize  = 64
 	usageLogCreateBatchWindow   = 3 * time.Millisecond
-	usageLogCreateBatchQueueCap = 4096
+	usageLogCreateBatchQueueCap = 16384
 	usageLogCreateCancelWait    = 2 * time.Second
 
 	usageLogBestEffortBatchMaxSize  = 256
 	usageLogBestEffortBatchWindow   = 20 * time.Millisecond
-	usageLogBestEffortBatchQueueCap = 32768
+	usageLogBestEffortBatchQueueCap = 131072
 	usageLogBestEffortRecentTTL     = 30 * time.Second
 )
 
@@ -333,7 +333,8 @@ func (r *usageLogRepository) CreateBestEffort(ctx context.Context, log *service.
 	case <-ctx.Done():
 		return service.MarkUsageLogCreateDropped(ctx.Err())
 	default:
-		return service.MarkUsageLogCreateDropped(errors.New("usage log best-effort queue full"))
+		_, err := r.createSingle(ctx, r.sql, log)
+		return err
 	}
 
 	select {
@@ -454,7 +455,7 @@ func (r *usageLogRepository) createBatched(ctx context.Context, log *service.Usa
 	case <-ctx.Done():
 		return false, service.MarkUsageLogCreateNotPersisted(ctx.Err())
 	default:
-		return false, service.MarkUsageLogCreateNotPersisted(errors.New("usage log create batch queue full"))
+		return r.createSingle(ctx, r.sql, log)
 	}
 
 	select {

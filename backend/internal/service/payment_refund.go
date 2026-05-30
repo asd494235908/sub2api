@@ -402,7 +402,7 @@ func (s *PaymentService) markRefundOk(ctx context.Context, p *RefundPlan) (*Refu
 		fs = OrderStatusPartiallyRefunded
 	}
 	now := time.Now()
-	if p.Order != nil && p.Order.OrderType == payment.OrderTypeBalance && p.GatewayAmount > 0 {
+	if p.Order != nil && memberTotalRechargedOrderType(p.Order.OrderType) && p.GatewayAmount > 0 {
 		tx, err := s.entClient.Tx(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("begin refund transaction: %w", err)

@@ -19,11 +19,12 @@ type Group struct {
 	Status         string
 	Hydrated       bool // indicates the group was loaded from a trusted repository source
 
-	SubscriptionType    string
-	DailyLimitUSD       *float64
-	WeeklyLimitUSD      *float64
-	MonthlyLimitUSD     *float64
-	DefaultValidityDays int
+	SubscriptionType          string
+	DailyLimitUSD             *float64
+	WeeklyLimitUSD            *float64
+	MonthlyLimitUSD           *float64
+	SubscriptionTotalLimitUSD *float64
+	DefaultValidityDays       int
 
 	// 图片生成计费配置（antigravity 和 gemini 平台使用）
 	AllowImageGeneration bool
@@ -93,6 +94,10 @@ func (g *Group) HasWeeklyLimit() bool {
 
 func (g *Group) HasMonthlyLimit() bool {
 	return g.MonthlyLimitUSD != nil && *g.MonthlyLimitUSD > 0
+}
+
+func (g *Group) HasSubscriptionTotalLimit() bool {
+	return g.SubscriptionTotalLimitUSD != nil && *g.SubscriptionTotalLimitUSD > 0
 }
 
 // GetImagePrice 根据 image_size 返回对应的图片生成价格

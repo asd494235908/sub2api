@@ -790,6 +790,73 @@ func TestResolveMemberLevelUsesTotalRechargedAndBalanceKeyOnly(t *testing.T) {
 	require.False(t, svc.MemberMultiplierEnabledForKey(ctx, balanceKey, nil))
 }
 
+func TestExecuteSubscriptionFulfillmentAddsPayAmountToTotalRechargedAndUpdatesMemberLevel(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentOrderLifecycleTestClient(t)
+	settingRepo := &settingPublicRepoStub{values: map[string]string{
+		SettingPaymentEnabled: "true",
+	}}
+	svc := &PaymentService{
+		entClient:     client,
+		configService: NewPaymentConfigService(client, settingRepo, nil),
+	}
+	_, err := svc.UpdateMemberLevelConfig(ctx, true, &MemberLevelConfig{Levels: []MemberLevel{
+		{ID: "bronze", Name: "Bronze", MinRechargeAmount: 0, RateMultiplier: 2, Enabled: true, SortOrder: 1},
+		{ID: "silver", Name: "Silver", MinRechargeAmount: 500, RateMultiplier: 1.8, Enabled: true, SortOrder: 2},
+	}})
+	require.NoError(t, err)
+
+	user, err := client.User.Create().
+		SetEmail("subscription-total-recharged@example.com").
+		SetPasswordHash("hash").
+		SetUsername("subscription-total-recharged-user").
+		SetTotalRecharged(480).
+		Save(ctx)
+	require.NoError(t, err)
+
+	order, err := client.PaymentOrder.Create().
+		SetUserID(user.ID).
+		SetUserEmail(user.Email).
+		SetUserName(user.Username).
+		SetAmount(99).
+		SetPayAmount(99).
+		SetFeeRate(0).
+		SetRechargeCode("SUBSCRIPTION-TOTAL-RECHARGED").
+		SetOutTradeNo("sub2_subscription_total_recharged").
+		SetPaymentType(payment.TypeWxpay).
+		SetPaymentTradeNo("wxpay-trade-subscription-total").
+		SetOrderType(payment.OrderTypeSubscription).
+		SetSubscriptionGroupID(10).
+		SetSubscriptionDays(30).
+		SetStatus(OrderStatusPaid).
+		SetExpiresAt(time.Now().Add(time.Hour)).
+		SetPaidAt(time.Now()).
+		SetClientIP("127.0.0.1").
+		SetSrcHost("api.example.com").
+		Save(ctx)
+	require.NoError(t, err)
+
+	groupRepo := &paymentOrderLifecycleGroupRepo{
+		group: &Group{ID: 10, Status: payment.EntityStatusActive, SubscriptionType: SubscriptionTypeSubscription},
+	}
+	svc.groupRepo = groupRepo
+	svc.subscriptionSvc = NewSubscriptionService(groupRepo, newPaymentOrderLifecycleUserSubRepo(), nil, nil, nil)
+
+	require.NoError(t, svc.ExecuteSubscriptionFulfillment(ctx, order.ID))
+
+	reloadedUser, err := client.User.Get(ctx, user.ID)
+	require.NoError(t, err)
+	require.InDelta(t, 579.0, reloadedUser.TotalRecharged, 1e-9)
+	state, err := svc.ResolveMemberLevel(ctx, &User{ID: reloadedUser.ID, TotalRecharged: reloadedUser.TotalRecharged})
+	require.NoError(t, err)
+	require.Equal(t, "silver", state.LevelID)
+
+	require.NoError(t, svc.ExecuteSubscriptionFulfillment(ctx, order.ID))
+	reloadedUser, err = client.User.Get(ctx, user.ID)
+	require.NoError(t, err)
+	require.InDelta(t, 579.0, reloadedUser.TotalRecharged, 1e-9)
+}
+
 func TestVerifyOrderByOutTradeNoRetriesZeroAmountPaidQueryOnce(t *testing.T) {
 	ctx := context.Background()
 	client := newPaymentOrderLifecycleTestClient(t)

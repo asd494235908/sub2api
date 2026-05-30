@@ -98,13 +98,14 @@ func normalizeOptionalString(value string) *string {
 
 // PlanGroupInfo holds the group details needed for subscription plan display.
 type PlanGroupInfo struct {
-	Platform        string   `json:"platform"`
-	Name            string   `json:"name"`
-	RateMultiplier  float64  `json:"rate_multiplier"`
-	DailyLimitUSD   *float64 `json:"daily_limit_usd"`
-	WeeklyLimitUSD  *float64 `json:"weekly_limit_usd"`
-	MonthlyLimitUSD *float64 `json:"monthly_limit_usd"`
-	ModelScopes     []string `json:"supported_model_scopes"`
+	Platform                  string   `json:"platform"`
+	Name                      string   `json:"name"`
+	RateMultiplier            float64  `json:"rate_multiplier"`
+	DailyLimitUSD             *float64 `json:"daily_limit_usd"`
+	WeeklyLimitUSD            *float64 `json:"weekly_limit_usd"`
+	MonthlyLimitUSD           *float64 `json:"monthly_limit_usd"`
+	SubscriptionTotalLimitUSD *float64 `json:"subscription_total_limit_usd"`
+	ModelScopes               []string `json:"supported_model_scopes"`
 }
 
 // GetGroupPlatformMap returns a map of group_id → platform for the given plans.
@@ -137,13 +138,14 @@ func (s *PaymentConfigService) GetGroupInfoMap(ctx context.Context, plans []*dbe
 	m := make(map[int64]PlanGroupInfo, len(groups))
 	for _, g := range groups {
 		m[int64(g.ID)] = PlanGroupInfo{
-			Platform:        g.Platform,
-			Name:            g.Name,
-			RateMultiplier:  g.RateMultiplier,
-			DailyLimitUSD:   g.DailyLimitUsd,
-			WeeklyLimitUSD:  g.WeeklyLimitUsd,
-			MonthlyLimitUSD: g.MonthlyLimitUsd,
-			ModelScopes:     g.SupportedModelScopes,
+			Platform:                  g.Platform,
+			Name:                      g.Name,
+			RateMultiplier:            g.RateMultiplier,
+			DailyLimitUSD:             g.DailyLimitUsd,
+			WeeklyLimitUSD:            g.WeeklyLimitUsd,
+			MonthlyLimitUSD:           g.MonthlyLimitUsd,
+			SubscriptionTotalLimitUSD: g.SubscriptionTotalLimitUsd,
+			ModelScopes:               g.SupportedModelScopes,
 		}
 	}
 	return m

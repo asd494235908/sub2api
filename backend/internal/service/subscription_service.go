@@ -25,18 +25,19 @@ var MaxExpiresAt = time.Date(2099, 12, 31, 23, 59, 59, 0, time.UTC)
 const MaxValidityDays = 36500
 
 var (
-	ErrSubscriptionNotFound       = infraerrors.NotFound("SUBSCRIPTION_NOT_FOUND", "subscription not found")
-	ErrSubscriptionExpired        = infraerrors.Forbidden("SUBSCRIPTION_EXPIRED", "subscription has expired")
-	ErrSubscriptionSuspended      = infraerrors.Forbidden("SUBSCRIPTION_SUSPENDED", "subscription is suspended")
-	ErrSubscriptionAlreadyExists  = infraerrors.Conflict("SUBSCRIPTION_ALREADY_EXISTS", "subscription already exists for this user and group")
-	ErrSubscriptionAssignConflict = infraerrors.Conflict("SUBSCRIPTION_ASSIGN_CONFLICT", "subscription exists but request conflicts with existing assignment semantics")
-	ErrGroupNotSubscriptionType   = infraerrors.BadRequest("GROUP_NOT_SUBSCRIPTION_TYPE", "group is not a subscription type")
-	ErrInvalidInput               = infraerrors.BadRequest("INVALID_INPUT", "at least one of resetDaily, resetWeekly, or resetMonthly must be true")
-	ErrDailyLimitExceeded         = infraerrors.TooManyRequests("DAILY_LIMIT_EXCEEDED", "daily usage limit exceeded")
-	ErrWeeklyLimitExceeded        = infraerrors.TooManyRequests("WEEKLY_LIMIT_EXCEEDED", "weekly usage limit exceeded")
-	ErrMonthlyLimitExceeded       = infraerrors.TooManyRequests("MONTHLY_LIMIT_EXCEEDED", "monthly usage limit exceeded")
-	ErrSubscriptionNilInput       = infraerrors.BadRequest("SUBSCRIPTION_NIL_INPUT", "subscription input cannot be nil")
-	ErrAdjustWouldExpire          = infraerrors.BadRequest("ADJUST_WOULD_EXPIRE", "adjustment would result in expired subscription (remaining days must be > 0)")
+	ErrSubscriptionNotFound           = infraerrors.NotFound("SUBSCRIPTION_NOT_FOUND", "subscription not found")
+	ErrSubscriptionExpired            = infraerrors.Forbidden("SUBSCRIPTION_EXPIRED", "subscription has expired")
+	ErrSubscriptionSuspended          = infraerrors.Forbidden("SUBSCRIPTION_SUSPENDED", "subscription is suspended")
+	ErrSubscriptionAlreadyExists      = infraerrors.Conflict("SUBSCRIPTION_ALREADY_EXISTS", "subscription already exists for this user and group")
+	ErrSubscriptionAssignConflict     = infraerrors.Conflict("SUBSCRIPTION_ASSIGN_CONFLICT", "subscription exists but request conflicts with existing assignment semantics")
+	ErrGroupNotSubscriptionType       = infraerrors.BadRequest("GROUP_NOT_SUBSCRIPTION_TYPE", "group is not a subscription type")
+	ErrInvalidInput                   = infraerrors.BadRequest("INVALID_INPUT", "at least one of resetDaily, resetWeekly, or resetMonthly must be true")
+	ErrDailyLimitExceeded             = infraerrors.TooManyRequests("DAILY_LIMIT_EXCEEDED", "daily usage limit exceeded")
+	ErrWeeklyLimitExceeded            = infraerrors.TooManyRequests("WEEKLY_LIMIT_EXCEEDED", "weekly usage limit exceeded")
+	ErrMonthlyLimitExceeded           = infraerrors.TooManyRequests("MONTHLY_LIMIT_EXCEEDED", "monthly usage limit exceeded")
+	ErrSubscriptionTotalLimitExceeded = infraerrors.TooManyRequests("SUBSCRIPTION_TOTAL_LIMIT_EXCEEDED", "subscription total usage limit exceeded")
+	ErrSubscriptionNilInput           = infraerrors.BadRequest("SUBSCRIPTION_NIL_INPUT", "subscription input cannot be nil")
+	ErrAdjustWouldExpire              = infraerrors.BadRequest("ADJUST_WOULD_EXPIRE", "adjustment would result in expired subscription (remaining days must be > 0)")
 )
 
 // SubscriptionService 订阅服务
@@ -144,11 +145,12 @@ func (s *SubscriptionService) InvalidateSubCache(userID, groupID int64) {
 
 // AssignSubscriptionInput 分配订阅输入
 type AssignSubscriptionInput struct {
-	UserID       int64
-	GroupID      int64
-	ValidityDays int
-	AssignedBy   int64
-	Notes        string
+	UserID        int64
+	GroupID       int64
+	ValidityDays  int
+	TotalLimitUSD *float64
+	AssignedBy    int64
+	Notes         string
 }
 
 // AssignSubscription 分配订阅给用户（不允许重复分配）
@@ -210,7 +212,7 @@ func (s *SubscriptionService) AssignOrExtendSubscription(ctx context.Context, in
 			newExpiresAt = MaxExpiresAt
 		}
 
-		if err := s.updateExistingSubscriptionTerm(ctx, existingSub, input.Notes, now, newExpiresAt, isExpired); err != nil {
+		if err := s.updateExistingSubscriptionTerm(ctx, existingSub, input.Notes, now, newExpiresAt, isExpired, input.TotalLimitUSD); err != nil {
 			return nil, false, err
 		}
 
@@ -257,10 +259,11 @@ func (s *SubscriptionService) updateExistingSubscriptionTerm(
 	startsAt time.Time,
 	newExpiresAt time.Time,
 	isExpired bool,
+	additionalTotalLimit *float64,
 ) error {
 	return s.withSubscriptionUpdateTx(ctx, func(txCtx context.Context) error {
 		if isExpired {
-			renewed := renewedSubscriptionTerm(existingSub, notes, startsAt, newExpiresAt)
+			renewed := renewedSubscriptionTerm(existingSub, notes, startsAt, newExpiresAt, additionalTotalLimit)
 			if err := s.userSubRepo.Update(txCtx, renewed); err != nil {
 				return fmt.Errorf("renew expired subscription: %w", err)
 			}
@@ -270,6 +273,11 @@ func (s *SubscriptionService) updateExistingSubscriptionTerm(
 		// 更新过期时间
 		if err := s.userSubRepo.ExtendExpiry(txCtx, existingSub.ID, newExpiresAt); err != nil {
 			return fmt.Errorf("extend subscription: %w", err)
+		}
+		if additionalTotalLimit != nil && *additionalTotalLimit > 0 {
+			if err := s.userSubRepo.AddTotalLimit(txCtx, existingSub.ID, *additionalTotalLimit); err != nil {
+				return fmt.Errorf("extend subscription total limit: %w", err)
+			}
 		}
 
 		// 如果订阅被暂停，恢复为 active 状态
@@ -312,7 +320,7 @@ func (s *SubscriptionService) withSubscriptionUpdateTx(ctx context.Context, fn f
 	return nil
 }
 
-func renewedSubscriptionTerm(existingSub *UserSubscription, notes string, startsAt, expiresAt time.Time) *UserSubscription {
+func renewedSubscriptionTerm(existingSub *UserSubscription, notes string, startsAt, expiresAt time.Time, totalLimit *float64) *UserSubscription {
 	renewed := *existingSub
 	windowStart := startOfDay(startsAt)
 	renewed.StartsAt = startsAt
@@ -324,8 +332,18 @@ func renewedSubscriptionTerm(existingSub *UserSubscription, notes string, starts
 	renewed.DailyUsageUSD = 0
 	renewed.WeeklyUsageUSD = 0
 	renewed.MonthlyUsageUSD = 0
+	renewed.TotalLimitUSD = normalizedTotalLimit(totalLimit)
+	renewed.TotalUsageUSD = 0
 	renewed.Notes = appendSubscriptionNotes(existingSub.Notes, notes)
 	return &renewed
+}
+
+func normalizedTotalLimit(limit *float64) *float64 {
+	if limit == nil || *limit <= 0 {
+		return nil
+	}
+	v := *limit
+	return &v
 }
 
 func appendSubscriptionNotes(existingNotes, newNotes string) string {
@@ -355,15 +373,16 @@ func (s *SubscriptionService) createSubscription(ctx context.Context, input *Ass
 	}
 
 	sub := &UserSubscription{
-		UserID:     input.UserID,
-		GroupID:    input.GroupID,
-		StartsAt:   now,
-		ExpiresAt:  expiresAt,
-		Status:     SubscriptionStatusActive,
-		AssignedAt: now,
-		Notes:      input.Notes,
-		CreatedAt:  now,
-		UpdatedAt:  now,
+		UserID:        input.UserID,
+		GroupID:       input.GroupID,
+		StartsAt:      now,
+		ExpiresAt:     expiresAt,
+		Status:        SubscriptionStatusActive,
+		AssignedAt:    now,
+		Notes:         input.Notes,
+		CreatedAt:     now,
+		UpdatedAt:     now,
+		TotalLimitUSD: normalizedTotalLimit(input.TotalLimitUSD),
 	}
 	// 只有当 AssignedBy > 0 时才设置（0 表示系统分配，如兑换码）
 	if input.AssignedBy > 0 {
@@ -849,6 +868,9 @@ func (s *SubscriptionService) CheckUsageLimits(ctx context.Context, sub *UserSub
 	if !sub.CheckMonthlyLimit(group, additionalCost) {
 		return ErrMonthlyLimitExceeded
 	}
+	if !sub.CheckTotalLimit(group, additionalCost) {
+		return ErrSubscriptionTotalLimitExceeded
+	}
 	return nil
 }
 
@@ -894,6 +916,9 @@ func (s *SubscriptionService) ValidateAndCheckLimits(sub *UserSubscription, grou
 	}
 	if !sub.CheckMonthlyLimit(group, 0) {
 		return needsMaintenance, ErrMonthlyLimitExceeded
+	}
+	if !sub.CheckTotalLimit(group, 0) {
+		return needsMaintenance, ErrSubscriptionTotalLimitExceeded
 	}
 
 	return needsMaintenance, nil
@@ -955,6 +980,7 @@ type SubscriptionProgress struct {
 	Daily         *UsageWindowProgress `json:"daily,omitempty"`
 	Weekly        *UsageWindowProgress `json:"weekly,omitempty"`
 	Monthly       *UsageWindowProgress `json:"monthly,omitempty"`
+	Total         *UsageWindowProgress `json:"total,omitempty"`
 }
 
 // UsageWindowProgress 使用窗口进度
@@ -1067,6 +1093,28 @@ func (s *SubscriptionService) calculateProgress(sub *UserSubscription, group *Gr
 		}
 		if progress.Monthly.ResetsInSeconds < 0 {
 			progress.Monthly.ResetsInSeconds = 0
+		}
+	}
+
+	if sub.TotalLimitUSD != nil && *sub.TotalLimitUSD > 0 {
+		limit := *sub.TotalLimitUSD
+		progress.Total = &UsageWindowProgress{
+			LimitUSD:        limit,
+			UsedUSD:         sub.TotalUsageUSD,
+			RemainingUSD:    limit - sub.TotalUsageUSD,
+			Percentage:      (sub.TotalUsageUSD / limit) * 100,
+			WindowStart:     sub.StartsAt,
+			ResetsAt:        sub.ExpiresAt,
+			ResetsInSeconds: int64(time.Until(sub.ExpiresAt).Seconds()),
+		}
+		if progress.Total.RemainingUSD < 0 {
+			progress.Total.RemainingUSD = 0
+		}
+		if progress.Total.Percentage > 100 {
+			progress.Total.Percentage = 100
+		}
+		if progress.Total.ResetsInSeconds < 0 {
+			progress.Total.ResetsInSeconds = 0
 		}
 	}
 

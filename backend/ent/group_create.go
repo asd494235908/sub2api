@@ -203,6 +203,20 @@ func (_c *GroupCreate) SetNillableMonthlyLimitUsd(v *float64) *GroupCreate {
 	return _c
 }
 
+// SetSubscriptionTotalLimitUsd sets the "subscription_total_limit_usd" field.
+func (_c *GroupCreate) SetSubscriptionTotalLimitUsd(v float64) *GroupCreate {
+	_c.mutation.SetSubscriptionTotalLimitUsd(v)
+	return _c
+}
+
+// SetNillableSubscriptionTotalLimitUsd sets the "subscription_total_limit_usd" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableSubscriptionTotalLimitUsd(v *float64) *GroupCreate {
+	if v != nil {
+		_c.SetSubscriptionTotalLimitUsd(*v)
+	}
+	return _c
+}
+
 // SetDefaultValidityDays sets the "default_validity_days" field.
 func (_c *GroupCreate) SetDefaultValidityDays(v int) *GroupCreate {
 	_c.mutation.SetDefaultValidityDays(v)
@@ -880,6 +894,10 @@ func (_c *GroupCreate) createSpec() (*Group, *sqlgraph.CreateSpec) {
 		_spec.SetField(group.FieldMonthlyLimitUsd, field.TypeFloat64, value)
 		_node.MonthlyLimitUsd = &value
 	}
+	if value, ok := _c.mutation.SubscriptionTotalLimitUsd(); ok {
+		_spec.SetField(group.FieldSubscriptionTotalLimitUsd, field.TypeFloat64, value)
+		_node.SubscriptionTotalLimitUsd = &value
+	}
 	if value, ok := _c.mutation.DefaultValidityDays(); ok {
 		_spec.SetField(group.FieldDefaultValidityDays, field.TypeInt, value)
 		_node.DefaultValidityDays = value
@@ -1315,6 +1333,30 @@ func (u *GroupUpsert) AddMonthlyLimitUsd(v float64) *GroupUpsert {
 // ClearMonthlyLimitUsd clears the value of the "monthly_limit_usd" field.
 func (u *GroupUpsert) ClearMonthlyLimitUsd() *GroupUpsert {
 	u.SetNull(group.FieldMonthlyLimitUsd)
+	return u
+}
+
+// SetSubscriptionTotalLimitUsd sets the "subscription_total_limit_usd" field.
+func (u *GroupUpsert) SetSubscriptionTotalLimitUsd(v float64) *GroupUpsert {
+	u.Set(group.FieldSubscriptionTotalLimitUsd, v)
+	return u
+}
+
+// UpdateSubscriptionTotalLimitUsd sets the "subscription_total_limit_usd" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateSubscriptionTotalLimitUsd() *GroupUpsert {
+	u.SetExcluded(group.FieldSubscriptionTotalLimitUsd)
+	return u
+}
+
+// AddSubscriptionTotalLimitUsd adds v to the "subscription_total_limit_usd" field.
+func (u *GroupUpsert) AddSubscriptionTotalLimitUsd(v float64) *GroupUpsert {
+	u.Add(group.FieldSubscriptionTotalLimitUsd, v)
+	return u
+}
+
+// ClearSubscriptionTotalLimitUsd clears the value of the "subscription_total_limit_usd" field.
+func (u *GroupUpsert) ClearSubscriptionTotalLimitUsd() *GroupUpsert {
+	u.SetNull(group.FieldSubscriptionTotalLimitUsd)
 	return u
 }
 
@@ -1933,6 +1975,34 @@ func (u *GroupUpsertOne) UpdateMonthlyLimitUsd() *GroupUpsertOne {
 func (u *GroupUpsertOne) ClearMonthlyLimitUsd() *GroupUpsertOne {
 	return u.Update(func(s *GroupUpsert) {
 		s.ClearMonthlyLimitUsd()
+	})
+}
+
+// SetSubscriptionTotalLimitUsd sets the "subscription_total_limit_usd" field.
+func (u *GroupUpsertOne) SetSubscriptionTotalLimitUsd(v float64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetSubscriptionTotalLimitUsd(v)
+	})
+}
+
+// AddSubscriptionTotalLimitUsd adds v to the "subscription_total_limit_usd" field.
+func (u *GroupUpsertOne) AddSubscriptionTotalLimitUsd(v float64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddSubscriptionTotalLimitUsd(v)
+	})
+}
+
+// UpdateSubscriptionTotalLimitUsd sets the "subscription_total_limit_usd" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateSubscriptionTotalLimitUsd() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateSubscriptionTotalLimitUsd()
+	})
+}
+
+// ClearSubscriptionTotalLimitUsd clears the value of the "subscription_total_limit_usd" field.
+func (u *GroupUpsertOne) ClearSubscriptionTotalLimitUsd() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearSubscriptionTotalLimitUsd()
 	})
 }
 
@@ -2774,6 +2844,34 @@ func (u *GroupUpsertBulk) UpdateMonthlyLimitUsd() *GroupUpsertBulk {
 func (u *GroupUpsertBulk) ClearMonthlyLimitUsd() *GroupUpsertBulk {
 	return u.Update(func(s *GroupUpsert) {
 		s.ClearMonthlyLimitUsd()
+	})
+}
+
+// SetSubscriptionTotalLimitUsd sets the "subscription_total_limit_usd" field.
+func (u *GroupUpsertBulk) SetSubscriptionTotalLimitUsd(v float64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetSubscriptionTotalLimitUsd(v)
+	})
+}
+
+// AddSubscriptionTotalLimitUsd adds v to the "subscription_total_limit_usd" field.
+func (u *GroupUpsertBulk) AddSubscriptionTotalLimitUsd(v float64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddSubscriptionTotalLimitUsd(v)
+	})
+}
+
+// UpdateSubscriptionTotalLimitUsd sets the "subscription_total_limit_usd" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateSubscriptionTotalLimitUsd() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateSubscriptionTotalLimitUsd()
+	})
+}
+
+// ClearSubscriptionTotalLimitUsd clears the value of the "subscription_total_limit_usd" field.
+func (u *GroupUpsertBulk) ClearSubscriptionTotalLimitUsd() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearSubscriptionTotalLimitUsd()
 	})
 }
 

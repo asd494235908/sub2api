@@ -39,27 +39,35 @@
 
       <!-- Group quota info (compact) -->
       <div class="mb-3 grid grid-cols-2 gap-x-3 gap-y-1 rounded-lg bg-gray-50 px-3 py-2 text-xs dark:bg-dark-700/50">
-        <div class="flex items-center justify-between">
-          <span class="text-gray-400 dark:text-dark-500">{{ t('payment.planCard.rate') }}</span>
-          <span class="font-medium text-gray-700 dark:text-gray-300">{{ rateDisplay }}</span>
+        <div class="flex min-w-0 items-center justify-between gap-2">
+          <span class="min-w-0 truncate text-gray-400 dark:text-dark-500">{{ t('payment.planCard.rate') }}</span>
+          <span class="shrink-0 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">{{ rateDisplay }}</span>
         </div>
-        <div v-if="plan.daily_limit_usd != null" class="flex items-center justify-between">
-          <span class="text-gray-400 dark:text-dark-500">{{ t('payment.planCard.dailyLimit') }}</span>
-          <span class="font-medium text-gray-700 dark:text-gray-300">${{ plan.daily_limit_usd }}</span>
+        <div v-if="plan.daily_limit_usd != null" class="flex min-w-0 items-center justify-between gap-2">
+          <span class="min-w-0 truncate text-gray-400 dark:text-dark-500">{{ t('payment.planCard.dailyLimit') }}</span>
+          <span class="shrink-0 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">${{ plan.daily_limit_usd }}</span>
         </div>
-        <div v-if="plan.weekly_limit_usd != null" class="flex items-center justify-between">
-          <span class="text-gray-400 dark:text-dark-500">{{ t('payment.planCard.weeklyLimit') }}</span>
-          <span class="font-medium text-gray-700 dark:text-gray-300">${{ plan.weekly_limit_usd }}</span>
+        <div v-if="plan.weekly_limit_usd != null" class="flex min-w-0 items-center justify-between gap-2">
+          <span class="min-w-0 truncate text-gray-400 dark:text-dark-500">{{ t('payment.planCard.weeklyLimit') }}</span>
+          <span class="shrink-0 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">${{ plan.weekly_limit_usd }}</span>
         </div>
-        <div v-if="plan.monthly_limit_usd != null" class="flex items-center justify-between">
-          <span class="text-gray-400 dark:text-dark-500">{{ t('payment.planCard.monthlyLimit') }}</span>
-          <span class="font-medium text-gray-700 dark:text-gray-300">${{ plan.monthly_limit_usd }}</span>
+        <div v-if="plan.monthly_limit_usd != null" class="flex min-w-0 items-center justify-between gap-2">
+          <span class="min-w-0 truncate text-gray-400 dark:text-dark-500">{{ t('payment.planCard.monthlyLimit') }}</span>
+          <span class="shrink-0 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">${{ plan.monthly_limit_usd }}</span>
         </div>
-        <div v-if="plan.daily_limit_usd == null && plan.weekly_limit_usd == null && plan.monthly_limit_usd == null" class="flex items-center justify-between">
-          <span class="text-gray-400 dark:text-dark-500">{{ t('payment.planCard.quota') }}</span>
-          <span class="font-medium text-gray-700 dark:text-gray-300">{{ t('payment.planCard.unlimited') }}</span>
+        <div v-if="plan.subscription_total_limit_usd != null" class="flex min-w-0 items-center justify-between gap-2">
+          <span class="min-w-0 truncate text-gray-400 dark:text-dark-500">{{ t('payment.planCard.perPurchaseCycleQuota') }}</span>
+          <span class="shrink-0 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">${{ plan.subscription_total_limit_usd }}</span>
         </div>
-        <div v-if="modelScopeLabels.length > 0" class="col-span-2 flex items-center justify-between">
+        <div v-if="plan.daily_limit_usd == null && plan.weekly_limit_usd == null && plan.monthly_limit_usd == null && plan.subscription_total_limit_usd == null" class="flex min-w-0 items-center justify-between gap-2">
+          <span class="min-w-0 truncate text-gray-400 dark:text-dark-500">{{ t('payment.planCard.quota') }}</span>
+          <span class="shrink-0 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">{{ t('payment.planCard.unlimited') }}</span>
+        </div>
+        <div v-if="supportedModels.length > 0" class="col-span-2 flex items-start justify-between gap-2">
+          <span class="shrink-0 text-gray-400 dark:text-dark-500">{{ t('payment.planCard.models') }}</span>
+          <SupportedModelsPreview class="min-w-0 justify-end" :models="supportedModels" :platform="platform" :limit="3" />
+        </div>
+        <div v-else-if="modelScopeLabels.length > 0" class="col-span-2 flex items-center justify-between">
           <span class="text-gray-400 dark:text-dark-500">{{ t('payment.planCard.models') }}</span>
           <div class="flex flex-wrap justify-end gap-1">
             <span v-for="scope in modelScopeLabels" :key="scope"
@@ -78,9 +86,6 @@
         <div class="flex items-center justify-between gap-2">
           <span class="text-amber-700 dark:text-amber-300">{{ dailySaleStatusText }}</span>
           <span v-if="dailySaleCountdownText" class="font-semibold tabular-nums text-amber-900 dark:text-amber-100">{{ dailySaleCountdownText }}</span>
-        </div>
-        <div v-if="dailyRemainingText" class="font-medium text-amber-800 dark:text-amber-200">
-          {{ dailyRemainingText }}
         </div>
       </div>
 
@@ -114,6 +119,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { SubscriptionPlan } from '@/types/payment'
 import type { UserSubscription } from '@/types'
+import SupportedModelsPreview from './SupportedModelsPreview.vue'
 import {
   platformAccentBarClass,
   platformBadgeLightClass,
@@ -195,12 +201,6 @@ const dailySaleStatusText = computed(() => {
   return t('payment.planCard.availableNow')
 })
 
-const dailyRemainingText = computed(() => {
-  if (props.plan.daily_purchase_limit <= 0) return ''
-  if ((props.plan.daily_purchase_remaining ?? 0) <= 0) return t('payment.planCard.soldOutToday')
-  return t('payment.planCard.availableToday', { count: props.plan.daily_purchase_remaining })
-})
-
 const discountText = computed(() => {
   if (!props.plan.original_price || props.plan.original_price <= 0) return ''
   const pct = Math.round((1 - props.plan.price / props.plan.original_price) * 100)
@@ -224,6 +224,7 @@ const modelScopeLabels = computed(() => {
   if (!scopes || scopes.length === 0) return []
   return scopes.map(s => MODEL_SCOPE_LABELS[s] || s)
 })
+const supportedModels = computed(() => props.plan.supported_models?.filter(Boolean) ?? [])
 
 const validitySuffix = computed(() => {
   const u = props.plan.validity_unit || 'day'

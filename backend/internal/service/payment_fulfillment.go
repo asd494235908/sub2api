@@ -305,7 +305,7 @@ func (s *PaymentService) doBalance(ctx context.Context, o *dbent.PaymentOrder) e
 
 func (s *PaymentService) markCompleted(ctx context.Context, o *dbent.PaymentOrder, auditAction string) error {
 	now := time.Now()
-	if auditAction == "RECHARGE_SUCCESS" && o.OrderType == payment.OrderTypeBalance && o.PayAmount > 0 {
+	if memberTotalRechargedAuditAction(auditAction) && memberTotalRechargedOrderType(o.OrderType) && o.PayAmount > 0 {
 		tx, err := s.entClient.Tx(ctx)
 		if err != nil {
 			return fmt.Errorf("begin completion transaction: %w", err)
@@ -346,6 +346,14 @@ func (s *PaymentService) markCompleted(ctx context.Context, o *dbent.PaymentOrde
 	}
 	s.dispatchPaymentFulfillmentNotification(o, auditAction)
 	return nil
+}
+
+func memberTotalRechargedAuditAction(action string) bool {
+	return action == "RECHARGE_SUCCESS" || action == "SUBSCRIPTION_SUCCESS"
+}
+
+func memberTotalRechargedOrderType(orderType string) bool {
+	return orderType == payment.OrderTypeBalance || orderType == payment.OrderTypeSubscription
 }
 
 func addUserTotalRecharged(ctx context.Context, client *dbent.Client, userID int64, amount float64) error {
@@ -484,7 +492,7 @@ func (s *PaymentService) doSub(ctx context.Context, o *dbent.PaymentOrder) error
 		return s.markCompleted(ctx, o, "SUBSCRIPTION_SUCCESS")
 	}
 	orderNote := fmt.Sprintf("payment order %d", o.ID)
-	_, _, err = s.subscriptionSvc.AssignOrExtendSubscription(ctx, &AssignSubscriptionInput{UserID: o.UserID, GroupID: gid, ValidityDays: days, AssignedBy: 0, Notes: orderNote})
+	_, _, err = s.subscriptionSvc.AssignOrExtendSubscription(ctx, &AssignSubscriptionInput{UserID: o.UserID, GroupID: gid, ValidityDays: days, TotalLimitUSD: o.SubscriptionTotalLimitUsd, AssignedBy: 0, Notes: orderNote})
 	if err != nil {
 		return fmt.Errorf("assign subscription: %w", err)
 	}

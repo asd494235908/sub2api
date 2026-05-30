@@ -273,6 +273,29 @@ gateway:
   # 默认 false：保持纯文本 Codex 请求不被改写；客户端显式提供 image_generation tool 时，
   # 仍会在分组允许图片生成的情况下正常转发。
   codex_image_generation_bridge_enabled: false
+  # Usage recording queue settings.
+  # 使用量记录队列配置。
+  usage_record:
+    # Initial worker count for usage recording.
+    # 使用量记录初始 worker 数量。
+    worker_count: 128
+    # Bounded queue size. Larger queues absorb short traffic spikes.
+    # 有界队列容量；扩大队列可吸收短时间流量尖峰。
+    queue_size: 65536
+    # Per-task timeout in seconds.
+    # 单个记录任务超时时间（秒）。
+    task_timeout_seconds: 5
+    # Queue overflow policy: drop/sample/sync. sync applies backpressure instead of dropping.
+    # 队列满策略：drop/sample/sync。sync 会同步兜底形成回压，避免丢记录。
+    overflow_policy: "sync"
+    # Kept for compatibility when overflow_policy is sample.
+    # overflow_policy=sample 时使用；sync 下保留兼容。
+    overflow_sample_percent: 10
+    # Enable worker auto scaling.
+    # 启用 worker 自动扩缩容。
+    auto_scale_enabled: true
+    auto_scale_min_workers: 128
+    auto_scale_max_workers: 512
   # Optional: template file used to build the final top-level Codex `instructions`.
   # 可选：用于构建最终 Codex 顶层 `instructions` 的模板文件路径。
   #

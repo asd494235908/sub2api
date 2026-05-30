@@ -21,6 +21,9 @@ const routerResolve = vi.hoisted(() => vi.fn(() => ({ href: '/payment/stripe?moc
 const createOrder = vi.hoisted(() => vi.fn())
 const refreshUser = vi.hoisted(() => vi.fn())
 const fetchActiveSubscriptions = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
+const activeSubscriptionsState = vi.hoisted(() => ({
+  value: [] as any[],
+}))
 const showError = vi.hoisted(() => vi.fn())
 const showInfo = vi.hoisted(() => vi.fn())
 const showWarning = vi.hoisted(() => vi.fn())
@@ -68,7 +71,7 @@ vi.mock('@/stores/payment', () => ({
 
 vi.mock('@/stores/subscriptions', () => ({
   useSubscriptionStore: () => ({
-    activeSubscriptions: [],
+    activeSubscriptions: activeSubscriptionsState.value,
     fetchActiveSubscriptions,
   }),
 }))
@@ -136,12 +139,14 @@ function checkoutInfoWithPlansFixture() {
           daily_limit_usd: null,
           weekly_limit_usd: null,
           monthly_limit_usd: null,
+          subscription_total_limit_usd: 1560,
           features: [],
           group_platform: 'openai',
           sort_order: 1,
           for_sale: true,
           daily_purchase_limit: 0,
           group_name: 'OpenAI',
+          supported_models: ['gpt-5.3-codex', 'gpt-image-2', 'gpt-5.4-mini', 'gpt-5.4', 'gpt-5.5'],
         },
       ],
     },
@@ -199,6 +204,42 @@ function checkoutInfoWithUnavailableDailyPlanFixture() {
           daily_sale_status: 'sold_out',
           daily_sale_countdown_seconds: 3600,
           daily_sale_available_for_payment: false,
+        },
+      ],
+    },
+  }
+}
+
+function checkoutInfoWithAvailableDailyPlanFixture() {
+  return {
+    data: {
+      ...checkoutInfoFixture().data,
+      plans: [
+        {
+          id: 9,
+          group_id: 3,
+          name: 'Available Flash Sale',
+          description: '',
+          price: 128,
+          original_price: 0,
+          validity_days: 30,
+          validity_unit: 'day',
+          rate_multiplier: 1,
+          daily_limit_usd: null,
+          weekly_limit_usd: null,
+          monthly_limit_usd: null,
+          features: [],
+          group_platform: 'openai',
+          sort_order: 1,
+          for_sale: true,
+          group_name: 'OpenAI',
+          daily_purchase_limit: 5,
+          daily_purchase_remaining: 3,
+          daily_sale_starts_at: '09:00',
+          daily_sale_ends_at: '18:00',
+          daily_sale_status: 'available',
+          daily_sale_countdown_seconds: 3600,
+          daily_sale_available_for_payment: true,
         },
       ],
     },
@@ -263,6 +304,7 @@ describe('PaymentView WeChat JSAPI flow', () => {
     showWarning.mockReset()
     getCheckoutInfo.mockReset().mockResolvedValue(checkoutInfoFixture())
     bridgeInvoke.mockReset()
+    activeSubscriptionsState.value = []
     window.localStorage.clear()
     ;(window as Window & { WeixinJSBridge?: { invoke: typeof bridgeInvoke } }).WeixinJSBridge = {
       invoke: bridgeInvoke,
@@ -513,7 +555,7 @@ describe('PaymentView WeChat JSAPI flow', () => {
     expect(wrapper.text()).not.toContain('返 ¥15.00')
   })
 
-  it('hides 10 and 20 from recharge quick amount buttons', async () => {
+  it('hides 10 from recharge quick amount buttons', async () => {
     routeState.path = '/purchase'
     routeState.query = {}
 
@@ -539,7 +581,7 @@ describe('PaymentView WeChat JSAPI flow', () => {
 
     const amountInput = wrapper.findComponent({ name: 'AmountInput' })
 
-    expect(amountInput.props('amounts')).toEqual([50, 100, 200, 500, 1000, 2000, 5000])
+    expect(amountInput.props('amounts')).toEqual([20, 50, 100, 200, 500, 1000, 2000, 5000])
   })
 
   it('shows subscription tab by default on purchase page', async () => {
@@ -671,8 +713,166 @@ describe('PaymentView WeChat JSAPI flow', () => {
     expect(wrapper.text()).toContain('payment.planCard.dailySaleTime')
     expect(wrapper.text()).toContain('09:00 - 18:00')
     expect(wrapper.text()).toContain('payment.planCard.soldOutToday')
+    expect(wrapper.text()).not.toContain('payment.planCard.availableTodayLabel')
     const buttons = wrapper.findAll('button')
     const submit = buttons.find(button => button.text().includes('payment.createOrder'))
     expect(submit?.attributes('disabled')).toBeDefined()
+  })
+
+  it('hides daily remaining purchase count for available selected plan', async () => {
+    routeState.path = '/purchase'
+    routeState.query = {}
+    getCheckoutInfo.mockResolvedValue(checkoutInfoWithAvailableDailyPlanFixture())
+
+    const wrapper = mount(PaymentView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          AmountInput: true,
+          PaymentMethodSelector: true,
+          PaymentStatusPanel: true,
+          Icon: true,
+          Teleport: true,
+          Transition: false,
+        },
+      },
+    })
+    await flushPromises()
+    await flushPromises()
+
+    expect(wrapper.text()).not.toContain('payment.planCard.availableTodayLabel')
+    expect(wrapper.text()).not.toContain('Remaining today')
+
+    await wrapper.findComponent({ name: 'SubscriptionPlanCard' }).vm.$emit('select', checkoutInfoWithAvailableDailyPlanFixture().data.plans[0])
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('payment.planCard.dailySaleTime')
+    expect(wrapper.text()).toContain('09:00 - 18:00')
+    expect(wrapper.text()).not.toContain('payment.planCard.availableTodayLabel')
+    expect(wrapper.text()).not.toContain('Remaining today')
+  })
+
+  it('keeps hot supported model summary visible and reveals all models after selecting a subscription plan', async () => {
+    routeState.path = '/purchase'
+    routeState.query = {}
+    getCheckoutInfo.mockResolvedValue(checkoutInfoWithPlansFixture())
+
+    const wrapper = mount(PaymentView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          AmountInput: true,
+          PaymentMethodSelector: true,
+          PaymentStatusPanel: true,
+          Icon: true,
+          Teleport: true,
+          Transition: false,
+        },
+      },
+    })
+    await flushPromises()
+    await flushPromises()
+
+    await wrapper.findComponent({ name: 'SubscriptionPlanCard' }).vm.$emit('select', checkoutInfoWithPlansFixture().data.plans[0])
+    await flushPromises()
+
+    const text = wrapper.text()
+    expect(text).toContain('payment.planCard.models')
+    expect(text).toContain('gpt-5.5')
+    expect(text).toContain('gpt-5.4')
+    expect(text).toContain('gpt-5.4-mini')
+    expect(text).toContain('gpt-image-2')
+    expect(text).not.toContain('gpt-5.3-codex')
+    expect(text).toContain('+1')
+
+    await wrapper.get('[data-test="supported-models-summary"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('payment.planCard.supportedModelsTitle')
+    expect(wrapper.text()).toContain('gpt-5.3-codex')
+  })
+
+  it('shows subscription cycle total quota in selected plan confirmation', async () => {
+    routeState.path = '/purchase'
+    routeState.query = {}
+    getCheckoutInfo.mockResolvedValue(checkoutInfoWithPlansFixture())
+
+    const wrapper = mount(PaymentView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          AmountInput: true,
+          PaymentMethodSelector: true,
+          PaymentStatusPanel: true,
+          Icon: true,
+          Teleport: true,
+          Transition: false,
+        },
+      },
+    })
+    await flushPromises()
+    await flushPromises()
+
+    await wrapper.findComponent({ name: 'SubscriptionPlanCard' }).vm.$emit('select', checkoutInfoWithPlansFixture().data.plans[0])
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('payment.planCard.purchaseAddsCycleQuota')
+    expect(wrapper.text()).toContain('¥1560')
+  })
+
+  it('uses subscription instance total limit when deciding whether active subscription is unlimited', async () => {
+    routeState.path = '/purchase'
+    routeState.query = {}
+    getCheckoutInfo.mockResolvedValue(checkoutInfoWithPlansFixture())
+    activeSubscriptionsState.value = [
+      {
+        id: 47,
+        group_id: 34,
+        user_id: 2,
+        status: 'active',
+        starts_at: '2026-06-26T15:57:02Z',
+        expires_at: '2028-06-26T15:57:02Z',
+        daily_usage_usd: 0,
+        weekly_usage_usd: 0,
+        monthly_usage_usd: 0,
+        total_limit_usd: 3120,
+        total_usage_usd: 0,
+        daily_window_start: null,
+        weekly_window_start: null,
+        monthly_window_start: null,
+        created_at: '2026-06-26T15:57:02Z',
+        updated_at: '2026-06-26T15:57:02Z',
+        group: {
+          id: 34,
+          name: 'Early Bird',
+          platform: 'openai',
+          rate_multiplier: 1,
+          daily_limit_usd: null,
+          weekly_limit_usd: null,
+          monthly_limit_usd: null,
+          subscription_total_limit_usd: 1560,
+        },
+      },
+    ]
+
+    const wrapper = mount(PaymentView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          AmountInput: true,
+          PaymentMethodSelector: true,
+          PaymentStatusPanel: true,
+          SubscriptionPlanCard: true,
+          Icon: true,
+          Teleport: true,
+          Transition: false,
+        },
+      },
+    })
+    await flushPromises()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Early Bird')
+    expect(wrapper.text()).not.toContain('payment.planCard.quota: payment.planCard.unlimited')
   })
 })

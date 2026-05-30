@@ -288,9 +288,13 @@ export async function exchangeCasdoorTicket(ticket: string): Promise<AuthRespons
   return data
 }
 
-export function buildCasdoorLoginUrl(redirect = '/dashboard'): string {
+export function buildCasdoorLoginUrl(redirect = '/dashboard', affCode = ''): string {
   const safeRedirect = sanitizeSameSiteRedirectPath(redirect) || '/dashboard'
   const params = new URLSearchParams({ redirect: safeRedirect })
+  const code = affCode.trim()
+  if (code) {
+    params.set('aff_code', code)
+  }
   return `/api/v1/auth/casdoor/login?${params.toString()}`
 }
 

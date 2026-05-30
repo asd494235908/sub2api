@@ -120,6 +120,11 @@ func MonthlyLimitUsd(v float64) predicate.Group {
 	return predicate.Group(sql.FieldEQ(FieldMonthlyLimitUsd, v))
 }
 
+// SubscriptionTotalLimitUsd applies equality check predicate on the "subscription_total_limit_usd" field. It's identical to SubscriptionTotalLimitUsdEQ.
+func SubscriptionTotalLimitUsd(v float64) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldSubscriptionTotalLimitUsd, v))
+}
+
 // DefaultValidityDays applies equality check predicate on the "default_validity_days" field. It's identical to DefaultValidityDaysEQ.
 func DefaultValidityDays(v int) predicate.Group {
 	return predicate.Group(sql.FieldEQ(FieldDefaultValidityDays, v))
@@ -873,6 +878,56 @@ func MonthlyLimitUsdIsNil() predicate.Group {
 // MonthlyLimitUsdNotNil applies the NotNil predicate on the "monthly_limit_usd" field.
 func MonthlyLimitUsdNotNil() predicate.Group {
 	return predicate.Group(sql.FieldNotNull(FieldMonthlyLimitUsd))
+}
+
+// SubscriptionTotalLimitUsdEQ applies the EQ predicate on the "subscription_total_limit_usd" field.
+func SubscriptionTotalLimitUsdEQ(v float64) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldSubscriptionTotalLimitUsd, v))
+}
+
+// SubscriptionTotalLimitUsdNEQ applies the NEQ predicate on the "subscription_total_limit_usd" field.
+func SubscriptionTotalLimitUsdNEQ(v float64) predicate.Group {
+	return predicate.Group(sql.FieldNEQ(FieldSubscriptionTotalLimitUsd, v))
+}
+
+// SubscriptionTotalLimitUsdIn applies the In predicate on the "subscription_total_limit_usd" field.
+func SubscriptionTotalLimitUsdIn(vs ...float64) predicate.Group {
+	return predicate.Group(sql.FieldIn(FieldSubscriptionTotalLimitUsd, vs...))
+}
+
+// SubscriptionTotalLimitUsdNotIn applies the NotIn predicate on the "subscription_total_limit_usd" field.
+func SubscriptionTotalLimitUsdNotIn(vs ...float64) predicate.Group {
+	return predicate.Group(sql.FieldNotIn(FieldSubscriptionTotalLimitUsd, vs...))
+}
+
+// SubscriptionTotalLimitUsdGT applies the GT predicate on the "subscription_total_limit_usd" field.
+func SubscriptionTotalLimitUsdGT(v float64) predicate.Group {
+	return predicate.Group(sql.FieldGT(FieldSubscriptionTotalLimitUsd, v))
+}
+
+// SubscriptionTotalLimitUsdGTE applies the GTE predicate on the "subscription_total_limit_usd" field.
+func SubscriptionTotalLimitUsdGTE(v float64) predicate.Group {
+	return predicate.Group(sql.FieldGTE(FieldSubscriptionTotalLimitUsd, v))
+}
+
+// SubscriptionTotalLimitUsdLT applies the LT predicate on the "subscription_total_limit_usd" field.
+func SubscriptionTotalLimitUsdLT(v float64) predicate.Group {
+	return predicate.Group(sql.FieldLT(FieldSubscriptionTotalLimitUsd, v))
+}
+
+// SubscriptionTotalLimitUsdLTE applies the LTE predicate on the "subscription_total_limit_usd" field.
+func SubscriptionTotalLimitUsdLTE(v float64) predicate.Group {
+	return predicate.Group(sql.FieldLTE(FieldSubscriptionTotalLimitUsd, v))
+}
+
+// SubscriptionTotalLimitUsdIsNil applies the IsNil predicate on the "subscription_total_limit_usd" field.
+func SubscriptionTotalLimitUsdIsNil() predicate.Group {
+	return predicate.Group(sql.FieldIsNull(FieldSubscriptionTotalLimitUsd))
+}
+
+// SubscriptionTotalLimitUsdNotNil applies the NotNil predicate on the "subscription_total_limit_usd" field.
+func SubscriptionTotalLimitUsdNotNil() predicate.Group {
+	return predicate.Group(sql.FieldNotNull(FieldSubscriptionTotalLimitUsd))
 }
 
 // DefaultValidityDaysEQ applies the EQ predicate on the "default_validity_days" field.

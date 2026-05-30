@@ -14,6 +14,7 @@ import (
 type billingCacheWorkerStub struct {
 	balanceUpdates      int64
 	subscriptionUpdates int64
+	subscriptionData    *SubscriptionCacheData
 }
 
 func (b *billingCacheWorkerStub) GetUserBalance(ctx context.Context, userID int64) (float64, error) {
@@ -35,6 +36,9 @@ func (b *billingCacheWorkerStub) InvalidateUserBalance(ctx context.Context, user
 }
 
 func (b *billingCacheWorkerStub) GetSubscriptionCache(ctx context.Context, userID, groupID int64) (*SubscriptionCacheData, error) {
+	if b.subscriptionData != nil {
+		return b.subscriptionData, nil
+	}
 	return nil, errors.New("not implemented")
 }
 

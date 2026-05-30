@@ -320,19 +320,35 @@ type oauthEmailAffiliateBindCall struct {
 	inviterID int64
 }
 
+type oauthEmailAffiliateSignupBonusCall struct {
+	inviterID     int64
+	inviteeUserID int64
+	amount        float64
+}
+
 type oauthEmailAffiliateRepoStub struct {
 	codeOwners    map[string]int64
 	ensureUserIDs []int64
 	bindCalls     []oauthEmailAffiliateBindCall
+	bonusCalls    []oauthEmailAffiliateSignupBonusCall
+	summaries     map[int64]*service.AffiliateSummary
 }
 
 func newOAuthEmailAffiliateRepoStub(codeOwners map[string]int64) *oauthEmailAffiliateRepoStub {
-	return &oauthEmailAffiliateRepoStub{codeOwners: codeOwners}
+	return &oauthEmailAffiliateRepoStub{
+		codeOwners: codeOwners,
+		summaries:  make(map[int64]*service.AffiliateSummary),
+	}
 }
 
 func (r *oauthEmailAffiliateRepoStub) EnsureUserAffiliate(_ context.Context, userID int64) (*service.AffiliateSummary, error) {
 	r.ensureUserIDs = append(r.ensureUserIDs, userID)
-	return &service.AffiliateSummary{UserID: userID, AffCode: "SELF"}, nil
+	if summary, ok := r.summaries[userID]; ok {
+		return summary, nil
+	}
+	summary := &service.AffiliateSummary{UserID: userID, AffCode: "SELF"}
+	r.summaries[userID] = summary
+	return summary, nil
 }
 
 func (r *oauthEmailAffiliateRepoStub) GetAffiliateByCode(_ context.Context, code string) (*service.AffiliateSummary, error) {
@@ -345,6 +361,11 @@ func (r *oauthEmailAffiliateRepoStub) GetAffiliateByCode(_ context.Context, code
 
 func (r *oauthEmailAffiliateRepoStub) BindInviter(_ context.Context, userID, inviterID int64) (bool, error) {
 	r.bindCalls = append(r.bindCalls, oauthEmailAffiliateBindCall{userID: userID, inviterID: inviterID})
+	summary, err := r.EnsureUserAffiliate(context.Background(), userID)
+	if err != nil {
+		return false, err
+	}
+	summary.InviterID = &inviterID
 	return true, nil
 }
 
@@ -356,8 +377,13 @@ func (r *oauthEmailAffiliateRepoStub) AccrueQuota(context.Context, int64, int64,
 	panic("unexpected AccrueQuota call")
 }
 
-func (r *oauthEmailAffiliateRepoStub) AwardSignupBonus(context.Context, int64, int64, float64) (bool, float64, error) {
-	panic("unexpected AwardSignupBonus call")
+func (r *oauthEmailAffiliateRepoStub) AwardSignupBonus(_ context.Context, inviterID, inviteeUserID int64, amount float64) (bool, float64, error) {
+	r.bonusCalls = append(r.bonusCalls, oauthEmailAffiliateSignupBonusCall{
+		inviterID:     inviterID,
+		inviteeUserID: inviteeUserID,
+		amount:        amount,
+	})
+	return true, amount, nil
 }
 
 func (r *oauthEmailAffiliateRepoStub) GetAccruedRebateFromInvitee(context.Context, int64, int64) (float64, error) {

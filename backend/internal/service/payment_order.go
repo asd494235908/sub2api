@@ -293,6 +293,11 @@ func (s *PaymentService) createOrderInTx(ctx context.Context, req CreateOrderReq
 	}
 	if plan != nil {
 		b.SetPlanID(plan.ID).SetSubscriptionGroupID(plan.GroupID).SetSubscriptionDays(psComputeValidityDays(plan.ValidityDays, plan.ValidityUnit))
+		if s.groupRepo != nil {
+			if group, err := s.groupRepo.GetByID(ctx, plan.GroupID); err == nil && group != nil && group.SubscriptionTotalLimitUSD != nil && *group.SubscriptionTotalLimitUSD > 0 {
+				b.SetSubscriptionTotalLimitUsd(*group.SubscriptionTotalLimitUSD)
+			}
+		}
 	}
 	order, err := b.Save(ctx)
 	if err != nil {

@@ -111,6 +111,73 @@ func TestCreateOrderInTx_WritesProviderSnapshot(t *testing.T) {
 	require.NotContains(t, order.ProviderSnapshot, "instance_name")
 }
 
+func TestCreateOrderInTx_SnapshotsSubscriptionPlanValidityDays(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentConfigServiceTestClient(t)
+
+	user, err := client.User.Create().
+		SetEmail("subscription-snapshot@example.com").
+		SetPasswordHash("hash").
+		SetUsername("subscription-snapshot-user").
+		Save(ctx)
+	require.NoError(t, err)
+
+	plan, err := client.SubscriptionPlan.Create().
+		SetGroupID(7).
+		SetName("Annual Plan").
+		SetDescription("365 day plan").
+		SetPrice(99).
+		SetValidityDays(365).
+		SetValidityUnit("days").
+		SetFeatures("").
+		SetProductName("").
+		SetForSale(true).
+		Save(ctx)
+	require.NoError(t, err)
+
+	svc := &PaymentService{entClient: client}
+	order, err := svc.createOrderInTx(
+		ctx,
+		CreateOrderRequest{
+			UserID:      user.ID,
+			PaymentType: payment.TypeAlipay,
+			OrderType:   payment.OrderTypeSubscription,
+			ClientIP:    "127.0.0.1",
+			SrcHost:     "app.example.com",
+		},
+		&User{
+			ID:       user.ID,
+			Email:    user.Email,
+			Username: user.Username,
+		},
+		plan,
+		&PaymentConfig{
+			MaxPendingOrders: 3,
+			OrderTimeoutMin:  30,
+		},
+		99,
+		99,
+		0,
+		99,
+		&payment.InstanceSelection{ProviderKey: payment.TypeAlipay},
+	)
+	require.NoError(t, err)
+	require.Equal(t, plan.ID, int64PtrValueOrZero(order.PlanID))
+	require.Equal(t, int64(7), int64PtrValueOrZero(order.SubscriptionGroupID))
+	require.Equal(t, 365, intValueOrZero(order.SubscriptionDays))
+}
+
+func TestPsComputeValidityDaysAcceptsSingularAndPluralUnits(t *testing.T) {
+	require.Equal(t, 365, psComputeValidityDays(365, "days"))
+	require.Equal(t, 365, psComputeValidityDays(365, "day"))
+	require.Equal(t, 14, psComputeValidityDays(2, "weeks"))
+	require.Equal(t, 14, psComputeValidityDays(2, "week"))
+	require.Equal(t, 60, psComputeValidityDays(2, "months"))
+	require.Equal(t, 60, psComputeValidityDays(2, "month"))
+	require.Equal(t, 365, psComputeValidityDays(1, "years"))
+	require.Equal(t, 365, psComputeValidityDays(1, "year"))
+}
+
 func TestBuildPaymentOrderProviderSnapshot_UsesWxpayJSAPIAppIDForOpenIDOrders(t *testing.T) {
 	t.Parallel()
 
@@ -191,6 +258,20 @@ func TestBuildPaymentOrderProviderSnapshot_IncludesProviderCurrency(t *testing.T
 func valueOrEmpty(v *string) string {
 	if v == nil {
 		return ""
+	}
+	return *v
+}
+
+func int64PtrValueOrZero(v *int64) int64 {
+	if v == nil {
+		return 0
+	}
+	return *v
+}
+
+func intValueOrZero(v *int) int {
+	if v == nil {
+		return 0
 	}
 	return *v
 }

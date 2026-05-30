@@ -39,7 +39,7 @@ func querySingleInt(t *testing.T, ctx context.Context, client *dbent.Client, que
 	return value
 }
 
-func ptrTime(v time.Time) *time.Time {
+func affiliatePtrTime(v time.Time) *time.Time {
 	return &v
 }
 
@@ -261,8 +261,8 @@ VALUES ($1, 'accrue', 9.0, $2, $3, $3), ($1, 'signup_bonus', 3.0, $2, $3, $3)`, 
 	items, total, err := repo.ListInvitersWithInvitees(txCtx, service.AffiliateAdminFilter{
 		Page:     1,
 		PageSize: 20,
-		StartAt:  ptrTime(time.Date(2026, 5, 10, 0, 0, 0, 0, time.UTC)),
-		EndAt:    ptrTime(time.Date(2026, 5, 20, 23, 59, 59, 0, time.UTC)),
+		StartAt:  affiliatePtrTime(time.Date(2026, 5, 10, 0, 0, 0, 0, time.UTC)),
+		EndAt:    affiliatePtrTime(time.Date(2026, 5, 20, 23, 59, 59, 0, time.UTC)),
 	})
 	require.NoError(t, err)
 	require.Equal(t, int64(1), total)

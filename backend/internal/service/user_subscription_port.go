@@ -24,6 +24,7 @@ type UserSubscriptionRepository interface {
 	ExtendExpiry(ctx context.Context, subscriptionID int64, newExpiresAt time.Time) error
 	UpdateStatus(ctx context.Context, subscriptionID int64, status string) error
 	UpdateNotes(ctx context.Context, subscriptionID int64, notes string) error
+	AddTotalLimit(ctx context.Context, subscriptionID int64, amount float64) error
 
 	ActivateWindows(ctx context.Context, id int64, start time.Time) error
 	ResetDailyUsage(ctx context.Context, id int64, newWindowStart time.Time) error

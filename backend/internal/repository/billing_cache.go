@@ -53,6 +53,8 @@ const (
 	subFieldDailyUsage   = "daily_usage"
 	subFieldWeeklyUsage  = "weekly_usage"
 	subFieldMonthlyUsage = "monthly_usage"
+	subFieldTotalLimit   = "total_limit"
+	subFieldTotalUsage   = "total_usage"
 	subFieldVersion      = "version"
 )
 
@@ -91,6 +93,7 @@ var (
 		redis.call('HINCRBYFLOAT', KEYS[1], 'daily_usage', cost)
 		redis.call('HINCRBYFLOAT', KEYS[1], 'weekly_usage', cost)
 		redis.call('HINCRBYFLOAT', KEYS[1], 'monthly_usage', cost)
+		redis.call('HINCRBYFLOAT', KEYS[1], 'total_usage', cost)
 		redis.call('EXPIRE', KEYS[1], ARGV[2])
 		return 1
 	`)
@@ -209,6 +212,14 @@ func (c *billingCache) parseSubscriptionCache(data map[string]string) (*service.
 	if monthlyStr, ok := data[subFieldMonthlyUsage]; ok {
 		result.MonthlyUsage, _ = strconv.ParseFloat(monthlyStr, 64)
 	}
+	if totalLimitStr, ok := data[subFieldTotalLimit]; ok {
+		if parsed, err := strconv.ParseFloat(totalLimitStr, 64); err == nil {
+			result.TotalLimitUSD = &parsed
+		}
+	}
+	if totalUsageStr, ok := data[subFieldTotalUsage]; ok {
+		result.TotalUsage, _ = strconv.ParseFloat(totalUsageStr, 64)
+	}
 
 	if versionStr, ok := data[subFieldVersion]; ok {
 		result.Version, _ = strconv.ParseInt(versionStr, 10, 64)
@@ -230,7 +241,11 @@ func (c *billingCache) SetSubscriptionCache(ctx context.Context, userID, groupID
 		subFieldDailyUsage:   data.DailyUsage,
 		subFieldWeeklyUsage:  data.WeeklyUsage,
 		subFieldMonthlyUsage: data.MonthlyUsage,
+		subFieldTotalUsage:   data.TotalUsage,
 		subFieldVersion:      data.Version,
+	}
+	if data.TotalLimitUSD != nil {
+		fields[subFieldTotalLimit] = *data.TotalLimitUSD
 	}
 
 	pipe := c.rdb.Pipeline()

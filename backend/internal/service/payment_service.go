@@ -337,16 +337,26 @@ func psSliceContains(sl []string, s string) bool {
 
 // Subscription validity period unit constants.
 const (
-	validityUnitWeek  = "week"
-	validityUnitMonth = "month"
+	validityUnitDay    = "day"
+	validityUnitDays   = "days"
+	validityUnitWeek   = "week"
+	validityUnitWeeks  = "weeks"
+	validityUnitMonth  = "month"
+	validityUnitMonths = "months"
+	validityUnitYear   = "year"
+	validityUnitYears  = "years"
 )
 
 func psComputeValidityDays(days int, unit string) int {
-	switch unit {
-	case validityUnitWeek:
+	switch strings.ToLower(strings.TrimSpace(unit)) {
+	case validityUnitWeek, validityUnitWeeks:
 		return days * 7
-	case validityUnitMonth:
+	case validityUnitMonth, validityUnitMonths:
 		return days * 30
+	case validityUnitYear, validityUnitYears:
+		return days * 365
+	case validityUnitDay, validityUnitDays:
+		return days
 	default:
 		return days
 	}

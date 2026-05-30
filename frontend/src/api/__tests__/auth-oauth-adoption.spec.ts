@@ -40,6 +40,14 @@ describe('oauth adoption auth api', () => {
     })
   })
 
+  it('builds casdoor login URL with affiliate code', async () => {
+    const { buildCasdoorLoginUrl } = await import('@/api/auth')
+
+    expect(buildCasdoorLoginUrl('/dashboard', 'AFF123')).toBe(
+      '/api/v1/auth/casdoor/login?redirect=%2Fdashboard&aff_code=AFF123'
+    )
+  })
+
   it('posts bind-login decisions when finalizing pending oauth bind flow', async () => {
     const { completePendingOAuthBindLogin } = await import('@/api/auth')
 

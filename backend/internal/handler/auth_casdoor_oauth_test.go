@@ -25,7 +25,7 @@ func TestCasdoorOAuthLoginRedirectsAndSetsCookies(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(recorder)
-	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/auth/casdoor/login?redirect=/billing", nil)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/auth/casdoor/login?redirect=/billing&aff_code=AFF123", nil)
 
 	handler.CasdoorOAuthLogin(c)
 
@@ -47,7 +47,26 @@ func TestCasdoorOAuthLoginRedirectsAndSetsCookies(t *testing.T) {
 	require.NotNil(t, findCookie(cookies, casdoorOAuthStateCookieName))
 	require.NotNil(t, findCookie(cookies, casdoorOAuthRedirectCookieName))
 	require.NotNil(t, findCookie(cookies, casdoorOAuthBrowserCookieName))
+	require.NotNil(t, findCookie(cookies, casdoorOAuthAffiliateCookieName))
 	require.Equal(t, "/billing", decodeCookieValueForTest(t, findCookie(cookies, casdoorOAuthRedirectCookieName).Value))
+	require.Equal(t, "AFF123", decodeCookieValueForTest(t, findCookie(cookies, casdoorOAuthAffiliateCookieName).Value))
+}
+
+func TestCasdoorOAuthLoginAcceptsAffiliateAlias(t *testing.T) {
+	handler, _ := newCasdoorOAuthTestHandler(t, casdoorOAuthTestOptions{
+		cfg: testCasdoorConfig("https://login.example.com"),
+	})
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/auth/casdoor/login?aff=AFFALIAS", nil)
+
+	handler.CasdoorOAuthLogin(c)
+
+	require.Equal(t, http.StatusFound, recorder.Code)
+	cookie := findCookie(recorder.Result().Cookies(), casdoorOAuthAffiliateCookieName)
+	require.NotNil(t, cookie)
+	require.Equal(t, "AFFALIAS", decodeCookieValueForTest(t, cookie.Value))
 }
 
 func TestCasdoorOAuthLoginAddsPhoneScopeWhenConfiguredScopeOmitsIt(t *testing.T) {
@@ -152,6 +171,90 @@ func TestCasdoorOAuthCallbackBindsExistingEmailUser(t *testing.T) {
 		Only(context.Background())
 	require.NoError(t, err)
 	require.Equal(t, user.ID, identity.UserID)
+}
+
+func TestCasdoorOAuthCallbackBindsAffiliateForNewUserOnly(t *testing.T) {
+	cfg := testCasdoorConfig("")
+	provider, closeProvider := newCasdoorTestProvider(t, casdoorProviderFixture{
+		Subject: "casdoor-sub-new-aff",
+		Email:   "new-aff@example.com",
+		Name:    "New Aff",
+	})
+	defer closeProvider()
+	cfg.Issuer = provider.issuer
+	cfg.TokenURL = provider.tokenURL
+	cfg.UserInfoURL = provider.userInfoURL
+
+	affiliateRepo := newOAuthEmailAffiliateRepoStub(map[string]int64{"AFF123": 1001})
+	handler, client := newCasdoorOAuthTestHandler(t, casdoorOAuthTestOptions{
+		cfg: cfg,
+		affiliateFactory: func(_ *dbent.Client, settingSvc *service.SettingService) *service.AffiliateService {
+			return service.NewAffiliateService(affiliateRepo, settingSvc, nil, nil)
+		},
+		settingValues: map[string]string{
+			service.SettingKeyAffiliateEnabled:             "true",
+			service.SettingKeyAffiliateSignupRewardEnabled: "true",
+			service.SettingKeyAffiliateSignupRewardAmount:  "6.6",
+		},
+	})
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/casdoor/callback?code=provider-code&state=state-ok", nil)
+	req.AddCookie(&http.Cookie{Name: casdoorOAuthStateCookieName, Value: encodeCookieValue("state-ok")})
+	req.AddCookie(&http.Cookie{Name: casdoorOAuthBrowserCookieName, Value: encodeCookieValue("browser-key")})
+	req.AddCookie(&http.Cookie{Name: casdoorOAuthAffiliateCookieName, Value: encodeCookieValue("AFF123")})
+	c.Request = req
+
+	handler.CasdoorOAuthCallback(c)
+
+	require.Equal(t, http.StatusFound, recorder.Code)
+	user, err := client.User.Query().Where(dbuser.EmailEQ("new-aff@example.com")).Only(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, []oauthEmailAffiliateBindCall{{userID: user.ID, inviterID: 1001}}, affiliateRepo.bindCalls)
+	require.Equal(t, []oauthEmailAffiliateSignupBonusCall{{
+		inviterID:     1001,
+		inviteeUserID: user.ID,
+		amount:        6.6,
+	}}, affiliateRepo.bonusCalls)
+}
+
+func TestCasdoorOAuthCallbackDoesNotBindAffiliateForExistingUser(t *testing.T) {
+	cfg := testCasdoorConfig("")
+	provider, closeProvider := newCasdoorTestProvider(t, casdoorProviderFixture{
+		Subject: "casdoor-sub-existing-aff",
+		Email:   "existing-aff@example.com",
+		Name:    "Existing Aff",
+	})
+	defer closeProvider()
+	cfg.Issuer = provider.issuer
+	cfg.TokenURL = provider.tokenURL
+	cfg.UserInfoURL = provider.userInfoURL
+
+	affiliateRepo := newOAuthEmailAffiliateRepoStub(map[string]int64{"AFF123": 1001})
+	handler, client := newCasdoorOAuthTestHandler(t, casdoorOAuthTestOptions{
+		cfg: cfg,
+		affiliateFactory: func(_ *dbent.Client, settingSvc *service.SettingService) *service.AffiliateService {
+			return service.NewAffiliateService(affiliateRepo, settingSvc, nil, nil)
+		},
+		settingValues: map[string]string{
+			service.SettingKeyAffiliateEnabled: "true",
+		},
+	})
+	createCasdoorTestUser(t, client, "existing-aff@example.com", "", "Existing Aff")
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/casdoor/callback?code=provider-code&state=state-ok", nil)
+	req.AddCookie(&http.Cookie{Name: casdoorOAuthStateCookieName, Value: encodeCookieValue("state-ok")})
+	req.AddCookie(&http.Cookie{Name: casdoorOAuthBrowserCookieName, Value: encodeCookieValue("browser-key")})
+	req.AddCookie(&http.Cookie{Name: casdoorOAuthAffiliateCookieName, Value: encodeCookieValue("AFF123")})
+	c.Request = req
+
+	handler.CasdoorOAuthCallback(c)
+
+	require.Equal(t, http.StatusFound, recorder.Code)
+	require.Empty(t, affiliateRepo.bindCalls)
 }
 
 func TestCasdoorOAuthCallbackSyncsPhoneForExistingEmailUser(t *testing.T) {
@@ -334,6 +437,8 @@ func TestParseCasdoorUserInfoReadsPhoneAliases(t *testing.T) {
 type casdoorOAuthTestOptions struct {
 	cfg                 config.CasdoorConfig
 	registrationEnabled bool
+	settingValues       map[string]string
+	affiliateFactory    func(*dbent.Client, *service.SettingService) *service.AffiliateService
 }
 
 func newCasdoorOAuthTestHandler(t *testing.T, options casdoorOAuthTestOptions) (*AuthHandler, *dbent.Client) {
@@ -342,9 +447,10 @@ func newCasdoorOAuthTestHandler(t *testing.T, options casdoorOAuthTestOptions) (
 		options.registrationEnabled = true
 	}
 	handler, client := newOAuthPendingFlowTestHandlerWithDependencies(t, oauthPendingFlowTestHandlerOptions{
-		settingValues: map[string]string{
+		settingValues: mergeStringMaps(map[string]string{
 			service.SettingKeyRegistrationEnabled: boolSettingValue(options.registrationEnabled),
-		},
+		}, options.settingValues),
+		affiliateFactory: options.affiliateFactory,
 	})
 	if handler.cfg == nil {
 		handler.cfg = &config.Config{}
@@ -437,4 +543,17 @@ func createCasdoorTestUser(t *testing.T, client *dbent.Client, email, phone, use
 	loaded, err := client.User.Query().Where(dbuser.IDEQ(user.ID)).Only(context.Background())
 	require.NoError(t, err)
 	return loaded
+}
+
+func mergeStringMaps(base map[string]string, overlays ...map[string]string) map[string]string {
+	merged := make(map[string]string, len(base))
+	for key, value := range base {
+		merged[key] = value
+	}
+	for _, overlay := range overlays {
+		for key, value := range overlay {
+			merged[key] = value
+		}
+	}
+	return merged
 }

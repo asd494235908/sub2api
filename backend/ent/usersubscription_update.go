@@ -250,6 +250,54 @@ func (_u *UserSubscriptionUpdate) AddMonthlyUsageUsd(v float64) *UserSubscriptio
 	return _u
 }
 
+// SetTotalLimitUsd sets the "total_limit_usd" field.
+func (_u *UserSubscriptionUpdate) SetTotalLimitUsd(v float64) *UserSubscriptionUpdate {
+	_u.mutation.ResetTotalLimitUsd()
+	_u.mutation.SetTotalLimitUsd(v)
+	return _u
+}
+
+// SetNillableTotalLimitUsd sets the "total_limit_usd" field if the given value is not nil.
+func (_u *UserSubscriptionUpdate) SetNillableTotalLimitUsd(v *float64) *UserSubscriptionUpdate {
+	if v != nil {
+		_u.SetTotalLimitUsd(*v)
+	}
+	return _u
+}
+
+// AddTotalLimitUsd adds value to the "total_limit_usd" field.
+func (_u *UserSubscriptionUpdate) AddTotalLimitUsd(v float64) *UserSubscriptionUpdate {
+	_u.mutation.AddTotalLimitUsd(v)
+	return _u
+}
+
+// ClearTotalLimitUsd clears the value of the "total_limit_usd" field.
+func (_u *UserSubscriptionUpdate) ClearTotalLimitUsd() *UserSubscriptionUpdate {
+	_u.mutation.ClearTotalLimitUsd()
+	return _u
+}
+
+// SetTotalUsageUsd sets the "total_usage_usd" field.
+func (_u *UserSubscriptionUpdate) SetTotalUsageUsd(v float64) *UserSubscriptionUpdate {
+	_u.mutation.ResetTotalUsageUsd()
+	_u.mutation.SetTotalUsageUsd(v)
+	return _u
+}
+
+// SetNillableTotalUsageUsd sets the "total_usage_usd" field if the given value is not nil.
+func (_u *UserSubscriptionUpdate) SetNillableTotalUsageUsd(v *float64) *UserSubscriptionUpdate {
+	if v != nil {
+		_u.SetTotalUsageUsd(*v)
+	}
+	return _u
+}
+
+// AddTotalUsageUsd adds value to the "total_usage_usd" field.
+func (_u *UserSubscriptionUpdate) AddTotalUsageUsd(v float64) *UserSubscriptionUpdate {
+	_u.mutation.AddTotalUsageUsd(v)
+	return _u
+}
+
 // SetAssignedBy sets the "assigned_by" field.
 func (_u *UserSubscriptionUpdate) SetAssignedBy(v int64) *UserSubscriptionUpdate {
 	_u.mutation.SetAssignedBy(v)
@@ -515,6 +563,21 @@ func (_u *UserSubscriptionUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if value, ok := _u.mutation.AddedMonthlyUsageUsd(); ok {
 		_spec.AddField(usersubscription.FieldMonthlyUsageUsd, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.TotalLimitUsd(); ok {
+		_spec.SetField(usersubscription.FieldTotalLimitUsd, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedTotalLimitUsd(); ok {
+		_spec.AddField(usersubscription.FieldTotalLimitUsd, field.TypeFloat64, value)
+	}
+	if _u.mutation.TotalLimitUsdCleared() {
+		_spec.ClearField(usersubscription.FieldTotalLimitUsd, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.TotalUsageUsd(); ok {
+		_spec.SetField(usersubscription.FieldTotalUsageUsd, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedTotalUsageUsd(); ok {
+		_spec.AddField(usersubscription.FieldTotalUsageUsd, field.TypeFloat64, value)
 	}
 	if value, ok := _u.mutation.AssignedAt(); ok {
 		_spec.SetField(usersubscription.FieldAssignedAt, field.TypeTime, value)
@@ -896,6 +959,54 @@ func (_u *UserSubscriptionUpdateOne) AddMonthlyUsageUsd(v float64) *UserSubscrip
 	return _u
 }
 
+// SetTotalLimitUsd sets the "total_limit_usd" field.
+func (_u *UserSubscriptionUpdateOne) SetTotalLimitUsd(v float64) *UserSubscriptionUpdateOne {
+	_u.mutation.ResetTotalLimitUsd()
+	_u.mutation.SetTotalLimitUsd(v)
+	return _u
+}
+
+// SetNillableTotalLimitUsd sets the "total_limit_usd" field if the given value is not nil.
+func (_u *UserSubscriptionUpdateOne) SetNillableTotalLimitUsd(v *float64) *UserSubscriptionUpdateOne {
+	if v != nil {
+		_u.SetTotalLimitUsd(*v)
+	}
+	return _u
+}
+
+// AddTotalLimitUsd adds value to the "total_limit_usd" field.
+func (_u *UserSubscriptionUpdateOne) AddTotalLimitUsd(v float64) *UserSubscriptionUpdateOne {
+	_u.mutation.AddTotalLimitUsd(v)
+	return _u
+}
+
+// ClearTotalLimitUsd clears the value of the "total_limit_usd" field.
+func (_u *UserSubscriptionUpdateOne) ClearTotalLimitUsd() *UserSubscriptionUpdateOne {
+	_u.mutation.ClearTotalLimitUsd()
+	return _u
+}
+
+// SetTotalUsageUsd sets the "total_usage_usd" field.
+func (_u *UserSubscriptionUpdateOne) SetTotalUsageUsd(v float64) *UserSubscriptionUpdateOne {
+	_u.mutation.ResetTotalUsageUsd()
+	_u.mutation.SetTotalUsageUsd(v)
+	return _u
+}
+
+// SetNillableTotalUsageUsd sets the "total_usage_usd" field if the given value is not nil.
+func (_u *UserSubscriptionUpdateOne) SetNillableTotalUsageUsd(v *float64) *UserSubscriptionUpdateOne {
+	if v != nil {
+		_u.SetTotalUsageUsd(*v)
+	}
+	return _u
+}
+
+// AddTotalUsageUsd adds value to the "total_usage_usd" field.
+func (_u *UserSubscriptionUpdateOne) AddTotalUsageUsd(v float64) *UserSubscriptionUpdateOne {
+	_u.mutation.AddTotalUsageUsd(v)
+	return _u
+}
+
 // SetAssignedBy sets the "assigned_by" field.
 func (_u *UserSubscriptionUpdateOne) SetAssignedBy(v int64) *UserSubscriptionUpdateOne {
 	_u.mutation.SetAssignedBy(v)
@@ -1191,6 +1302,21 @@ func (_u *UserSubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *UserSu
 	}
 	if value, ok := _u.mutation.AddedMonthlyUsageUsd(); ok {
 		_spec.AddField(usersubscription.FieldMonthlyUsageUsd, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.TotalLimitUsd(); ok {
+		_spec.SetField(usersubscription.FieldTotalLimitUsd, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedTotalLimitUsd(); ok {
+		_spec.AddField(usersubscription.FieldTotalLimitUsd, field.TypeFloat64, value)
+	}
+	if _u.mutation.TotalLimitUsdCleared() {
+		_spec.ClearField(usersubscription.FieldTotalLimitUsd, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.TotalUsageUsd(); ok {
+		_spec.SetField(usersubscription.FieldTotalUsageUsd, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedTotalUsageUsd(); ok {
+		_spec.AddField(usersubscription.FieldTotalUsageUsd, field.TypeFloat64, value)
 	}
 	if value, ok := _u.mutation.AssignedAt(); ok {
 		_spec.SetField(usersubscription.FieldAssignedAt, field.TypeTime, value)

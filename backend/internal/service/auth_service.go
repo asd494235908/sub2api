@@ -941,6 +941,10 @@ func (s *AuthService) bindOAuthAffiliate(ctx context.Context, userID int64, affi
 	s.bindAffiliateAndApplySignupBonus(ctx, userID, affiliateCode, "oauth")
 }
 
+func (s *AuthService) BindOAuthAffiliate(ctx context.Context, userID int64, affiliateCode string) {
+	s.bindOAuthAffiliate(ctx, userID, affiliateCode)
+}
+
 func (s *AuthService) postAuthUserBootstrap(ctx context.Context, user *User, signupSource string, touchLogin bool) {
 	if user == nil || user.ID <= 0 {
 		return

@@ -35,6 +35,8 @@ func (r *userSubscriptionRepository) Create(ctx context.Context, sub *service.Us
 		SetDailyUsageUsd(sub.DailyUsageUSD).
 		SetWeeklyUsageUsd(sub.WeeklyUsageUSD).
 		SetMonthlyUsageUsd(sub.MonthlyUsageUSD).
+		SetNillableTotalLimitUsd(sub.TotalLimitUSD).
+		SetTotalUsageUsd(sub.TotalUsageUSD).
 		SetNillableAssignedBy(sub.AssignedBy)
 
 	if sub.StartsAt.IsZero() {
@@ -119,6 +121,8 @@ func (r *userSubscriptionRepository) Update(ctx context.Context, sub *service.Us
 		SetDailyUsageUsd(sub.DailyUsageUSD).
 		SetWeeklyUsageUsd(sub.WeeklyUsageUSD).
 		SetMonthlyUsageUsd(sub.MonthlyUsageUSD).
+		SetNillableTotalLimitUsd(sub.TotalLimitUSD).
+		SetTotalUsageUsd(sub.TotalUsageUSD).
 		SetNillableAssignedBy(sub.AssignedBy).
 		SetAssignedAt(sub.AssignedAt).
 		SetNotes(sub.Notes)
@@ -299,6 +303,32 @@ func (r *userSubscriptionRepository) UpdateNotes(ctx context.Context, subscripti
 	return translatePersistenceError(err, service.ErrSubscriptionNotFound, nil)
 }
 
+func (r *userSubscriptionRepository) AddTotalLimit(ctx context.Context, subscriptionID int64, amount float64) error {
+	if amount <= 0 {
+		return nil
+	}
+	client := clientFromContext(ctx, r.client)
+	const updateSQL = `
+		UPDATE user_subscriptions
+		SET total_limit_usd = COALESCE(total_limit_usd, 0) + $1,
+			updated_at = NOW()
+		WHERE id = $2
+			AND deleted_at IS NULL
+	`
+	result, err := client.ExecContext(ctx, updateSQL, amount, subscriptionID)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return service.ErrSubscriptionNotFound
+	}
+	return nil
+}
+
 func (r *userSubscriptionRepository) ActivateWindows(ctx context.Context, id int64, start time.Time) error {
 	client := clientFromContext(ctx, r.client)
 	_, err := client.UserSubscription.UpdateOneID(id).
@@ -346,6 +376,7 @@ func (r *userSubscriptionRepository) IncrementUsage(ctx context.Context, id int6
 			daily_usage_usd = us.daily_usage_usd + $1,
 			weekly_usage_usd = us.weekly_usage_usd + $1,
 			monthly_usage_usd = us.monthly_usage_usd + $1,
+			total_usage_usd = us.total_usage_usd + $1,
 			updated_at = NOW()
 		FROM groups g
 		WHERE us.id = $2
@@ -442,6 +473,8 @@ func userSubscriptionEntityToService(m *dbent.UserSubscription) *service.UserSub
 		DailyUsageUSD:      m.DailyUsageUsd,
 		WeeklyUsageUSD:     m.WeeklyUsageUsd,
 		MonthlyUsageUSD:    m.MonthlyUsageUsd,
+		TotalLimitUSD:      m.TotalLimitUsd,
+		TotalUsageUSD:      m.TotalUsageUsd,
 		AssignedBy:         m.AssignedBy,
 		AssignedAt:         m.AssignedAt,
 		Notes:              derefString(m.Notes),

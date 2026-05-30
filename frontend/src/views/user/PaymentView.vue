@@ -134,10 +134,18 @@
                     <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payment.planCard.monthlyLimit') }}</span>
                     <div class="text-lg font-semibold text-gray-800 dark:text-gray-200">¥{{ selectedPlan.monthly_limit_usd }}</div>
                   </div>
-                  <div v-if="selectedPlan.daily_limit_usd == null && selectedPlan.weekly_limit_usd == null && selectedPlan.monthly_limit_usd == null">
+                  <div v-if="selectedPlan.subscription_total_limit_usd != null">
+                    <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payment.planCard.purchaseAddsCycleQuota') }}</span>
+                    <div class="text-lg font-semibold text-gray-800 dark:text-gray-200">¥{{ selectedPlan.subscription_total_limit_usd }}</div>
+                  </div>
+                  <div v-if="selectedPlan.daily_limit_usd == null && selectedPlan.weekly_limit_usd == null && selectedPlan.monthly_limit_usd == null && selectedPlan.subscription_total_limit_usd == null">
                     <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('payment.planCard.quota') }}</span>
                     <div class="text-lg font-semibold text-gray-800 dark:text-gray-200">{{ t('payment.planCard.unlimited') }}</div>
                   </div>
+                </div>
+                <div v-if="selectedPlanSupportedModels.length > 0" class="mt-4 rounded-lg bg-gray-50 px-3 py-2 text-xs dark:bg-dark-700/50">
+                  <div class="mb-1.5 text-gray-400 dark:text-gray-500">{{ t('payment.planCard.models') }}</div>
+                  <SupportedModelsPreview :models="selectedPlanSupportedModels" :platform="selectedPlan.group_platform || ''" :limit="4" />
                 </div>
                 <div v-if="selectedPlanDailySaleVisible" class="mt-4 rounded-lg border border-amber-100 bg-amber-50 p-3 text-sm dark:border-amber-900/40 dark:bg-amber-950/20">
                   <div class="flex items-center justify-between gap-3">
@@ -148,7 +156,6 @@
                     <span class="text-amber-700 dark:text-amber-300">{{ selectedPlanDailySaleStatusText }}</span>
                     <span v-if="selectedPlanDailySaleCountdownText" class="font-semibold tabular-nums text-amber-900 dark:text-amber-100">{{ selectedPlanDailySaleCountdownText }}</span>
                   </div>
-                  <p v-if="selectedPlanDailyRemainingText" class="mt-1 font-medium text-amber-800 dark:text-amber-200">{{ selectedPlanDailyRemainingText }}</p>
                 </div>
               </div>
               <div v-if="enabledMethods.length >= 1" class="card p-6">
@@ -206,7 +213,7 @@
                       </div>
                       <div class="flex flex-wrap gap-x-3 text-[11px] text-gray-400 dark:text-gray-500">
                         <span>{{ t('payment.planCard.rate') }}: ×{{ sub.group?.rate_multiplier ?? 1 }}</span>
-                        <span v-if="sub.group?.daily_limit_usd == null && sub.group?.weekly_limit_usd == null && sub.group?.monthly_limit_usd == null">{{ t('payment.planCard.quota') }}: {{ t('payment.planCard.unlimited') }}</span>
+                        <span v-if="sub.group?.daily_limit_usd == null && sub.group?.weekly_limit_usd == null && sub.group?.monthly_limit_usd == null && !(sub.total_limit_usd && sub.total_limit_usd > 0)">{{ t('payment.planCard.quota') }}: {{ t('payment.planCard.unlimited') }}</span>
                         <span v-if="sub.expires_at">{{ t('userSubscriptions.daysRemaining', { days: getDaysRemaining(sub.expires_at) }) }}</span>
                         <span v-else>{{ t('userSubscriptions.noExpiration') }}</span>
                       </div>
@@ -379,6 +386,7 @@ import {
 } from '@/components/payment/paymentFlow'
 import { platformAccentBarClass, platformBadgeLightClass, platformBadgeClass, platformTextClass, platformLabel } from '@/utils/platformColors'
 import SubscriptionPlanCard from '@/components/payment/SubscriptionPlanCard.vue'
+import SupportedModelsPreview from '@/components/payment/SupportedModelsPreview.vue'
 import PaymentStatusPanel from '@/components/payment/PaymentStatusPanel.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { formatPaymentAmount, normalizePaymentCurrency } from '@/components/payment/currency'
@@ -804,6 +812,8 @@ const planValiditySuffix = computed(() => {
   return `${selectedPlan.value.validity_days}${t('payment.days')}`
 })
 
+const selectedPlanSupportedModels = computed(() => selectedPlan.value?.supported_models?.filter(Boolean) ?? [])
+
 function formatSaleCountdown(totalSeconds: number): string {
   const seconds = Math.max(0, Math.floor(totalSeconds))
   const h = Math.floor(seconds / 3600)
@@ -840,13 +850,6 @@ const selectedPlanDailySaleCountdownText = computed(() => {
     : 'payment.planCard.dailySaleCountdownToStart'
   return t(key, { time: formatSaleCountdown(seconds) })
 })
-const selectedPlanDailyRemainingText = computed(() => {
-  const plan = selectedPlan.value
-  if (!plan || plan.daily_purchase_limit <= 0) return ''
-  if ((plan.daily_purchase_remaining ?? 0) <= 0) return t('payment.planCard.soldOutToday')
-  return t('payment.planCard.availableToday', { count: plan.daily_purchase_remaining })
-})
-
 function selectPlan(plan: SubscriptionPlan) {
   selectedPlan.value = plan
   errorMessage.value = ''

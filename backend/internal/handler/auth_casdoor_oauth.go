@@ -29,15 +29,16 @@ import (
 )
 
 const (
-	casdoorOAuthCookiePath         = "/api/v1/auth/casdoor"
-	casdoorOAuthStateCookieName    = "casdoor_oauth_state"
-	casdoorOAuthRedirectCookieName = "casdoor_oauth_redirect"
-	casdoorOAuthBrowserCookieName  = "casdoor_oauth_browser"
-	casdoorOAuthCookieMaxAgeSec    = 10 * 60
-	casdoorOAuthTicketTTL          = 2 * time.Minute
-	casdoorOAuthDefaultRedirectTo  = "/dashboard"
-	casdoorOAuthSuccessPath        = "/auth/casdoor/success"
-	casdoorOAuthErrorPath          = "/auth/casdoor/error"
+	casdoorOAuthCookiePath          = "/api/v1/auth/casdoor"
+	casdoorOAuthStateCookieName     = "casdoor_oauth_state"
+	casdoorOAuthRedirectCookieName  = "casdoor_oauth_redirect"
+	casdoorOAuthBrowserCookieName   = "casdoor_oauth_browser"
+	casdoorOAuthAffiliateCookieName = "casdoor_oauth_affiliate"
+	casdoorOAuthCookieMaxAgeSec     = 10 * 60
+	casdoorOAuthTicketTTL           = 2 * time.Minute
+	casdoorOAuthDefaultRedirectTo   = "/dashboard"
+	casdoorOAuthSuccessPath         = "/auth/casdoor/success"
+	casdoorOAuthErrorPath           = "/auth/casdoor/error"
 )
 
 type casdoorTokenResponse struct {
@@ -86,6 +87,11 @@ func (h *AuthHandler) CasdoorOAuthLogin(c *gin.Context) {
 	setCasdoorCookie(c, casdoorOAuthStateCookieName, encodeCookieValue(state), casdoorOAuthCookieMaxAgeSec, secureCookie)
 	setCasdoorCookie(c, casdoorOAuthRedirectCookieName, encodeCookieValue(redirectTo), casdoorOAuthCookieMaxAgeSec, secureCookie)
 	setCasdoorCookie(c, casdoorOAuthBrowserCookieName, encodeCookieValue(browserKey), casdoorOAuthCookieMaxAgeSec, secureCookie)
+	if affCode := strings.TrimSpace(firstNonEmpty(c.Query("aff_code"), c.Query("aff"))); affCode != "" {
+		setCasdoorCookie(c, casdoorOAuthAffiliateCookieName, encodeCookieValue(affCode), casdoorOAuthCookieMaxAgeSec, secureCookie)
+	} else {
+		clearCasdoorCookie(c, casdoorOAuthAffiliateCookieName, secureCookie)
+	}
 
 	authorizeURL, err := buildCasdoorAuthorizeURL(cfg, state)
 	if err != nil {
@@ -118,6 +124,7 @@ func (h *AuthHandler) CasdoorOAuthCallback(c *gin.Context) {
 	defer func() {
 		clearCasdoorCookie(c, casdoorOAuthStateCookieName, secureCookie)
 		clearCasdoorCookie(c, casdoorOAuthRedirectCookieName, secureCookie)
+		clearCasdoorCookie(c, casdoorOAuthAffiliateCookieName, secureCookie)
 	}()
 
 	expectedState, err := readCookieDecoded(c, casdoorOAuthStateCookieName)
@@ -137,6 +144,7 @@ func (h *AuthHandler) CasdoorOAuthCallback(c *gin.Context) {
 		redirectCasdoorError(c, "missing_browser_session", "missing casdoor browser session", "")
 		return
 	}
+	affiliateCode, _ := readCookieDecoded(c, casdoorOAuthAffiliateCookieName)
 
 	tokenResp, err := casdoorExchangeCode(c.Request.Context(), cfg, code)
 	if err != nil {
@@ -151,7 +159,7 @@ func (h *AuthHandler) CasdoorOAuthCallback(c *gin.Context) {
 		return
 	}
 
-	session, err := h.resolveCasdoorLoginSession(c.Request.Context(), cfg, userInfo, redirectTo, browserKey)
+	session, err := h.resolveCasdoorLoginSession(c.Request.Context(), cfg, userInfo, redirectTo, browserKey, affiliateCode)
 	if err != nil {
 		redirectCasdoorError(c, casdoorErrorCode(err), infraerrors.Message(err), "")
 		return
@@ -400,6 +408,7 @@ func (h *AuthHandler) resolveCasdoorLoginSession(
 	info casdoorUserInfo,
 	redirectTo string,
 	browserKey string,
+	affiliateCode string,
 ) (*dbent.PendingAuthSession, error) {
 	client := h.entClient()
 	if client == nil {
@@ -421,6 +430,7 @@ func (h *AuthHandler) resolveCasdoorLoginSession(
 	if err != nil {
 		return nil, err
 	}
+	createdUser := false
 	if userEntity == nil {
 		userEntity, err = resolveCasdoorUserByEmailPhone(ctx, client, info)
 		if err != nil {
@@ -431,6 +441,7 @@ func (h *AuthHandler) resolveCasdoorLoginSession(
 			if err != nil {
 				return nil, err
 			}
+			createdUser = true
 		}
 	}
 	userEntity, err = syncCasdoorUserPhone(ctx, client, userEntity, info)
@@ -439,6 +450,9 @@ func (h *AuthHandler) resolveCasdoorLoginSession(
 	}
 	if err := ensureCasdoorIdentityForUser(ctx, client, identityKey, userEntity.ID, upstreamClaims); err != nil {
 		return nil, err
+	}
+	if createdUser && h.authService != nil {
+		h.authService.BindOAuthAffiliate(ctx, userEntity.ID, affiliateCode)
 	}
 
 	pendingSvc, err := h.pendingIdentityService()

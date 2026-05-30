@@ -189,6 +189,34 @@ func (_c *UserSubscriptionCreate) SetNillableMonthlyUsageUsd(v *float64) *UserSu
 	return _c
 }
 
+// SetTotalLimitUsd sets the "total_limit_usd" field.
+func (_c *UserSubscriptionCreate) SetTotalLimitUsd(v float64) *UserSubscriptionCreate {
+	_c.mutation.SetTotalLimitUsd(v)
+	return _c
+}
+
+// SetNillableTotalLimitUsd sets the "total_limit_usd" field if the given value is not nil.
+func (_c *UserSubscriptionCreate) SetNillableTotalLimitUsd(v *float64) *UserSubscriptionCreate {
+	if v != nil {
+		_c.SetTotalLimitUsd(*v)
+	}
+	return _c
+}
+
+// SetTotalUsageUsd sets the "total_usage_usd" field.
+func (_c *UserSubscriptionCreate) SetTotalUsageUsd(v float64) *UserSubscriptionCreate {
+	_c.mutation.SetTotalUsageUsd(v)
+	return _c
+}
+
+// SetNillableTotalUsageUsd sets the "total_usage_usd" field if the given value is not nil.
+func (_c *UserSubscriptionCreate) SetNillableTotalUsageUsd(v *float64) *UserSubscriptionCreate {
+	if v != nil {
+		_c.SetTotalUsageUsd(*v)
+	}
+	return _c
+}
+
 // SetAssignedBy sets the "assigned_by" field.
 func (_c *UserSubscriptionCreate) SetAssignedBy(v int64) *UserSubscriptionCreate {
 	_c.mutation.SetAssignedBy(v)
@@ -342,6 +370,10 @@ func (_c *UserSubscriptionCreate) defaults() error {
 		v := usersubscription.DefaultMonthlyUsageUsd
 		_c.mutation.SetMonthlyUsageUsd(v)
 	}
+	if _, ok := _c.mutation.TotalUsageUsd(); !ok {
+		v := usersubscription.DefaultTotalUsageUsd
+		_c.mutation.SetTotalUsageUsd(v)
+	}
 	if _, ok := _c.mutation.AssignedAt(); !ok {
 		if usersubscription.DefaultAssignedAt == nil {
 			return fmt.Errorf("ent: uninitialized usersubscription.DefaultAssignedAt (forgotten import ent/runtime?)")
@@ -388,6 +420,9 @@ func (_c *UserSubscriptionCreate) check() error {
 	}
 	if _, ok := _c.mutation.MonthlyUsageUsd(); !ok {
 		return &ValidationError{Name: "monthly_usage_usd", err: errors.New(`ent: missing required field "UserSubscription.monthly_usage_usd"`)}
+	}
+	if _, ok := _c.mutation.TotalUsageUsd(); !ok {
+		return &ValidationError{Name: "total_usage_usd", err: errors.New(`ent: missing required field "UserSubscription.total_usage_usd"`)}
 	}
 	if _, ok := _c.mutation.AssignedAt(); !ok {
 		return &ValidationError{Name: "assigned_at", err: errors.New(`ent: missing required field "UserSubscription.assigned_at"`)}
@@ -472,6 +507,14 @@ func (_c *UserSubscriptionCreate) createSpec() (*UserSubscription, *sqlgraph.Cre
 	if value, ok := _c.mutation.MonthlyUsageUsd(); ok {
 		_spec.SetField(usersubscription.FieldMonthlyUsageUsd, field.TypeFloat64, value)
 		_node.MonthlyUsageUsd = value
+	}
+	if value, ok := _c.mutation.TotalLimitUsd(); ok {
+		_spec.SetField(usersubscription.FieldTotalLimitUsd, field.TypeFloat64, value)
+		_node.TotalLimitUsd = &value
+	}
+	if value, ok := _c.mutation.TotalUsageUsd(); ok {
+		_spec.SetField(usersubscription.FieldTotalUsageUsd, field.TypeFloat64, value)
+		_node.TotalUsageUsd = value
 	}
 	if value, ok := _c.mutation.AssignedAt(); ok {
 		_spec.SetField(usersubscription.FieldAssignedAt, field.TypeTime, value)
@@ -798,6 +841,48 @@ func (u *UserSubscriptionUpsert) AddMonthlyUsageUsd(v float64) *UserSubscription
 	return u
 }
 
+// SetTotalLimitUsd sets the "total_limit_usd" field.
+func (u *UserSubscriptionUpsert) SetTotalLimitUsd(v float64) *UserSubscriptionUpsert {
+	u.Set(usersubscription.FieldTotalLimitUsd, v)
+	return u
+}
+
+// UpdateTotalLimitUsd sets the "total_limit_usd" field to the value that was provided on create.
+func (u *UserSubscriptionUpsert) UpdateTotalLimitUsd() *UserSubscriptionUpsert {
+	u.SetExcluded(usersubscription.FieldTotalLimitUsd)
+	return u
+}
+
+// AddTotalLimitUsd adds v to the "total_limit_usd" field.
+func (u *UserSubscriptionUpsert) AddTotalLimitUsd(v float64) *UserSubscriptionUpsert {
+	u.Add(usersubscription.FieldTotalLimitUsd, v)
+	return u
+}
+
+// ClearTotalLimitUsd clears the value of the "total_limit_usd" field.
+func (u *UserSubscriptionUpsert) ClearTotalLimitUsd() *UserSubscriptionUpsert {
+	u.SetNull(usersubscription.FieldTotalLimitUsd)
+	return u
+}
+
+// SetTotalUsageUsd sets the "total_usage_usd" field.
+func (u *UserSubscriptionUpsert) SetTotalUsageUsd(v float64) *UserSubscriptionUpsert {
+	u.Set(usersubscription.FieldTotalUsageUsd, v)
+	return u
+}
+
+// UpdateTotalUsageUsd sets the "total_usage_usd" field to the value that was provided on create.
+func (u *UserSubscriptionUpsert) UpdateTotalUsageUsd() *UserSubscriptionUpsert {
+	u.SetExcluded(usersubscription.FieldTotalUsageUsd)
+	return u
+}
+
+// AddTotalUsageUsd adds v to the "total_usage_usd" field.
+func (u *UserSubscriptionUpsert) AddTotalUsageUsd(v float64) *UserSubscriptionUpsert {
+	u.Add(usersubscription.FieldTotalUsageUsd, v)
+	return u
+}
+
 // SetAssignedBy sets the "assigned_by" field.
 func (u *UserSubscriptionUpsert) SetAssignedBy(v int64) *UserSubscriptionUpsert {
 	u.Set(usersubscription.FieldAssignedBy, v)
@@ -1119,6 +1204,55 @@ func (u *UserSubscriptionUpsertOne) AddMonthlyUsageUsd(v float64) *UserSubscript
 func (u *UserSubscriptionUpsertOne) UpdateMonthlyUsageUsd() *UserSubscriptionUpsertOne {
 	return u.Update(func(s *UserSubscriptionUpsert) {
 		s.UpdateMonthlyUsageUsd()
+	})
+}
+
+// SetTotalLimitUsd sets the "total_limit_usd" field.
+func (u *UserSubscriptionUpsertOne) SetTotalLimitUsd(v float64) *UserSubscriptionUpsertOne {
+	return u.Update(func(s *UserSubscriptionUpsert) {
+		s.SetTotalLimitUsd(v)
+	})
+}
+
+// AddTotalLimitUsd adds v to the "total_limit_usd" field.
+func (u *UserSubscriptionUpsertOne) AddTotalLimitUsd(v float64) *UserSubscriptionUpsertOne {
+	return u.Update(func(s *UserSubscriptionUpsert) {
+		s.AddTotalLimitUsd(v)
+	})
+}
+
+// UpdateTotalLimitUsd sets the "total_limit_usd" field to the value that was provided on create.
+func (u *UserSubscriptionUpsertOne) UpdateTotalLimitUsd() *UserSubscriptionUpsertOne {
+	return u.Update(func(s *UserSubscriptionUpsert) {
+		s.UpdateTotalLimitUsd()
+	})
+}
+
+// ClearTotalLimitUsd clears the value of the "total_limit_usd" field.
+func (u *UserSubscriptionUpsertOne) ClearTotalLimitUsd() *UserSubscriptionUpsertOne {
+	return u.Update(func(s *UserSubscriptionUpsert) {
+		s.ClearTotalLimitUsd()
+	})
+}
+
+// SetTotalUsageUsd sets the "total_usage_usd" field.
+func (u *UserSubscriptionUpsertOne) SetTotalUsageUsd(v float64) *UserSubscriptionUpsertOne {
+	return u.Update(func(s *UserSubscriptionUpsert) {
+		s.SetTotalUsageUsd(v)
+	})
+}
+
+// AddTotalUsageUsd adds v to the "total_usage_usd" field.
+func (u *UserSubscriptionUpsertOne) AddTotalUsageUsd(v float64) *UserSubscriptionUpsertOne {
+	return u.Update(func(s *UserSubscriptionUpsert) {
+		s.AddTotalUsageUsd(v)
+	})
+}
+
+// UpdateTotalUsageUsd sets the "total_usage_usd" field to the value that was provided on create.
+func (u *UserSubscriptionUpsertOne) UpdateTotalUsageUsd() *UserSubscriptionUpsertOne {
+	return u.Update(func(s *UserSubscriptionUpsert) {
+		s.UpdateTotalUsageUsd()
 	})
 }
 
@@ -1617,6 +1751,55 @@ func (u *UserSubscriptionUpsertBulk) AddMonthlyUsageUsd(v float64) *UserSubscrip
 func (u *UserSubscriptionUpsertBulk) UpdateMonthlyUsageUsd() *UserSubscriptionUpsertBulk {
 	return u.Update(func(s *UserSubscriptionUpsert) {
 		s.UpdateMonthlyUsageUsd()
+	})
+}
+
+// SetTotalLimitUsd sets the "total_limit_usd" field.
+func (u *UserSubscriptionUpsertBulk) SetTotalLimitUsd(v float64) *UserSubscriptionUpsertBulk {
+	return u.Update(func(s *UserSubscriptionUpsert) {
+		s.SetTotalLimitUsd(v)
+	})
+}
+
+// AddTotalLimitUsd adds v to the "total_limit_usd" field.
+func (u *UserSubscriptionUpsertBulk) AddTotalLimitUsd(v float64) *UserSubscriptionUpsertBulk {
+	return u.Update(func(s *UserSubscriptionUpsert) {
+		s.AddTotalLimitUsd(v)
+	})
+}
+
+// UpdateTotalLimitUsd sets the "total_limit_usd" field to the value that was provided on create.
+func (u *UserSubscriptionUpsertBulk) UpdateTotalLimitUsd() *UserSubscriptionUpsertBulk {
+	return u.Update(func(s *UserSubscriptionUpsert) {
+		s.UpdateTotalLimitUsd()
+	})
+}
+
+// ClearTotalLimitUsd clears the value of the "total_limit_usd" field.
+func (u *UserSubscriptionUpsertBulk) ClearTotalLimitUsd() *UserSubscriptionUpsertBulk {
+	return u.Update(func(s *UserSubscriptionUpsert) {
+		s.ClearTotalLimitUsd()
+	})
+}
+
+// SetTotalUsageUsd sets the "total_usage_usd" field.
+func (u *UserSubscriptionUpsertBulk) SetTotalUsageUsd(v float64) *UserSubscriptionUpsertBulk {
+	return u.Update(func(s *UserSubscriptionUpsert) {
+		s.SetTotalUsageUsd(v)
+	})
+}
+
+// AddTotalUsageUsd adds v to the "total_usage_usd" field.
+func (u *UserSubscriptionUpsertBulk) AddTotalUsageUsd(v float64) *UserSubscriptionUpsertBulk {
+	return u.Update(func(s *UserSubscriptionUpsert) {
+		s.AddTotalUsageUsd(v)
+	})
+}
+
+// UpdateTotalUsageUsd sets the "total_usage_usd" field to the value that was provided on create.
+func (u *UserSubscriptionUpsertBulk) UpdateTotalUsageUsd() *UserSubscriptionUpsertBulk {
+	return u.Update(func(s *UserSubscriptionUpsert) {
+		s.UpdateTotalUsageUsd()
 	})
 }
 

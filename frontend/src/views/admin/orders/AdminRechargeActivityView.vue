@@ -159,7 +159,7 @@
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 class="text-lg font-bold text-slate-950 dark:text-white">会员等级</h2>
-                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">按用户历史累计充值计算等级，余额 key 使用会员等级倍率。</p>
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">按余额充值与订阅购买的历史累计实付金额计算等级，余额 key 使用会员等级倍率。</p>
               </div>
               <Toggle v-model="memberLevelEnabled" />
             </div>

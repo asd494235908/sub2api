@@ -252,6 +252,110 @@ func TestMarkRefundOkSubtractsTotalRechargedByGatewayAmount(t *testing.T) {
 	require.Equal(t, OrderStatusPartiallyRefunded, reloadedOrder.Status)
 }
 
+func TestMarkRefundOkSubtractsSubscriptionTotalRechargedByGatewayAmount(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentConfigServiceTestClient(t)
+
+	user, err := client.User.Create().
+		SetEmail("refund-subscription-total-recharged@example.com").
+		SetPasswordHash("hash").
+		SetUsername("refund-subscription-total-recharged-user").
+		SetTotalRecharged(160).
+		Save(ctx)
+	require.NoError(t, err)
+
+	order, err := client.PaymentOrder.Create().
+		SetUserID(user.ID).
+		SetUserEmail(user.Email).
+		SetUserName(user.Username).
+		SetAmount(100).
+		SetPayAmount(80).
+		SetFeeRate(0).
+		SetRechargeCode("REFUND-SUBSCRIPTION-TOTAL-RECHARGED").
+		SetOutTradeNo("sub2_refund_subscription_total_recharged").
+		SetPaymentType(payment.TypeWxpay).
+		SetPaymentTradeNo("trade-refund-subscription-total-recharged").
+		SetOrderType(payment.OrderTypeSubscription).
+		SetSubscriptionGroupID(10).
+		SetSubscriptionDays(30).
+		SetStatus(OrderStatusCompleted).
+		SetExpiresAt(time.Now().Add(time.Hour)).
+		SetPaidAt(time.Now()).
+		SetClientIP("127.0.0.1").
+		SetSrcHost("api.example.com").
+		Save(ctx)
+	require.NoError(t, err)
+
+	svc := &PaymentService{entClient: client}
+	_, err = svc.markRefundOk(ctx, &RefundPlan{
+		OrderID:       order.ID,
+		Order:         order,
+		RefundAmount:  25,
+		GatewayAmount: 20,
+		Reason:        "partial subscription refund",
+	})
+	require.NoError(t, err)
+
+	reloadedUser, err := client.User.Get(ctx, user.ID)
+	require.NoError(t, err)
+	require.InDelta(t, 140.0, reloadedUser.TotalRecharged, 1e-9)
+	reloadedOrder, err := client.PaymentOrder.Get(ctx, order.ID)
+	require.NoError(t, err)
+	require.Equal(t, OrderStatusPartiallyRefunded, reloadedOrder.Status)
+}
+
+func TestMarkRefundOkSubtractsSubscriptionTotalRechargedForFullRefund(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentConfigServiceTestClient(t)
+
+	user, err := client.User.Create().
+		SetEmail("refund-subscription-full-total-recharged@example.com").
+		SetPasswordHash("hash").
+		SetUsername("refund-subscription-full-total-recharged-user").
+		SetTotalRecharged(160).
+		Save(ctx)
+	require.NoError(t, err)
+
+	order, err := client.PaymentOrder.Create().
+		SetUserID(user.ID).
+		SetUserEmail(user.Email).
+		SetUserName(user.Username).
+		SetAmount(100).
+		SetPayAmount(80).
+		SetFeeRate(0).
+		SetRechargeCode("REFUND-SUBSCRIPTION-FULL-TOTAL-RECHARGED").
+		SetOutTradeNo("sub2_refund_subscription_full_total_recharged").
+		SetPaymentType(payment.TypeWxpay).
+		SetPaymentTradeNo("trade-refund-subscription-full-total-recharged").
+		SetOrderType(payment.OrderTypeSubscription).
+		SetSubscriptionGroupID(10).
+		SetSubscriptionDays(30).
+		SetStatus(OrderStatusCompleted).
+		SetExpiresAt(time.Now().Add(time.Hour)).
+		SetPaidAt(time.Now()).
+		SetClientIP("127.0.0.1").
+		SetSrcHost("api.example.com").
+		Save(ctx)
+	require.NoError(t, err)
+
+	svc := &PaymentService{entClient: client}
+	_, err = svc.markRefundOk(ctx, &RefundPlan{
+		OrderID:       order.ID,
+		Order:         order,
+		RefundAmount:  order.Amount,
+		GatewayAmount: order.PayAmount,
+		Reason:        "full subscription refund",
+	})
+	require.NoError(t, err)
+
+	reloadedUser, err := client.User.Get(ctx, user.ID)
+	require.NoError(t, err)
+	require.InDelta(t, 80.0, reloadedUser.TotalRecharged, 1e-9)
+	reloadedOrder, err := client.PaymentOrder.Get(ctx, order.ID)
+	require.NoError(t, err)
+	require.Equal(t, OrderStatusRefunded, reloadedOrder.Status)
+}
+
 func TestValidateRefundProviderResponseAcceptsPending(t *testing.T) {
 	require.NoError(t, validateRefundProviderResponse(&payment.RefundResponse{Status: payment.ProviderStatusPending}))
 	require.NoError(t, validateRefundProviderResponse(&payment.RefundResponse{Status: payment.ProviderStatusSuccess}))

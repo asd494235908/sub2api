@@ -127,6 +127,162 @@ func TestPaymentHandlerGetCheckoutInfoIncludesDailySaleMetadata(t *testing.T) {
 	require.Greater(t, got.DailySaleCountdownSeconds, 0)
 }
 
+func TestPaymentHandlerGetCheckoutInfoIncludesMappedSupportedModels(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ctx := context.Background()
+	client := newCheckoutInfoHandlerTestClient(t)
+	repo := &checkoutInfoSettingRepoStub{
+		values: map[string]string{
+			service.SettingPaymentEnabled:                    "true",
+			service.SettingPaymentVisibleMethodAlipayEnabled: "true",
+			service.SettingPaymentVisibleMethodAlipaySource:  service.VisibleMethodSourceEasyPayAlipay,
+		},
+	}
+	configService := service.NewPaymentConfigService(client, repo, nil)
+	_, err := client.PaymentProviderInstance.Create().
+		SetProviderKey(payment.TypeEasyPay).
+		SetName("EasyPay").
+		SetConfig("{}").
+		SetSupportedTypes(payment.TypeAlipay).
+		SetEnabled(true).
+		Save(ctx)
+	require.NoError(t, err)
+	group, err := client.Group.Create().
+		SetName("OpenAI Subscription Group").
+		SetStatus(payment.EntityStatusActive).
+		SetPlatform(service.PlatformOpenAI).
+		SetSubscriptionType(service.SubscriptionTypeSubscription).
+		Save(ctx)
+	require.NoError(t, err)
+	groupID := int64(group.ID)
+	gatewayService := service.NewGatewayService(
+		&checkoutInfoAccountRepoStub{
+			byGroup: map[int64][]service.Account{
+				groupID: {
+					{
+						ID:       10,
+						Platform: service.PlatformOpenAI,
+						Credentials: map[string]any{
+							"model_mapping": map[string]any{
+								"gpt-5.4":       "gpt-5.4",
+								"gpt-5.4-mini":  "gpt-5.4-mini",
+								"gpt-5.3-codex": "gpt-5.3-codex",
+							},
+						},
+					},
+				},
+			},
+		},
+		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+	)
+	handler := NewPaymentHandler(nil, configService, nil)
+	handler.gatewayService = gatewayService
+
+	_, err = client.SubscriptionPlan.Create().
+		SetGroupID(groupID).
+		SetName("OpenAI Plan").
+		SetPrice(10).
+		SetValidityDays(30).
+		SetValidityUnit("day").
+		SetForSale(true).
+		Save(ctx)
+	require.NoError(t, err)
+
+	rec := httptest.NewRecorder()
+	gctx, _ := gin.CreateTestContext(rec)
+	gctx.Request = httptest.NewRequest(http.MethodGet, "/api/v1/payment/checkout-info", nil)
+	gctx.Set(string(middleware.ContextKeyUser), middleware.AuthSubject{UserID: 1, Concurrency: 1})
+
+	handler.GetCheckoutInfo(gctx)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var body struct {
+		Data struct {
+			Plans []struct {
+				Name            string   `json:"name"`
+				SupportedModels []string `json:"supported_models"`
+			} `json:"plans"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	require.Len(t, body.Data.Plans, 1)
+	require.Equal(t, "OpenAI Plan", body.Data.Plans[0].Name)
+	require.Equal(t, []string{"gpt-5.3-codex", "gpt-5.4", "gpt-5.4-mini"}, body.Data.Plans[0].SupportedModels)
+}
+
+func TestPaymentHandlerGetCheckoutInfoFallsBackToDefaultSupportedModels(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ctx := context.Background()
+	client := newCheckoutInfoHandlerTestClient(t)
+	repo := &checkoutInfoSettingRepoStub{
+		values: map[string]string{
+			service.SettingPaymentEnabled:                    "true",
+			service.SettingPaymentVisibleMethodAlipayEnabled: "true",
+			service.SettingPaymentVisibleMethodAlipaySource:  service.VisibleMethodSourceEasyPayAlipay,
+		},
+	}
+	configService := service.NewPaymentConfigService(client, repo, nil)
+	_, err := client.PaymentProviderInstance.Create().
+		SetProviderKey(payment.TypeEasyPay).
+		SetName("EasyPay").
+		SetConfig("{}").
+		SetSupportedTypes(payment.TypeAlipay).
+		SetEnabled(true).
+		Save(ctx)
+	require.NoError(t, err)
+	group, err := client.Group.Create().
+		SetName("OpenAI Default Group").
+		SetStatus(payment.EntityStatusActive).
+		SetPlatform(service.PlatformOpenAI).
+		SetSubscriptionType(service.SubscriptionTypeSubscription).
+		Save(ctx)
+	require.NoError(t, err)
+	groupID := int64(group.ID)
+	gatewayService := service.NewGatewayService(
+		&checkoutInfoAccountRepoStub{
+			byGroup: map[int64][]service.Account{
+				groupID: {
+					{ID: 20, Platform: service.PlatformOpenAI},
+				},
+			},
+		},
+		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+	)
+	handler := NewPaymentHandler(nil, configService, nil)
+	handler.gatewayService = gatewayService
+
+	_, err = client.SubscriptionPlan.Create().
+		SetGroupID(groupID).
+		SetName("Default Models Plan").
+		SetPrice(10).
+		SetValidityDays(30).
+		SetValidityUnit("day").
+		SetForSale(true).
+		Save(ctx)
+	require.NoError(t, err)
+
+	rec := httptest.NewRecorder()
+	gctx, _ := gin.CreateTestContext(rec)
+	gctx.Request = httptest.NewRequest(http.MethodGet, "/api/v1/payment/checkout-info", nil)
+	gctx.Set(string(middleware.ContextKeyUser), middleware.AuthSubject{UserID: 1, Concurrency: 1})
+
+	handler.GetCheckoutInfo(gctx)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var body struct {
+		Data struct {
+			Plans []struct {
+				SupportedModels []string `json:"supported_models"`
+			} `json:"plans"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	require.Len(t, body.Data.Plans, 1)
+	require.Contains(t, body.Data.Plans[0].SupportedModels, "gpt-5.4")
+}
+
 func newCheckoutInfoHandlerTestClient(t *testing.T) *dbent.Client {
 	t.Helper()
 	dbName := "file:" + strings.NewReplacer("/", "_", " ", "_").Replace(t.Name()) + "?mode=memory&cache=shared"
@@ -177,6 +333,19 @@ func (s *checkoutInfoSettingRepoStub) SetMultiple(_ context.Context, values map[
 
 func (s *checkoutInfoSettingRepoStub) GetAll(context.Context) (map[string]string, error) {
 	return s.values, nil
+}
+
+type checkoutInfoAccountRepoStub struct {
+	service.AccountRepository
+
+	byGroup map[int64][]service.Account
+}
+
+func (s *checkoutInfoAccountRepoStub) ListSchedulableByGroupID(_ context.Context, groupID int64) ([]service.Account, error) {
+	accounts := s.byGroup[groupID]
+	out := make([]service.Account, len(accounts))
+	copy(out, accounts)
+	return out, nil
 }
 
 func (s *checkoutInfoSettingRepoStub) Delete(context.Context, string) error { return nil }

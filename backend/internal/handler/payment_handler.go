@@ -9,7 +9,11 @@ import (
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/internal/payment"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/antigravity"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/claude"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/geminicli"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/openai"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	middleware2 "github.com/Wei-Shaw/sub2api/internal/server/middleware"
@@ -23,6 +27,7 @@ type PaymentHandler struct {
 	channelService *service.ChannelService
 	paymentService *service.PaymentService
 	configService  *service.PaymentConfigService
+	gatewayService *service.GatewayService
 }
 
 // NewPaymentHandler creates a new PaymentHandler.
@@ -32,6 +37,14 @@ func NewPaymentHandler(paymentService *service.PaymentService, configService *se
 		paymentService: paymentService,
 		configService:  configService,
 	}
+}
+
+// ProvidePaymentHandler wires user-facing payment dependencies that are not
+// needed by narrow unit tests constructing the handler directly.
+func ProvidePaymentHandler(paymentService *service.PaymentService, configService *service.PaymentConfigService, channelService *service.ChannelService, gatewayService *service.GatewayService) *PaymentHandler {
+	h := NewPaymentHandler(paymentService, configService, channelService)
+	h.gatewayService = gatewayService
+	return h
 }
 
 // GetPaymentConfig returns the payment system configuration.
@@ -134,8 +147,9 @@ func (h *PaymentHandler) GetCheckoutInfo(c *gin.Context) {
 			GroupPlatform: gi.Platform, GroupName: gi.Name,
 			RateMultiplier: gi.RateMultiplier, DailyLimitUSD: gi.DailyLimitUSD,
 			WeeklyLimitUSD: gi.WeeklyLimitUSD, MonthlyLimitUSD: gi.MonthlyLimitUSD,
-			ModelScopes: gi.ModelScopes,
-			Name:        p.Name, Description: p.Description, Price: p.Price, OriginalPrice: p.OriginalPrice,
+			SubscriptionTotalLimitUSD: gi.SubscriptionTotalLimitUSD,
+			ModelScopes: gi.ModelScopes, SupportedModels: h.supportedModelsForPlan(ctx, p.GroupID, gi.Platform),
+			Name: p.Name, Description: p.Description, Price: p.Price, OriginalPrice: p.OriginalPrice,
 			ValidityDays: p.ValidityDays, ValidityUnit: p.ValidityUnit, Features: parseFeatures(p.Features),
 			ProductName: p.ProductName,
 			ForSale:     p.ForSale,
@@ -197,7 +211,9 @@ type checkoutPlan struct {
 	DailyLimitUSD                *float64   `json:"daily_limit_usd"`
 	WeeklyLimitUSD               *float64   `json:"weekly_limit_usd"`
 	MonthlyLimitUSD              *float64   `json:"monthly_limit_usd"`
+	SubscriptionTotalLimitUSD    *float64   `json:"subscription_total_limit_usd"`
 	ModelScopes                  []string   `json:"supported_model_scopes"`
+	SupportedModels              []string   `json:"supported_models"`
 	Name                         string     `json:"name"`
 	Description                  string     `json:"description"`
 	Price                        float64    `json:"price"`
@@ -216,6 +232,45 @@ type checkoutPlan struct {
 	DailySaleStatus              string     `json:"daily_sale_status"`
 	DailySaleCountdownSeconds    int        `json:"daily_sale_countdown_seconds"`
 	DailySaleAvailableForPayment bool       `json:"daily_sale_available_for_payment"`
+}
+
+func (h *PaymentHandler) supportedModelsForPlan(ctx context.Context, groupID int64, platform string) []string {
+	if h != nil && h.gatewayService != nil {
+		if models := h.gatewayService.GetAvailableModels(ctx, &groupID, platform); len(models) > 0 {
+			return models
+		}
+	}
+	return defaultSupportedModelIDs(platform)
+}
+
+func defaultSupportedModelIDs(platform string) []string {
+	switch platform {
+	case service.PlatformOpenAI:
+		models := make([]string, 0, len(openai.DefaultModels))
+		for _, model := range openai.DefaultModels {
+			models = append(models, model.ID)
+		}
+		return models
+	case service.PlatformGemini:
+		models := make([]string, 0, len(geminicli.DefaultModels))
+		for _, model := range geminicli.DefaultModels {
+			models = append(models, model.ID)
+		}
+		return models
+	case service.PlatformAntigravity:
+		models := antigravity.DefaultModels()
+		out := make([]string, 0, len(models))
+		for _, model := range models {
+			out = append(out, model.ID)
+		}
+		return out
+	default:
+		models := make([]string, 0, len(claude.DefaultModels))
+		for _, model := range claude.DefaultModels {
+			models = append(models, model.ID)
+		}
+		return models
+	}
 }
 
 func (h *PaymentHandler) firstRechargeCheckoutSummary(ctx context.Context) *firstRechargeCheckoutSummary {

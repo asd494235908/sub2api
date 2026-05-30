@@ -18,9 +18,14 @@ const i18n = createI18n({
           dailySaleCountdownToEnd: "Ends in {time}",
           dailySaleCountdownToStart: "Starts in {time}",
           dailySaleTime: "Daily sale",
+          models: "Models",
           soldOutToday: "Sold out today",
           unavailableNow: "Not available yet",
           quota: "Quota",
+          subscriptionTotalLimit: "Per purchase cycle quota",
+          cycleTotalShort: "Per purchase quota",
+          availableTodayLabel: "Remaining today:",
+          availableTodayUnit: "",
           rate: "Rate",
           unlimited: "Unlimited",
         },
@@ -71,7 +76,75 @@ describe("SubscriptionPlanCard", () => {
     expect(text).toContain("Imagen");
   });
 
-  it("shows daily sale window, countdown, and disables unavailable plan", () => {
+  it("shows hot supported models first and reveals all models on click", async () => {
+    const wrapper = mount(SubscriptionPlanCard, {
+      props: {
+        plan: {
+          id: 3,
+          group_id: 10,
+          group_platform: "openai",
+          name: "Pro",
+          description: "",
+          price: 10,
+          features: [],
+          rate_multiplier: 1,
+          validity_days: 30,
+          validity_unit: "day",
+          for_sale: true,
+          daily_purchase_limit: 0,
+          supported_models: ["gpt-5.3-codex", "gpt-image-2", "gpt-5.4", "gpt-5.5"],
+          sort_order: 1,
+        },
+      },
+      global: {
+        plugins: [i18n],
+        stubs: {
+          Teleport: true,
+        },
+      },
+    });
+
+    const text = wrapper.text();
+    expect(text).toContain("payment.planCard.models");
+    expect(text).toContain("gpt-5.5");
+    expect(text).toContain("gpt-5.4");
+    expect(text).toContain("gpt-image-2");
+    expect(text).not.toContain("gpt-5.3-codex");
+    expect(text).toContain("+1");
+
+    await wrapper.get('[data-test="supported-models-summary"]').trigger("click");
+
+    expect(wrapper.text()).toContain("payment.planCard.supportedModelsTitle");
+    expect(wrapper.text()).toContain("gpt-5.3-codex");
+  });
+
+  it("does not show supported models row when the plan has no supported models", () => {
+    const text = mount(SubscriptionPlanCard, {
+      props: {
+        plan: {
+          id: 4,
+          group_id: 10,
+          group_platform: "openai",
+          name: "Basic",
+          description: "",
+          price: 10,
+          features: [],
+          rate_multiplier: 1,
+          validity_days: 30,
+          validity_unit: "day",
+          for_sale: true,
+          daily_purchase_limit: 0,
+          supported_models: [],
+          sort_order: 1,
+        },
+      },
+      global: { plugins: [i18n] },
+    }).text();
+
+    expect(text).not.toContain("payment.planCard.models");
+  });
+
+  it("hides remaining count when daily sale plan is unavailable", () => {
     const wrapper = mount(SubscriptionPlanCard, {
       props: {
         plan: {
@@ -102,9 +175,70 @@ describe("SubscriptionPlanCard", () => {
     expect(wrapper.text()).toContain("payment.planCard.dailySaleTime");
     expect(wrapper.text()).toContain("09:00 - 18:00");
     expect(wrapper.text()).toContain("payment.planCard.dailySaleCountdownToStart");
-    expect(wrapper.text()).toContain("payment.planCard.availableToday");
+    expect(wrapper.text()).not.toContain("payment.planCard.availableTodayLabel");
     const button = wrapper.get("button");
     expect(button.attributes("disabled")).toBeDefined();
     expect(button.text()).toBe("payment.saleUnavailable");
+  });
+
+  it("hides remaining count when daily sale plan is available", () => {
+    const wrapper = mount(SubscriptionPlanCard, {
+      props: {
+        plan: {
+          id: 6,
+          group_id: 10,
+          group_platform: "openai",
+          name: "Flash Sale",
+          description: "",
+          price: 10,
+          features: [],
+          rate_multiplier: 1,
+          validity_days: 30,
+          validity_unit: "day",
+          for_sale: true,
+          daily_purchase_limit: 3,
+          daily_purchase_remaining: 2,
+          daily_sale_starts_at: "09:00",
+          daily_sale_ends_at: "18:00",
+          daily_sale_status: "available",
+          daily_sale_countdown_seconds: 3661,
+          daily_sale_available_for_payment: true,
+          sort_order: 1,
+        },
+      },
+      global: { plugins: [i18n] },
+    });
+
+    expect(wrapper.text()).toContain("payment.planCard.dailySaleTime");
+    expect(wrapper.text()).not.toContain("payment.planCard.availableTodayLabel");
+    expect(wrapper.text()).not.toContain("Remaining today");
+    expect(wrapper.get("button").attributes("disabled")).toBeUndefined();
+  });
+
+  it("shows subscription cycle total quota", () => {
+    const wrapper = mount(SubscriptionPlanCard, {
+      props: {
+        plan: {
+          id: 5,
+          group_id: 10,
+          group_platform: "openai",
+          name: "Annual Early Bird",
+          description: "",
+          price: 99,
+          features: [],
+          rate_multiplier: 1,
+          validity_days: 365,
+          validity_unit: "day",
+          for_sale: true,
+          daily_purchase_limit: 0,
+          subscription_total_limit_usd: 1560,
+          sort_order: 1,
+        },
+      },
+      global: { plugins: [i18n] },
+    });
+
+    expect(wrapper.text()).toContain("payment.planCard.perPurchaseCycleQuota");
+    expect(wrapper.text()).toContain("$1560");
   });
 });
