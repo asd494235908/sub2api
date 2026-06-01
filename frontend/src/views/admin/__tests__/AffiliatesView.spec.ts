@@ -3,21 +3,49 @@ import { flushPromises, mount } from '@vue/test-utils'
 
 import AffiliatesView from '../AffiliatesView.vue'
 
-const { createInviteRelation, listInviters, listInviterInvitees, lookupUsers, showError, showSuccess } = vi.hoisted(() => ({
+const {
+  approveWithdrawal,
+  createInviteRelation,
+  getIdentityConfig,
+  getWithdrawSettings,
+  listInviters,
+  listInviterInvitees,
+  listWithdrawals,
+  lookupUsers,
+  markWithdrawalFailed,
+  markWithdrawalPaid,
+  rejectWithdrawal,
+  showError,
+  showSuccess,
+} = vi.hoisted(() => ({
+  approveWithdrawal: vi.fn(),
   createInviteRelation: vi.fn(),
+  getIdentityConfig: vi.fn(),
+  getWithdrawSettings: vi.fn(),
   listInviters: vi.fn(),
   listInviterInvitees: vi.fn(),
+  listWithdrawals: vi.fn(),
   lookupUsers: vi.fn(),
+  markWithdrawalFailed: vi.fn(),
+  markWithdrawalPaid: vi.fn(),
+  rejectWithdrawal: vi.fn(),
   showError: vi.fn(),
   showSuccess: vi.fn(),
 }))
 
 vi.mock('@/api/admin/affiliates', () => {
   const api = {
+    approveWithdrawal,
     createInviteRelation,
+    getIdentityConfig,
+    getWithdrawSettings,
     listInviters,
     listInviterInvitees,
+    listWithdrawals,
     lookupUsers,
+    markWithdrawalFailed,
+    markWithdrawalPaid,
+    rejectWithdrawal,
   }
   return {
     affiliatesAPI: api,
@@ -76,6 +104,48 @@ vi.mock('vue-i18n', async () => {
     'admin.affiliates.inviteesCol.username': '被邀请用户名',
     'admin.affiliates.inviteesCol.joinedAt': '加入时间',
     'admin.affiliates.inviteesCol.totalRebate': '累计返利',
+    'admin.affiliates.identityConfig.title': '邀请身份倍率',
+    'admin.affiliates.identityConfig.description': '配置邀请身份',
+    'admin.affiliates.identityConfig.enabled': '启用邀请身份',
+    'admin.affiliates.identityConfig.inviterRate': '邀请人倍率',
+    'admin.affiliates.identityConfig.inviteeRate': '新用户倍率',
+    'admin.affiliates.identityConfig.durationHours': '有效期',
+    'admin.affiliates.identityConfig.qualifiedPayAmount': '实付门槛',
+    'admin.affiliates.identityConfig.qualifiedInviteeCount': '人数门槛',
+    'admin.affiliates.identityConfig.maxAccounts': '账号上限',
+    'admin.affiliates.identityConfig.orderTypes': '计入订单',
+    'admin.affiliates.identityConfig.balanceOrder': '余额充值',
+    'admin.affiliates.identityConfig.subscriptionOrder': '订阅购买',
+    'admin.affiliates.identityConfig.fingerprintEnabled': '启用指纹风控',
+    'admin.affiliates.identityConfig.save': '保存配置',
+    'admin.affiliates.identityConfig.identityNone': '未获得',
+    'admin.affiliates.withdraw.title': '返利提现管理',
+    'admin.affiliates.withdraw.description': '审核用户提现申请',
+    'admin.affiliates.withdraw.enabled': '启用返利提现',
+    'admin.affiliates.withdraw.minAmount': '最低金额',
+    'admin.affiliates.withdraw.maxAmount': '单笔上限',
+    'admin.affiliates.withdraw.dailyLimit': '每日次数',
+    'admin.affiliates.withdraw.helpText': '提现说明',
+    'admin.affiliates.withdraw.saveSettings': '保存提现配置',
+    'admin.affiliates.withdraw.searchPlaceholder': '搜索邮箱、用户名、收款说明或流水号',
+    'admin.affiliates.withdraw.allStatuses': '全部状态',
+    'admin.affiliates.withdraw.empty': '暂无提现申请',
+    'admin.affiliates.withdraw.col.user': '用户',
+    'admin.affiliates.withdraw.col.amount': '金额',
+    'admin.affiliates.withdraw.col.status': '状态',
+    'admin.affiliates.withdraw.col.account': '收款说明',
+    'admin.affiliates.withdraw.col.tradeNo': '发放流水',
+    'admin.affiliates.withdraw.col.createdAt': '申请时间',
+    'admin.affiliates.withdraw.col.actions': '操作',
+    'admin.affiliates.withdraw.status.pending_review': '待审核',
+    'admin.affiliates.withdraw.status.approved': '待发放',
+    'admin.affiliates.withdraw.status.paid': '已发放',
+    'admin.affiliates.withdraw.status.rejected': '已驳回',
+    'admin.affiliates.withdraw.status.failed': '发放失败',
+    'admin.affiliates.withdraw.actions.approve': '通过',
+    'admin.affiliates.withdraw.actions.reject': '驳回',
+    'admin.affiliates.withdraw.actions.paid': '已发放',
+    'admin.affiliates.withdraw.actions.fail': '失败',
     'pagination.previous': '上一页',
     'pagination.next': '下一页',
     'common.loading': '加载中',
@@ -93,13 +163,47 @@ vi.mock('vue-i18n', async () => {
 
 describe('AffiliatesView', () => {
   beforeEach(() => {
+    approveWithdrawal.mockReset()
     listInviters.mockReset()
     listInviterInvitees.mockReset()
+    listWithdrawals.mockReset()
     lookupUsers.mockReset()
     createInviteRelation.mockReset()
+    getIdentityConfig.mockReset()
+    getWithdrawSettings.mockReset()
+    markWithdrawalFailed.mockReset()
+    markWithdrawalPaid.mockReset()
+    rejectWithdrawal.mockReset()
     showError.mockReset()
     showSuccess.mockReset()
 
+    getIdentityConfig.mockResolvedValue({
+      enabled: false,
+      config: {
+        inviter_rate_multiplier: 1.5,
+        invitee_rate_multiplier: 1.4,
+        duration_hours: 720,
+        qualified_invitee_count: 0,
+        qualified_pay_amount: 50,
+        eligible_order_types: ['balance', 'subscription'],
+        fingerprint_enforcement_enabled: true,
+        max_accounts_per_fingerprint_hash: 3,
+      },
+    })
+    getWithdrawSettings.mockResolvedValue({
+      enabled: true,
+      min_amount: 10,
+      max_amount: 50,
+      daily_request_limit: 10,
+      help_text: '本地测试人工微信提现',
+    })
+    listWithdrawals.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      page_size: 20,
+      pages: 0,
+    })
     listInviters.mockResolvedValue({
       items: [
         {
@@ -132,6 +236,55 @@ describe('AffiliatesView', () => {
       overwritten: false,
       previous_inviter_user_id: null,
     })
+  })
+
+  it('keeps withdrawal actions compact and shows placeholders for terminal statuses', async () => {
+    listWithdrawals.mockResolvedValueOnce({
+      items: [
+        {
+          id: 1,
+          user_id: 1051,
+          user_email: 'withdraw-user@example.test',
+          username: 'withdraw-user-local',
+          amount: 10,
+          status: 'failed',
+          payout_account_note: '微信号 fail_case',
+          payout_trade_no: '',
+          created_at: '2026-06-01T00:41:17Z',
+        },
+        {
+          id: 2,
+          user_id: 1051,
+          user_email: 'withdraw-user@example.test',
+          username: 'withdraw-user-local',
+          amount: 20,
+          status: 'approved',
+          payout_account_note: '微信号 approved_case',
+          payout_trade_no: '',
+          created_at: '2026-06-01T00:29:19Z',
+        },
+      ],
+      total: 2,
+      page: 1,
+      page_size: 20,
+      pages: 1,
+    })
+
+    const wrapper = mount(AffiliatesView, {
+      global: {
+        stubs: {
+          AppLayout: { template: '<div><slot /></div>' },
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="withdraw-table"]').classes()).toEqual(expect.arrayContaining(['w-full', 'table-fixed']))
+    expect(wrapper.find('[data-test="withdraw-actions-header"]').classes()).toContain('w-40')
+    expect(wrapper.find('[data-test="withdraw-actions-placeholder"]').text()).toBe('-')
+    expect(wrapper.text()).toContain('已发放')
+    expect(wrapper.text()).toContain('失败')
   })
 
   it('loads inviters on mount and shows invitee details on demand', async () => {

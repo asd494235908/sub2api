@@ -192,4 +192,75 @@ describe('PlanEditDialog', () => {
       daily_sale_ends_at: null,
     })
   })
+
+  it('loads and submits purchase once per active subscription switch', async () => {
+    updatePlan.mockResolvedValue({ data: { id: 5 } })
+
+    const wrapper = mountDialog({
+      id: 5,
+      name: 'Once Plan',
+      group_id: 7,
+      description: 'Existing description',
+      price: 29,
+      original_price: 0,
+      validity_days: 30,
+      validity_unit: 'days',
+      features: [],
+      sort_order: 1,
+      for_sale: true,
+      sale_starts_at: null,
+      sale_ends_at: null,
+      daily_purchase_limit: 0,
+      daily_sale_starts_at: null,
+      daily_sale_ends_at: null,
+      purchase_once_per_active_subscription: true,
+    })
+
+    expect(wrapper.text()).toContain('payment.admin.purchaseOncePerActiveSubscription')
+
+    await wrapper.find('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(updatePlan).toHaveBeenCalledTimes(1)
+    expect(updatePlan.mock.calls[0][1]).toMatchObject({
+      purchase_once_per_active_subscription: true,
+    })
+  })
+
+  it('loads and submits weekly sale days', async () => {
+    updatePlan.mockResolvedValue({ data: { id: 6 } })
+
+    const wrapper = mountDialog({
+      id: 6,
+      name: 'Weekly Plan',
+      group_id: 7,
+      description: 'Existing description',
+      price: 29,
+      original_price: 0,
+      validity_days: 30,
+      validity_unit: 'days',
+      features: [],
+      sort_order: 1,
+      for_sale: true,
+      sale_starts_at: null,
+      sale_ends_at: null,
+      daily_purchase_limit: 0,
+      daily_sale_starts_at: null,
+      daily_sale_ends_at: null,
+      weekly_sale_days: [1, 3, 5],
+    })
+
+    expect(wrapper.text()).toContain('payment.admin.weeklySaleDays')
+    expect(wrapper.text()).toContain('payment.weekdays.mon')
+    expect(wrapper.text()).toContain('payment.weekdays.wed')
+    expect(wrapper.text()).toContain('payment.weekdays.fri')
+
+    await wrapper.find('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(updatePlan).toHaveBeenCalledTimes(1)
+    expect(updatePlan.mock.calls[0][1]).toMatchObject({
+      weekly_sale_days: [1, 3, 5],
+    })
+  })
 })

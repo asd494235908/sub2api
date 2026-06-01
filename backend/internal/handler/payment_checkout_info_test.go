@@ -127,6 +127,160 @@ func TestPaymentHandlerGetCheckoutInfoIncludesDailySaleMetadata(t *testing.T) {
 	require.Greater(t, got.DailySaleCountdownSeconds, 0)
 }
 
+func TestPaymentHandlerGetCheckoutInfoIncludesPurchaseOnceAvailability(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ctx := context.Background()
+	client := newCheckoutInfoHandlerTestClient(t)
+	repo := &checkoutInfoSettingRepoStub{
+		values: map[string]string{
+			service.SettingPaymentEnabled:                    "true",
+			service.SettingPaymentVisibleMethodAlipayEnabled: "true",
+			service.SettingPaymentVisibleMethodAlipaySource:  service.VisibleMethodSourceEasyPayAlipay,
+		},
+	}
+	configService := service.NewPaymentConfigService(client, repo, nil)
+	handler := NewPaymentHandler(nil, configService, nil)
+
+	_, err := client.PaymentProviderInstance.Create().
+		SetProviderKey(payment.TypeEasyPay).
+		SetName("EasyPay").
+		SetConfig("{}").
+		SetSupportedTypes(payment.TypeAlipay).
+		SetEnabled(true).
+		Save(ctx)
+	require.NoError(t, err)
+	group, err := client.Group.Create().
+		SetName("Subscription Group").
+		SetStatus(payment.EntityStatusActive).
+		SetPlatform(service.PlatformOpenAI).
+		SetSubscriptionType(service.SubscriptionTypeSubscription).
+		Save(ctx)
+	require.NoError(t, err)
+	user, err := client.User.Create().
+		SetEmail("checkout-once@example.com").
+		SetPasswordHash("hash").
+		SetUsername("checkout-once-user").
+		Save(ctx)
+	require.NoError(t, err)
+	expiresAt := time.Now().Add(24 * time.Hour).UTC().Truncate(time.Second)
+	_, err = client.UserSubscription.Create().
+		SetUserID(user.ID).
+		SetGroupID(int64(group.ID)).
+		SetStartsAt(time.Now().Add(-time.Hour)).
+		SetExpiresAt(expiresAt).
+		SetStatus(service.SubscriptionStatusActive).
+		Save(ctx)
+	require.NoError(t, err)
+	_, err = client.SubscriptionPlan.Create().
+		SetGroupID(int64(group.ID)).
+		SetName("Once Plan").
+		SetPrice(10).
+		SetValidityDays(30).
+		SetValidityUnit("days").
+		SetForSale(true).
+		SetPurchaseOncePerActiveSubscription(true).
+		Save(ctx)
+	require.NoError(t, err)
+
+	rec := httptest.NewRecorder()
+	gctx, _ := gin.CreateTestContext(rec)
+	gctx.Request = httptest.NewRequest(http.MethodGet, "/api/v1/payment/checkout-info", nil)
+	gctx.Set(string(middleware.ContextKeyUser), middleware.AuthSubject{UserID: user.ID, Concurrency: 1})
+
+	handler.GetCheckoutInfo(gctx)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var body struct {
+		Data struct {
+			Plans []struct {
+				Name                              string  `json:"name"`
+				PurchaseOncePerActiveSubscription bool    `json:"purchase_once_per_active_subscription"`
+				PurchaseOnceAvailableForPayment   bool    `json:"purchase_once_available_for_payment"`
+				PurchaseOnceUnavailableUntil      *string `json:"purchase_once_unavailable_until"`
+			} `json:"plans"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	require.Len(t, body.Data.Plans, 1)
+	got := body.Data.Plans[0]
+	require.Equal(t, "Once Plan", got.Name)
+	require.True(t, got.PurchaseOncePerActiveSubscription)
+	require.False(t, got.PurchaseOnceAvailableForPayment)
+	require.NotNil(t, got.PurchaseOnceUnavailableUntil)
+	require.Equal(t, expiresAt.Format(time.RFC3339), *got.PurchaseOnceUnavailableUntil)
+}
+
+func TestPaymentHandlerGetCheckoutInfoIncludesWeeklySaleAvailability(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ctx := context.Background()
+	client := newCheckoutInfoHandlerTestClient(t)
+	repo := &checkoutInfoSettingRepoStub{
+		values: map[string]string{
+			service.SettingPaymentEnabled:                    "true",
+			service.SettingPaymentVisibleMethodAlipayEnabled: "true",
+			service.SettingPaymentVisibleMethodAlipaySource:  service.VisibleMethodSourceEasyPayAlipay,
+		},
+	}
+	configService := service.NewPaymentConfigService(client, repo, nil)
+	handler := NewPaymentHandler(nil, configService, nil)
+
+	_, err := client.PaymentProviderInstance.Create().
+		SetProviderKey(payment.TypeEasyPay).
+		SetName("EasyPay").
+		SetConfig("{}").
+		SetSupportedTypes(payment.TypeAlipay).
+		SetEnabled(true).
+		Save(ctx)
+	require.NoError(t, err)
+	group, err := client.Group.Create().
+		SetName("Subscription Group").
+		SetStatus(payment.EntityStatusActive).
+		SetPlatform(service.PlatformOpenAI).
+		SetSubscriptionType(service.SubscriptionTypeSubscription).
+		Save(ctx)
+	require.NoError(t, err)
+	today := handlerWeekdayNumber(time.Now())
+	offDay := today%7 + 1
+	_, err = client.SubscriptionPlan.Create().
+		SetGroupID(int64(group.ID)).
+		SetName("Weekly Off Day Plan").
+		SetPrice(10).
+		SetValidityDays(30).
+		SetValidityUnit("days").
+		SetForSale(true).
+		SetWeeklySaleDays([]int{offDay}).
+		Save(ctx)
+	require.NoError(t, err)
+
+	rec := httptest.NewRecorder()
+	gctx, _ := gin.CreateTestContext(rec)
+	gctx.Request = httptest.NewRequest(http.MethodGet, "/api/v1/payment/checkout-info", nil)
+	gctx.Set(string(middleware.ContextKeyUser), middleware.AuthSubject{UserID: 1, Concurrency: 1})
+
+	handler.GetCheckoutInfo(gctx)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var body struct {
+		Data struct {
+			Plans []struct {
+				Name                          string `json:"name"`
+				WeeklySaleDays                []int  `json:"weekly_sale_days"`
+				WeeklySaleStatus              string `json:"weekly_sale_status"`
+				WeeklySaleAvailableForPayment bool   `json:"weekly_sale_available_for_payment"`
+				DailySaleAvailableForPayment  bool   `json:"daily_sale_available_for_payment"`
+			} `json:"plans"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	require.Len(t, body.Data.Plans, 1)
+	got := body.Data.Plans[0]
+	require.Equal(t, "Weekly Off Day Plan", got.Name)
+	require.Equal(t, []int{offDay}, got.WeeklySaleDays)
+	require.Equal(t, "off_day", got.WeeklySaleStatus)
+	require.False(t, got.WeeklySaleAvailableForPayment)
+	require.False(t, got.DailySaleAvailableForPayment)
+}
+
 func TestPaymentHandlerGetCheckoutInfoIncludesMappedSupportedModels(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	ctx := context.Background()
@@ -174,7 +328,7 @@ func TestPaymentHandlerGetCheckoutInfoIncludesMappedSupportedModels(t *testing.T
 			},
 		},
 		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
-		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 	handler := NewPaymentHandler(nil, configService, nil)
 	handler.gatewayService = gatewayService
@@ -248,7 +402,7 @@ func TestPaymentHandlerGetCheckoutInfoFallsBackToDefaultSupportedModels(t *testi
 			},
 		},
 		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
-		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 	handler := NewPaymentHandler(nil, configService, nil)
 	handler.gatewayService = gatewayService
@@ -297,6 +451,14 @@ func newCheckoutInfoHandlerTestClient(t *testing.T) *dbent.Client {
 	client := enttest.NewClient(t, enttest.WithOptions(dbent.Driver(drv)))
 	t.Cleanup(func() { _ = client.Close() })
 	return client
+}
+
+func handlerWeekdayNumber(value time.Time) int {
+	weekday := int(value.Local().Weekday())
+	if weekday == 0 {
+		return 7
+	}
+	return weekday
 }
 
 type checkoutInfoSettingRepoStub struct {

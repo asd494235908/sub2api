@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/subscriptionplan"
+	"github.com/Wei-Shaw/sub2api/ent/usersubscription"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 )
 
@@ -62,6 +64,11 @@ func validatePlanPatch(req UpdatePlanRequest) error {
 	if req.DailyPurchaseLimit != nil && *req.DailyPurchaseLimit < 0 {
 		return infraerrors.BadRequest("PLAN_DAILY_PURCHASE_LIMIT_INVALID", "daily purchase limit must be >= 0")
 	}
+	if req.WeeklySaleDays != nil {
+		if _, err := normalizeWeeklySaleDays(*req.WeeklySaleDays); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -92,6 +99,25 @@ func normalizeOptionalString(value string) *string {
 		return nil
 	}
 	return &trimmed
+}
+
+func normalizeWeeklySaleDays(days []int) ([]int, error) {
+	if len(days) == 0 {
+		return []int{}, nil
+	}
+	seen := make(map[int]bool, len(days))
+	for _, day := range days {
+		if day < 1 || day > 7 {
+			return nil, infraerrors.BadRequest("PLAN_WEEKLY_SALE_DAYS_INVALID", "weekly sale day must be between 1 and 7")
+		}
+		seen[day] = true
+	}
+	normalized := make([]int, 0, len(seen))
+	for day := range seen {
+		normalized = append(normalized, day)
+	}
+	sort.Ints(normalized)
+	return normalized, nil
 }
 
 // --- Plan CRUD ---
@@ -244,6 +270,29 @@ func (s *PaymentConfigService) SubscriptionPlanDailyPurchaseRemaining(ctx contex
 	return &remaining, nil
 }
 
+func (s *PaymentConfigService) ActiveSubscriptionForPurchaseOnce(ctx context.Context, userID, groupID int64, now time.Time) (*dbent.UserSubscription, error) {
+	if s == nil || s.entClient == nil || userID <= 0 || groupID <= 0 {
+		return nil, nil
+	}
+	activeSub, err := s.entClient.UserSubscription.Query().
+		Where(
+			usersubscription.UserIDEQ(userID),
+			usersubscription.GroupIDEQ(groupID),
+			usersubscription.StatusEQ(SubscriptionStatusActive),
+			usersubscription.ExpiresAtGT(now),
+			usersubscription.DeletedAtIsNil(),
+		).
+		Order(dbent.Desc(usersubscription.FieldExpiresAt)).
+		First(ctx)
+	if dbent.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("query active subscription for purchase once: %w", err)
+	}
+	return activeSub, nil
+}
+
 func SubscriptionPlanDailySaleState(plan *dbent.SubscriptionPlan, now time.Time) (string, int) {
 	if plan == nil || plan.DailySaleStartsAt == nil || plan.DailySaleEndsAt == nil {
 		return "available", 0
@@ -286,6 +335,13 @@ func SubscriptionPlanDailySaleState(plan *dbent.SubscriptionPlan, now time.Time)
 	return "pending", maxInt(0, startSecond-currentSecondOfDay)
 }
 
+func SubscriptionPlanWeeklySaleState(plan *dbent.SubscriptionPlan, now time.Time) string {
+	if subscriptionPlanIsInWeeklySaleDays(plan, now) {
+		return "available"
+	}
+	return "off_day"
+}
+
 func maxInt(a, b int) int {
 	if a > b {
 		return a
@@ -296,6 +352,10 @@ func maxInt(a, b int) int {
 func (s *PaymentConfigService) CreatePlan(ctx context.Context, req CreatePlanRequest) (*dbent.SubscriptionPlan, error) {
 	dailySaleStartsAt := normalizeOptionalString(req.DailySaleStartsAt)
 	dailySaleEndsAt := normalizeOptionalString(req.DailySaleEndsAt)
+	weeklySaleDays, err := normalizeWeeklySaleDays(req.WeeklySaleDays)
+	if err != nil {
+		return nil, err
+	}
 	if err := validatePlanRequired(req.Name, req.GroupID, req.Price, req.ValidityDays, req.ValidityUnit, req.OriginalPrice, req.SaleStartsAt, req.SaleEndsAt, req.DailyPurchaseLimit, req.DailySaleStartsAt, req.DailySaleEndsAt); err != nil {
 		return nil, err
 	}
@@ -303,7 +363,10 @@ func (s *PaymentConfigService) CreatePlan(ctx context.Context, req CreatePlanReq
 		SetGroupID(req.GroupID).SetName(req.Name).SetDescription(req.Description).
 		SetPrice(req.Price).SetValidityDays(req.ValidityDays).SetValidityUnit(req.ValidityUnit).
 		SetFeatures(req.Features).SetProductName(req.ProductName).
-		SetForSale(req.ForSale).SetDailyPurchaseLimit(req.DailyPurchaseLimit).SetSortOrder(req.SortOrder)
+		SetForSale(req.ForSale).
+		SetPurchaseOncePerActiveSubscription(req.PurchaseOncePerActiveSubscription).
+		SetWeeklySaleDays(weeklySaleDays).
+		SetDailyPurchaseLimit(req.DailyPurchaseLimit).SetSortOrder(req.SortOrder)
 	if req.OriginalPrice != nil {
 		b.SetOriginalPrice(*req.OriginalPrice)
 	}
@@ -344,6 +407,14 @@ func (s *PaymentConfigService) UpdatePlan(ctx context.Context, id int64, req Upd
 	dailyPurchaseLimit := current.DailyPurchaseLimit
 	if req.DailyPurchaseLimit != nil {
 		dailyPurchaseLimit = *req.DailyPurchaseLimit
+	}
+	weeklySaleDays := current.WeeklySaleDays
+	if req.WeeklySaleDays != nil {
+		normalized, err := normalizeWeeklySaleDays(*req.WeeklySaleDays)
+		if err != nil {
+			return nil, err
+		}
+		weeklySaleDays = normalized
 	}
 	dailySaleStartsAt := current.DailySaleStartsAt
 	if req.DailySaleStartsAt.Set {
@@ -392,6 +463,12 @@ func (s *PaymentConfigService) UpdatePlan(ctx context.Context, id int64, req Upd
 	}
 	if req.ForSale != nil {
 		u.SetForSale(*req.ForSale)
+	}
+	if req.PurchaseOncePerActiveSubscription != nil {
+		u.SetPurchaseOncePerActiveSubscription(*req.PurchaseOncePerActiveSubscription)
+	}
+	if req.WeeklySaleDays != nil {
+		u.SetWeeklySaleDays(weeklySaleDays)
 	}
 	if req.SaleStartsAt.Set {
 		if req.SaleStartsAt.Value == nil {

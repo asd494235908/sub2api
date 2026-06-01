@@ -52,6 +52,8 @@ const (
 	FieldSubscriptionDays = "subscription_days"
 	// FieldSubscriptionTotalLimitUsd holds the string denoting the subscription_total_limit_usd field in the database.
 	FieldSubscriptionTotalLimitUsd = "subscription_total_limit_usd"
+	// FieldSubscriptionRebateBaseAmount holds the string denoting the subscription_rebate_base_amount field in the database.
+	FieldSubscriptionRebateBaseAmount = "subscription_rebate_base_amount"
 	// FieldProviderInstanceID holds the string denoting the provider_instance_id field in the database.
 	FieldProviderInstanceID = "provider_instance_id"
 	// FieldProviderKey holds the string denoting the provider_key field in the database.
@@ -129,6 +131,7 @@ var Columns = []string{
 	FieldSubscriptionGroupID,
 	FieldSubscriptionDays,
 	FieldSubscriptionTotalLimitUsd,
+	FieldSubscriptionRebateBaseAmount,
 	FieldProviderInstanceID,
 	FieldProviderKey,
 	FieldProviderSnapshot,
@@ -310,6 +313,11 @@ func BySubscriptionDays(opts ...sql.OrderTermOption) OrderOption {
 // BySubscriptionTotalLimitUsd orders the results by the subscription_total_limit_usd field.
 func BySubscriptionTotalLimitUsd(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSubscriptionTotalLimitUsd, opts...).ToFunc()
+}
+
+// BySubscriptionRebateBaseAmount orders the results by the subscription_rebate_base_amount field.
+func BySubscriptionRebateBaseAmount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionRebateBaseAmount, opts...).ToFunc()
 }
 
 // ByProviderInstanceID orders the results by the provider_instance_id field.

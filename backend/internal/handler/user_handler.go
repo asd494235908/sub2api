@@ -22,6 +22,7 @@ type UserHandler struct {
 	emailService          *service.EmailService
 	emailCache            service.EmailCache
 	affiliateService      *service.AffiliateService
+	affiliateWithdrawSvc  *service.AffiliateWithdrawalService
 	paymentService        *service.PaymentService
 	userPlatformQuotaRepo service.UserPlatformQuotaRepository
 }
@@ -33,6 +34,7 @@ func NewUserHandler(
 	emailService *service.EmailService,
 	emailCache service.EmailCache,
 	affiliateService *service.AffiliateService,
+	affiliateWithdrawSvc *service.AffiliateWithdrawalService,
 	paymentService *service.PaymentService,
 	userPlatformQuotaRepo service.UserPlatformQuotaRepository,
 ) *UserHandler {
@@ -42,6 +44,7 @@ func NewUserHandler(
 		emailService:          emailService,
 		emailCache:            emailCache,
 		affiliateService:      affiliateService,
+		affiliateWithdrawSvc:  affiliateWithdrawSvc,
 		paymentService:        paymentService,
 		userPlatformQuotaRepo: userPlatformQuotaRepo,
 	}
@@ -114,6 +117,7 @@ type userProfileResponse struct {
 	WeChatBound       bool                                   `json:"wechat_bound"`
 	DingTalkBound     bool                                   `json:"dingtalk_bound"`
 	MemberLevel       *service.MemberLevelState              `json:"member_level,omitempty"`
+	AffiliateIdentity *service.AffiliateIdentityState        `json:"affiliate_identity,omitempty"`
 }
 
 type userProfileSourceContext struct {
@@ -342,6 +346,66 @@ func (h *UserHandler) TransferAffiliateQuota(c *gin.Context) {
 		"transferred_quota": transferred,
 		"balance":           balance,
 	})
+}
+
+type createAffiliateWithdrawalRequest struct {
+	Amount            float64 `json:"amount" binding:"required"`
+	PayoutMethod      string  `json:"payout_method" binding:"required"`
+	PayoutAccountNote string  `json:"payout_account_note" binding:"required"`
+}
+
+// ListAffiliateWithdrawals returns current user's affiliate cash withdrawal records.
+// GET /api/v1/user/aff/withdrawals
+func (h *UserHandler) ListAffiliateWithdrawals(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	if h.affiliateWithdrawSvc == nil {
+		response.ErrorFrom(c, service.ErrAffiliateWithdrawalUnavailable)
+		return
+	}
+	page, pageSize := response.ParsePagination(c)
+	items, total, err := h.affiliateWithdrawSvc.ListUserWithdrawals(c.Request.Context(), subject.UserID, service.AffiliateWithdrawalListFilter{
+		Status:   c.Query("status"),
+		Page:     page,
+		PageSize: pageSize,
+	})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Paginated(c, items, total, page, pageSize)
+}
+
+// CreateAffiliateWithdrawal creates a cash withdrawal request from available affiliate quota.
+// POST /api/v1/user/aff/withdrawals
+func (h *UserHandler) CreateAffiliateWithdrawal(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	if h.affiliateWithdrawSvc == nil {
+		response.ErrorFrom(c, service.ErrAffiliateWithdrawalUnavailable)
+		return
+	}
+	var req createAffiliateWithdrawalRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	w, err := h.affiliateWithdrawSvc.CreateWithdrawal(c.Request.Context(), subject.UserID, service.AffiliateWithdrawalCreateInput{
+		Amount:            req.Amount,
+		PayoutMethod:      req.PayoutMethod,
+		PayoutAccountNote: req.PayoutAccountNote,
+	})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, w)
 }
 
 type StartIdentityBindingRequest struct {
@@ -654,6 +718,13 @@ func (h *UserHandler) buildUserProfileResponse(ctx context.Context, userID int64
 			return userProfileResponse{}, levelErr
 		}
 		resp.MemberLevel = level
+	}
+	if h.affiliateService != nil {
+		identity, identityErr := h.affiliateService.GetActiveAffiliateIdentity(ctx, userID)
+		if identityErr != nil {
+			return userProfileResponse{}, identityErr
+		}
+		resp.AffiliateIdentity = identity
 	}
 	return resp, nil
 }

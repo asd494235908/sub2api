@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/Wei-Shaw/sub2api/ent/predicate"
 	"github.com/Wei-Shaw/sub2api/ent/subscriptionplan"
@@ -199,6 +200,32 @@ func (_u *SubscriptionPlanUpdate) SetNillableForSale(v *bool) *SubscriptionPlanU
 	if v != nil {
 		_u.SetForSale(*v)
 	}
+	return _u
+}
+
+// SetPurchaseOncePerActiveSubscription sets the "purchase_once_per_active_subscription" field.
+func (_u *SubscriptionPlanUpdate) SetPurchaseOncePerActiveSubscription(v bool) *SubscriptionPlanUpdate {
+	_u.mutation.SetPurchaseOncePerActiveSubscription(v)
+	return _u
+}
+
+// SetNillablePurchaseOncePerActiveSubscription sets the "purchase_once_per_active_subscription" field if the given value is not nil.
+func (_u *SubscriptionPlanUpdate) SetNillablePurchaseOncePerActiveSubscription(v *bool) *SubscriptionPlanUpdate {
+	if v != nil {
+		_u.SetPurchaseOncePerActiveSubscription(*v)
+	}
+	return _u
+}
+
+// SetWeeklySaleDays sets the "weekly_sale_days" field.
+func (_u *SubscriptionPlanUpdate) SetWeeklySaleDays(v []int) *SubscriptionPlanUpdate {
+	_u.mutation.SetWeeklySaleDays(v)
+	return _u
+}
+
+// AppendWeeklySaleDays appends value to the "weekly_sale_days" field.
+func (_u *SubscriptionPlanUpdate) AppendWeeklySaleDays(v []int) *SubscriptionPlanUpdate {
+	_u.mutation.AppendWeeklySaleDays(v)
 	return _u
 }
 
@@ -463,6 +490,17 @@ func (_u *SubscriptionPlanUpdate) sqlSave(ctx context.Context) (_node int, err e
 	if value, ok := _u.mutation.ForSale(); ok {
 		_spec.SetField(subscriptionplan.FieldForSale, field.TypeBool, value)
 	}
+	if value, ok := _u.mutation.PurchaseOncePerActiveSubscription(); ok {
+		_spec.SetField(subscriptionplan.FieldPurchaseOncePerActiveSubscription, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.WeeklySaleDays(); ok {
+		_spec.SetField(subscriptionplan.FieldWeeklySaleDays, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedWeeklySaleDays(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, subscriptionplan.FieldWeeklySaleDays, value)
+		})
+	}
 	if value, ok := _u.mutation.SaleStartsAt(); ok {
 		_spec.SetField(subscriptionplan.FieldSaleStartsAt, field.TypeTime, value)
 	}
@@ -693,6 +731,32 @@ func (_u *SubscriptionPlanUpdateOne) SetNillableForSale(v *bool) *SubscriptionPl
 	if v != nil {
 		_u.SetForSale(*v)
 	}
+	return _u
+}
+
+// SetPurchaseOncePerActiveSubscription sets the "purchase_once_per_active_subscription" field.
+func (_u *SubscriptionPlanUpdateOne) SetPurchaseOncePerActiveSubscription(v bool) *SubscriptionPlanUpdateOne {
+	_u.mutation.SetPurchaseOncePerActiveSubscription(v)
+	return _u
+}
+
+// SetNillablePurchaseOncePerActiveSubscription sets the "purchase_once_per_active_subscription" field if the given value is not nil.
+func (_u *SubscriptionPlanUpdateOne) SetNillablePurchaseOncePerActiveSubscription(v *bool) *SubscriptionPlanUpdateOne {
+	if v != nil {
+		_u.SetPurchaseOncePerActiveSubscription(*v)
+	}
+	return _u
+}
+
+// SetWeeklySaleDays sets the "weekly_sale_days" field.
+func (_u *SubscriptionPlanUpdateOne) SetWeeklySaleDays(v []int) *SubscriptionPlanUpdateOne {
+	_u.mutation.SetWeeklySaleDays(v)
+	return _u
+}
+
+// AppendWeeklySaleDays appends value to the "weekly_sale_days" field.
+func (_u *SubscriptionPlanUpdateOne) AppendWeeklySaleDays(v []int) *SubscriptionPlanUpdateOne {
+	_u.mutation.AppendWeeklySaleDays(v)
 	return _u
 }
 
@@ -986,6 +1050,17 @@ func (_u *SubscriptionPlanUpdateOne) sqlSave(ctx context.Context) (_node *Subscr
 	}
 	if value, ok := _u.mutation.ForSale(); ok {
 		_spec.SetField(subscriptionplan.FieldForSale, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.PurchaseOncePerActiveSubscription(); ok {
+		_spec.SetField(subscriptionplan.FieldPurchaseOncePerActiveSubscription, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.WeeklySaleDays(); ok {
+		_spec.SetField(subscriptionplan.FieldWeeklySaleDays, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedWeeklySaleDays(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, subscriptionplan.FieldWeeklySaleDays, value)
+		})
 	}
 	if value, ok := _u.mutation.SaleStartsAt(); ok {
 		_spec.SetField(subscriptionplan.FieldSaleStartsAt, field.TypeTime, value)

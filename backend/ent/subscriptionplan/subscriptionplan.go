@@ -33,6 +33,10 @@ const (
 	FieldProductName = "product_name"
 	// FieldForSale holds the string denoting the for_sale field in the database.
 	FieldForSale = "for_sale"
+	// FieldPurchaseOncePerActiveSubscription holds the string denoting the purchase_once_per_active_subscription field in the database.
+	FieldPurchaseOncePerActiveSubscription = "purchase_once_per_active_subscription"
+	// FieldWeeklySaleDays holds the string denoting the weekly_sale_days field in the database.
+	FieldWeeklySaleDays = "weekly_sale_days"
 	// FieldSaleStartsAt holds the string denoting the sale_starts_at field in the database.
 	FieldSaleStartsAt = "sale_starts_at"
 	// FieldSaleEndsAt holds the string denoting the sale_ends_at field in the database.
@@ -66,6 +70,8 @@ var Columns = []string{
 	FieldFeatures,
 	FieldProductName,
 	FieldForSale,
+	FieldPurchaseOncePerActiveSubscription,
+	FieldWeeklySaleDays,
 	FieldSaleStartsAt,
 	FieldSaleEndsAt,
 	FieldDailyPurchaseLimit,
@@ -105,6 +111,10 @@ var (
 	ProductNameValidator func(string) error
 	// DefaultForSale holds the default value on creation for the "for_sale" field.
 	DefaultForSale bool
+	// DefaultPurchaseOncePerActiveSubscription holds the default value on creation for the "purchase_once_per_active_subscription" field.
+	DefaultPurchaseOncePerActiveSubscription bool
+	// DefaultWeeklySaleDays holds the default value on creation for the "weekly_sale_days" field.
+	DefaultWeeklySaleDays []int
 	// DefaultDailyPurchaseLimit holds the default value on creation for the "daily_purchase_limit" field.
 	DefaultDailyPurchaseLimit int
 	// DailyPurchaseLimitValidator is a validator for the "daily_purchase_limit" field. It is called by the builders before save.
@@ -179,6 +189,11 @@ func ByProductName(opts ...sql.OrderTermOption) OrderOption {
 // ByForSale orders the results by the for_sale field.
 func ByForSale(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldForSale, opts...).ToFunc()
+}
+
+// ByPurchaseOncePerActiveSubscription orders the results by the purchase_once_per_active_subscription field.
+func ByPurchaseOncePerActiveSubscription(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPurchaseOncePerActiveSubscription, opts...).ToFunc()
 }
 
 // BySaleStartsAt orders the results by the sale_starts_at field.

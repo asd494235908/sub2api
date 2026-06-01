@@ -104,6 +104,11 @@ func ForSale(v bool) predicate.SubscriptionPlan {
 	return predicate.SubscriptionPlan(sql.FieldEQ(FieldForSale, v))
 }
 
+// PurchaseOncePerActiveSubscription applies equality check predicate on the "purchase_once_per_active_subscription" field. It's identical to PurchaseOncePerActiveSubscriptionEQ.
+func PurchaseOncePerActiveSubscription(v bool) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldEQ(FieldPurchaseOncePerActiveSubscription, v))
+}
+
 // SaleStartsAt applies equality check predicate on the "sale_starts_at" field. It's identical to SaleStartsAtEQ.
 func SaleStartsAt(v time.Time) predicate.SubscriptionPlan {
 	return predicate.SubscriptionPlan(sql.FieldEQ(FieldSaleStartsAt, v))
@@ -647,6 +652,16 @@ func ForSaleEQ(v bool) predicate.SubscriptionPlan {
 // ForSaleNEQ applies the NEQ predicate on the "for_sale" field.
 func ForSaleNEQ(v bool) predicate.SubscriptionPlan {
 	return predicate.SubscriptionPlan(sql.FieldNEQ(FieldForSale, v))
+}
+
+// PurchaseOncePerActiveSubscriptionEQ applies the EQ predicate on the "purchase_once_per_active_subscription" field.
+func PurchaseOncePerActiveSubscriptionEQ(v bool) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldEQ(FieldPurchaseOncePerActiveSubscription, v))
+}
+
+// PurchaseOncePerActiveSubscriptionNEQ applies the NEQ predicate on the "purchase_once_per_active_subscription" field.
+func PurchaseOncePerActiveSubscriptionNEQ(v bool) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldNEQ(FieldPurchaseOncePerActiveSubscription, v))
 }
 
 // SaleStartsAtEQ applies the EQ predicate on the "sale_starts_at" field.

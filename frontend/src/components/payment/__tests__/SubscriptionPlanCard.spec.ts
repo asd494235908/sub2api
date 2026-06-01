@@ -27,10 +27,23 @@ const i18n = createI18n({
           availableTodayLabel: "Remaining today:",
           availableTodayUnit: "",
           rate: "Rate",
+          weeklySaleDays: "Sale days",
+          weeklySaleOffDay: "Not on sale today",
+          weeklySaleUnlimited: "Every day",
           unlimited: "Unlimited",
         },
         saleUnavailable: "Not available",
+        purchaseOnceUnavailable: "Available after current subscription expires",
         subscribeNow: "Subscribe now",
+        weekdays: {
+          mon: "Mon",
+          tue: "Tue",
+          wed: "Wed",
+          thu: "Thu",
+          fri: "Fri",
+          sat: "Sat",
+          sun: "Sun",
+        },
       },
     },
   },
@@ -240,5 +253,71 @@ describe("SubscriptionPlanCard", () => {
 
     expect(wrapper.text()).toContain("payment.planCard.perPurchaseCycleQuota");
     expect(wrapper.text()).toContain("$1560");
+  });
+
+  it("disables purchase once plan while current subscription is active", () => {
+    const wrapper = mount(SubscriptionPlanCard, {
+      props: {
+        plan: {
+          id: 7,
+          group_id: 10,
+          group_platform: "openai",
+          name: "Once Plan",
+          description: "",
+          price: 10,
+          features: [],
+          rate_multiplier: 1,
+          validity_days: 30,
+          validity_unit: "day",
+          for_sale: true,
+          daily_purchase_limit: 0,
+          purchase_once_per_active_subscription: true,
+          purchase_once_available_for_payment: false,
+          purchase_once_unavailable_until: "2026-06-02T00:00:00Z",
+          sort_order: 1,
+        },
+      },
+      global: { plugins: [i18n] },
+    });
+
+    expect(wrapper.text()).toContain("payment.purchaseOnceUnavailable");
+    const button = wrapper.get("button");
+    expect(button.attributes("disabled")).toBeDefined();
+    expect(button.text()).toBe("payment.saleUnavailable");
+  });
+
+  it("disables weekly off-day plans and shows sale days", () => {
+    const wrapper = mount(SubscriptionPlanCard, {
+      props: {
+        plan: {
+          id: 8,
+          group_id: 10,
+          group_platform: "openai",
+          name: "Weekly Plan",
+          description: "",
+          price: 10,
+          features: [],
+          rate_multiplier: 1,
+          validity_days: 30,
+          validity_unit: "day",
+          for_sale: true,
+          daily_purchase_limit: 0,
+          weekly_sale_days: [1, 3, 5],
+          weekly_sale_status: "off_day",
+          weekly_sale_available_for_payment: false,
+          sort_order: 1,
+        },
+      },
+      global: { plugins: [i18n] },
+    });
+
+    expect(wrapper.text()).toContain("payment.planCard.weeklySaleDays");
+    expect(wrapper.text()).toContain("payment.weekdays.mon");
+    expect(wrapper.text()).toContain("payment.weekdays.wed");
+    expect(wrapper.text()).toContain("payment.weekdays.fri");
+    expect(wrapper.text()).toContain("payment.planCard.weeklySaleOffDay");
+    const button = wrapper.get("button");
+    expect(button.attributes("disabled")).toBeDefined();
+    expect(button.text()).toBe("payment.saleUnavailable");
   });
 });

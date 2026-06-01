@@ -77,6 +77,9 @@
           <template #cell-pay_amount="{ row }">
             <span class="text-sm text-gray-900 dark:text-white">¥{{ formatAmount(row.pay_amount) }}</span>
           </template>
+          <template #cell-rebate_base_amount="{ row }">
+            <NullableAmountText :value="row.rebate_base_amount" />
+          </template>
           <template #cell-rebate_amount="{ row }">
             <AmountText :value="row.rebate_amount" strong />
           </template>
@@ -193,6 +196,7 @@ const columns = computed<Column[]>(() => {
       { key: 'invitee', label: t('admin.affiliates.records.invitee'), sortable: true },
       { key: 'order_amount', label: t('admin.affiliates.records.orderAmount'), sortable: true },
       { key: 'pay_amount', label: t('admin.affiliates.records.payAmount'), sortable: true },
+      { key: 'rebate_base_amount', label: t('admin.affiliates.records.rebateBaseAmount'), sortable: true },
       { key: 'rebate_amount', label: t('admin.affiliates.records.rebateAmount') },
       { key: 'payment_type', label: t('admin.affiliates.records.paymentType'), sortable: true },
       { key: 'order_status', label: t('admin.affiliates.records.orderStatus'), sortable: true },

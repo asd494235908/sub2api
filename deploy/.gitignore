@@ -14,7 +14,11 @@ all_in_one_data/
 # Backup files
 *.backup
 *.bak
+backups/
 
 # Temporary files
 *.tmp
 *.log
+
+# Local/manual deploy test scripts.
+tests/

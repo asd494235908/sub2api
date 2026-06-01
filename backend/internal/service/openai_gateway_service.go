@@ -5429,6 +5429,7 @@ type OpenAIRecordUsageInput struct {
 	UserAgent          string // 请求的 User-Agent
 	IPAddress          string // 请求的客户端 IP 地址
 	RequestPayloadHash string
+	BillingRequestID   string
 	APIKeyService      APIKeyQuotaUpdater
 	ChannelUsageFields
 }
@@ -5536,7 +5537,7 @@ func (s *OpenAIGatewayService) RecordUsage(ctx context.Context, input *OpenAIRec
 	// Create usage log
 	durationMs := int(result.Duration.Milliseconds())
 	accountRateMultiplier := account.BillingRateMultiplier()
-	requestID := resolveUsageBillingRequestID(ctx, result.RequestID)
+	requestID := resolveUsageBillingRequestID(ctx, input.BillingRequestID, result.RequestID)
 
 	// 确定 RequestedModel（渠道映射前的原始模型）
 	requestedModel := result.Model

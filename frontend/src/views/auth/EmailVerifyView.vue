@@ -173,6 +173,8 @@ import {
   loadAffiliateReferralCode,
   oauthAffiliatePayload
 } from '@/utils/oauthAffiliate'
+import { collectDeviceFingerprint, deviceFingerprintPayload } from '@/utils/deviceFingerprint'
+import type { DeviceFingerprint } from '@/types'
 
 const { t, locale } = useI18n()
 
@@ -218,6 +220,7 @@ const initialTurnstileToken = ref<string>('')
 const promoCode = ref<string>('')
 const invitationCode = ref<string>('')
 const affCode = ref<string>('')
+const deviceFingerprint = ref<DeviceFingerprint | null>(null)
 const pendingAuthToken = ref<string>('')
 const pendingAuthTokenField = ref<PendingAuthTokenField>('pending_auth_token')
 const pendingProvider = ref<string>('')
@@ -271,6 +274,7 @@ onMounted(async () => {
       promoCode.value = registerData.promo_code || ''
       invitationCode.value = registerData.invitation_code || ''
       affCode.value = registerData.aff_code || loadAffiliateReferralCode()
+      deviceFingerprint.value = registerData.device_fingerprint || null
       pendingAuthToken.value = registerData.pending_auth_token || activePendingSession?.token || ''
       pendingAuthTokenField.value = registerData.pending_auth_token_field || activePendingSession?.token_field || 'pending_auth_token'
       pendingProvider.value = registerData.pending_provider || activePendingSession?.provider || ''
@@ -507,6 +511,8 @@ async function handleVerify(): Promise<void> {
       return
     }
 
+    const fingerprint = deviceFingerprint.value || await collectDeviceFingerprint()
+
     if (isPendingOAuthFlow()) {
       const { data } = await apiClient.post<PendingOAuthCreateAccountResponse>(
         '/auth/oauth/pending/create-account',
@@ -515,6 +521,7 @@ async function handleVerify(): Promise<void> {
           password: password.value,
           verify_code: verifyCode.value.trim(),
           invitation_code: invitationCode.value || undefined,
+          ...deviceFingerprintPayload(fingerprint),
           ...oauthAffiliatePayload(affCode.value || loadAffiliateReferralCode()),
           adopt_display_name: pendingAdoptionDecision.value?.adoptDisplayName,
           adopt_avatar: pendingAdoptionDecision.value?.adoptAvatar
@@ -550,6 +557,7 @@ async function handleVerify(): Promise<void> {
         turnstile_token: initialTurnstileToken.value || undefined,
         promo_code: promoCode.value || undefined,
         invitation_code: invitationCode.value || undefined,
+        ...deviceFingerprintPayload(fingerprint),
         ...(affCode.value ? { aff_code: affCode.value } : {})
       })
     }

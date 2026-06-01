@@ -157,6 +157,15 @@
                     <span v-if="selectedPlanDailySaleCountdownText" class="font-semibold tabular-nums text-amber-900 dark:text-amber-100">{{ selectedPlanDailySaleCountdownText }}</span>
                   </div>
                 </div>
+                <div v-if="selectedPlanWeeklySaleVisible" class="mt-4 rounded-lg border border-sky-100 bg-sky-50 p-3 text-sm dark:border-sky-900/40 dark:bg-sky-950/20">
+                  <div class="flex items-center justify-between gap-3">
+                    <span class="text-sky-700 dark:text-sky-300">{{ t('payment.planCard.weeklySaleDays') }}</span>
+                    <span class="font-medium text-sky-900 dark:text-sky-100">{{ selectedPlanWeeklySaleDaysText }}</span>
+                  </div>
+                  <div v-if="selectedPlanWeeklySaleBlocked" class="mt-1 font-medium text-sky-800 dark:text-sky-200">
+                    {{ t('payment.planCard.weeklySaleOffDay') }}
+                  </div>
+                </div>
               </div>
               <div v-if="enabledMethods.length >= 1" class="card p-6">
                 <PaymentMethodSelector
@@ -770,6 +779,8 @@ function planCanBePurchased(plan: SubscriptionPlan | null): boolean {
   if (!plan) return false
   if (plan.daily_sale_available_for_payment === false) return false
   if (plan.daily_sale_status === 'sold_out') return false
+  if (plan.weekly_sale_available_for_payment === false || plan.weekly_sale_status === 'off_day') return false
+  if (plan.purchase_once_available_for_payment === false) return false
   if (plan.daily_purchase_limit > 0 && (plan.daily_purchase_remaining ?? 0) <= 0) return false
   return true
 }
@@ -849,6 +860,24 @@ const selectedPlanDailySaleCountdownText = computed(() => {
     ? 'payment.planCard.dailySaleCountdownToEnd'
     : 'payment.planCard.dailySaleCountdownToStart'
   return t(key, { time: formatSaleCountdown(seconds) })
+})
+const weekdayLabels = computed<Record<number, string>>(() => ({
+  1: t('payment.weekdays.mon'),
+  2: t('payment.weekdays.tue'),
+  3: t('payment.weekdays.wed'),
+  4: t('payment.weekdays.thu'),
+  5: t('payment.weekdays.fri'),
+  6: t('payment.weekdays.sat'),
+  7: t('payment.weekdays.sun'),
+}))
+const selectedPlanWeeklySaleVisible = computed(() => (selectedPlan.value?.weekly_sale_days?.length ?? 0) > 0)
+const selectedPlanWeeklySaleBlocked = computed(() =>
+  selectedPlan.value?.weekly_sale_available_for_payment === false || selectedPlan.value?.weekly_sale_status === 'off_day'
+)
+const selectedPlanWeeklySaleDaysText = computed(() => {
+  const days = selectedPlan.value?.weekly_sale_days ?? []
+  if (days.length === 0) return t('payment.planCard.weeklySaleUnrestricted')
+  return days.map(day => weekdayLabels.value[day]).filter(Boolean).join('/')
 })
 function selectPlan(plan: SubscriptionPlan) {
   selectedPlan.value = plan

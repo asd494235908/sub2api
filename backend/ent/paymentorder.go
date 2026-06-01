@@ -57,6 +57,8 @@ type PaymentOrder struct {
 	SubscriptionDays *int `json:"subscription_days,omitempty"`
 	// SubscriptionTotalLimitUsd holds the value of the "subscription_total_limit_usd" field.
 	SubscriptionTotalLimitUsd *float64 `json:"subscription_total_limit_usd,omitempty"`
+	// SubscriptionRebateBaseAmount holds the value of the "subscription_rebate_base_amount" field.
+	SubscriptionRebateBaseAmount *float64 `json:"subscription_rebate_base_amount,omitempty"`
 	// ProviderInstanceID holds the value of the "provider_instance_id" field.
 	ProviderInstanceID *string `json:"provider_instance_id,omitempty"`
 	// ProviderKey holds the value of the "provider_key" field.
@@ -134,7 +136,7 @@ func (*PaymentOrder) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case paymentorder.FieldForceRefund:
 			values[i] = new(sql.NullBool)
-		case paymentorder.FieldAmount, paymentorder.FieldPayAmount, paymentorder.FieldFeeRate, paymentorder.FieldSubscriptionTotalLimitUsd, paymentorder.FieldRefundAmount:
+		case paymentorder.FieldAmount, paymentorder.FieldPayAmount, paymentorder.FieldFeeRate, paymentorder.FieldSubscriptionTotalLimitUsd, paymentorder.FieldSubscriptionRebateBaseAmount, paymentorder.FieldRefundAmount:
 			values[i] = new(sql.NullFloat64)
 		case paymentorder.FieldID, paymentorder.FieldUserID, paymentorder.FieldPlanID, paymentorder.FieldSubscriptionGroupID, paymentorder.FieldSubscriptionDays:
 			values[i] = new(sql.NullInt64)
@@ -284,6 +286,13 @@ func (_m *PaymentOrder) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.SubscriptionTotalLimitUsd = new(float64)
 				*_m.SubscriptionTotalLimitUsd = value.Float64
+			}
+		case paymentorder.FieldSubscriptionRebateBaseAmount:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field subscription_rebate_base_amount", values[i])
+			} else if value.Valid {
+				_m.SubscriptionRebateBaseAmount = new(float64)
+				*_m.SubscriptionRebateBaseAmount = value.Float64
 			}
 		case paymentorder.FieldProviderInstanceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -536,6 +545,11 @@ func (_m *PaymentOrder) String() string {
 	builder.WriteString(", ")
 	if v := _m.SubscriptionTotalLimitUsd; v != nil {
 		builder.WriteString("subscription_total_limit_usd=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.SubscriptionRebateBaseAmount; v != nil {
+		builder.WriteString("subscription_rebate_base_amount=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

@@ -56,6 +56,11 @@ func (SubscriptionPlan) Fields() []ent.Field {
 			Default(""),
 		field.Bool("for_sale").
 			Default(true),
+		field.Bool("purchase_once_per_active_subscription").
+			Default(false),
+		field.JSON("weekly_sale_days", []int{}).
+			Default([]int{}).
+			SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
 		field.Time("sale_starts_at").
 			Optional().
 			Nillable().

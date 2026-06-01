@@ -69,6 +69,10 @@ type stubAdminService struct {
 		sortOrder string
 		calls     int
 	}
+	lastUpdateGroup struct {
+		id    int64
+		input *service.UpdateGroupInput
+	}
 	mu sync.Mutex
 }
 
@@ -271,6 +275,8 @@ func (s *stubAdminService) CreateGroup(ctx context.Context, input *service.Creat
 }
 
 func (s *stubAdminService) UpdateGroup(ctx context.Context, id int64, input *service.UpdateGroupInput) (*service.Group, error) {
+	s.lastUpdateGroup.id = id
+	s.lastUpdateGroup.input = input
 	group := service.Group{ID: id, Name: input.Name, Status: service.StatusActive}
 	return &group, nil
 }

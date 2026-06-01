@@ -5,11 +5,14 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/ent/enttest"
+	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/internal/payment"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
 	"github.com/stretchr/testify/require"
@@ -49,6 +52,98 @@ func (r *paymentOrderLifecycleGroupRepo) GetByID(_ context.Context, id int64) (*
 	}
 	group := *r.group
 	return &group, nil
+}
+
+type paymentOrderLifecycleAffiliateRepo struct {
+	summaries map[int64]*AffiliateSummary
+	accrued   []struct {
+		inviterID     int64
+		inviteeUserID int64
+		amount        float64
+		sourceOrderID *int64
+	}
+}
+
+func (r *paymentOrderLifecycleAffiliateRepo) EnsureUserAffiliate(_ context.Context, userID int64) (*AffiliateSummary, error) {
+	if summary, ok := r.summaries[userID]; ok {
+		copy := *summary
+		return &copy, nil
+	}
+	return &AffiliateSummary{UserID: userID}, nil
+}
+
+func (r *paymentOrderLifecycleAffiliateRepo) AccrueQuota(_ context.Context, inviterID, inviteeUserID int64, amount float64, _ int, sourceOrderID *int64) (bool, error) {
+	var sourceCopy *int64
+	if sourceOrderID != nil {
+		value := *sourceOrderID
+		sourceCopy = &value
+	}
+	r.accrued = append(r.accrued, struct {
+		inviterID     int64
+		inviteeUserID int64
+		amount        float64
+		sourceOrderID *int64
+	}{inviterID: inviterID, inviteeUserID: inviteeUserID, amount: amount, sourceOrderID: sourceCopy})
+	return true, nil
+}
+
+func (r *paymentOrderLifecycleAffiliateRepo) GetAccruedRebateFromInvitee(context.Context, int64, int64) (float64, error) {
+	return 0, nil
+}
+
+func (r *paymentOrderLifecycleAffiliateRepo) GetAffiliateByCode(context.Context, string) (*AffiliateSummary, error) {
+	panic("unexpected GetAffiliateByCode call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) BindInviter(context.Context, int64, int64) (bool, error) {
+	panic("unexpected BindInviter call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) AdminSetInviteRelation(context.Context, int64, int64, bool) (*AffiliateInviteRelationChange, error) {
+	panic("unexpected AdminSetInviteRelation call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) AwardSignupBonus(context.Context, int64, int64, float64) (bool, float64, error) {
+	panic("unexpected AwardSignupBonus call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) ThawFrozenQuota(context.Context, int64) (float64, error) {
+	panic("unexpected ThawFrozenQuota call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) TransferQuotaToBalance(context.Context, int64) (float64, float64, error) {
+	panic("unexpected TransferQuotaToBalance call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) ListInvitees(context.Context, int64, int) ([]AffiliateInvitee, error) {
+	panic("unexpected ListInvitees call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) UpdateUserAffCode(context.Context, int64, string) error {
+	panic("unexpected UpdateUserAffCode call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) ResetUserAffCode(context.Context, int64) (string, error) {
+	panic("unexpected ResetUserAffCode call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) SetUserRebateRate(context.Context, int64, *float64) error {
+	panic("unexpected SetUserRebateRate call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) BatchSetUserRebateRate(context.Context, []int64, *float64) error {
+	panic("unexpected BatchSetUserRebateRate call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) ListUsersWithCustomSettings(context.Context, AffiliateAdminFilter) ([]AffiliateAdminEntry, int64, error) {
+	panic("unexpected ListUsersWithCustomSettings call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) ListInvitersWithInvitees(context.Context, AffiliateAdminFilter) ([]AffiliateInviterEntry, int64, error) {
+	panic("unexpected ListInvitersWithInvitees call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) ListInviteesByInviter(context.Context, int64, int) ([]AffiliateInvitee, error) {
+	panic("unexpected ListInviteesByInviter call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) ListAffiliateInviteRecords(context.Context, AffiliateRecordFilter) ([]AffiliateInviteRecord, int64, error) {
+	panic("unexpected ListAffiliateInviteRecords call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) ListAffiliateRebateRecords(context.Context, AffiliateRecordFilter) ([]AffiliateRebateRecord, int64, error) {
+	panic("unexpected ListAffiliateRebateRecords call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) ListAffiliateTransferRecords(context.Context, AffiliateRecordFilter) ([]AffiliateTransferRecord, int64, error) {
+	panic("unexpected ListAffiliateTransferRecords call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) GetAffiliateUserOverview(context.Context, int64) (*AffiliateUserOverview, error) {
+	panic("unexpected GetAffiliateUserOverview call")
 }
 
 type paymentOrderLifecycleUserSubRepo struct {
@@ -855,6 +950,248 @@ func TestExecuteSubscriptionFulfillmentAddsPayAmountToTotalRechargedAndUpdatesMe
 	reloadedUser, err = client.User.Get(ctx, user.ID)
 	require.NoError(t, err)
 	require.InDelta(t, 579.0, reloadedUser.TotalRecharged, 1e-9)
+}
+
+func TestExecuteSubscriptionFulfillmentAccruesAffiliateRebateFromSnapshotBase(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentOrderLifecycleTestClient(t)
+
+	inviter, err := client.User.Create().
+		SetEmail("subscription-rebate-inviter@example.com").
+		SetPasswordHash("hash").
+		SetUsername("subscription-rebate-inviter").
+		Save(ctx)
+	require.NoError(t, err)
+	invitee, err := client.User.Create().
+		SetEmail("subscription-rebate-invitee@example.com").
+		SetPasswordHash("hash").
+		SetUsername("subscription-rebate-invitee").
+		Save(ctx)
+	require.NoError(t, err)
+
+	rebateBase := 3000.0
+	order, err := client.PaymentOrder.Create().
+		SetUserID(invitee.ID).
+		SetUserEmail(invitee.Email).
+		SetUserName(invitee.Username).
+		SetAmount(1560).
+		SetPayAmount(1560).
+		SetFeeRate(0).
+		SetRechargeCode("SUBSCRIPTION-AFFILIATE-REBATE").
+		SetOutTradeNo("sub2_subscription_affiliate_rebate").
+		SetPaymentType(payment.TypeAlipay).
+		SetPaymentTradeNo("alipay-trade-subscription-affiliate").
+		SetOrderType(payment.OrderTypeSubscription).
+		SetSubscriptionGroupID(10).
+		SetSubscriptionDays(30).
+		SetSubscriptionRebateBaseAmount(rebateBase).
+		SetStatus(OrderStatusPaid).
+		SetExpiresAt(time.Now().Add(time.Hour)).
+		SetPaidAt(time.Now()).
+		SetClientIP("127.0.0.1").
+		SetSrcHost("api.example.com").
+		Save(ctx)
+	require.NoError(t, err)
+
+	groupRepo := &paymentOrderLifecycleGroupRepo{
+		group: &Group{ID: 10, Status: payment.EntityStatusActive, SubscriptionType: SubscriptionTypeSubscription},
+	}
+	affiliateRepo := &paymentOrderLifecycleAffiliateRepo{summaries: map[int64]*AffiliateSummary{
+		invitee.ID: {UserID: invitee.ID, InviterID: &inviter.ID},
+		inviter.ID: {UserID: inviter.ID},
+	}}
+	settings := NewSettingService(&settingRepoStub{values: map[string]string{
+		SettingKeyAffiliateEnabled:    "true",
+		SettingKeyAffiliateRebateRate: "10",
+	}}, nil)
+	svc := &PaymentService{
+		entClient:        client,
+		groupRepo:        groupRepo,
+		subscriptionSvc:  NewSubscriptionService(groupRepo, newPaymentOrderLifecycleUserSubRepo(), nil, nil, nil),
+		affiliateService: &AffiliateService{repo: affiliateRepo, settingService: settings},
+	}
+
+	require.NoError(t, svc.ExecuteSubscriptionFulfillment(ctx, order.ID))
+	require.Len(t, affiliateRepo.accrued, 1)
+	require.Equal(t, inviter.ID, affiliateRepo.accrued[0].inviterID)
+	require.Equal(t, invitee.ID, affiliateRepo.accrued[0].inviteeUserID)
+	require.InDelta(t, 300.0, affiliateRepo.accrued[0].amount, 1e-9)
+	require.NotNil(t, affiliateRepo.accrued[0].sourceOrderID)
+	require.Equal(t, order.ID, *affiliateRepo.accrued[0].sourceOrderID)
+
+	require.NoError(t, svc.ExecuteSubscriptionFulfillment(ctx, order.ID))
+	require.Len(t, affiliateRepo.accrued, 1)
+}
+
+func TestSubscriptionAffiliateRebateFullScenario(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentOrderLifecycleTestClient(t)
+	suffix := time.Now().UnixNano()
+
+	inviter, err := client.User.Create().
+		SetEmail(fmt.Sprintf("full-scenario-inviter-%d@example.com", suffix)).
+		SetPasswordHash("hash").
+		SetUsername("full-scenario-inviter").
+		Save(ctx)
+	require.NoError(t, err)
+	invitee, err := client.User.Create().
+		SetEmail(fmt.Sprintf("full-scenario-invitee-%d@example.com", suffix)).
+		SetPasswordHash("hash").
+		SetUsername("full-scenario-invitee").
+		Save(ctx)
+	require.NoError(t, err)
+
+	dailyLimit := 100.0
+	weeklyLimit := 700.0
+	monthlyLimit := 3000.0
+	totalLimit := 1560.0
+	groupID := int64(31001)
+	groupRepo := &paymentOrderLifecycleGroupRepo{group: &Group{
+		ID:                        groupID,
+		Status:                    payment.EntityStatusActive,
+		SubscriptionType:          SubscriptionTypeSubscription,
+		DailyLimitUSD:             &dailyLimit,
+		WeeklyLimitUSD:            &weeklyLimit,
+		MonthlyLimitUSD:           &monthlyLimit,
+		SubscriptionTotalLimitUSD: &totalLimit,
+	}}
+	subRepo := newPaymentOrderLifecycleUserSubRepo()
+	affiliateRepo := &paymentOrderLifecycleAffiliateRepo{summaries: map[int64]*AffiliateSummary{
+		invitee.ID: {UserID: invitee.ID, InviterID: &inviter.ID},
+		inviter.ID: {UserID: inviter.ID},
+	}}
+	settings := NewSettingService(&settingRepoStub{values: map[string]string{
+		SettingKeyAffiliateEnabled:    "true",
+		SettingKeyAffiliateRebateRate: "10",
+	}}, nil)
+	svc := &PaymentService{
+		entClient:        client,
+		groupRepo:        groupRepo,
+		subscriptionSvc:  NewSubscriptionService(groupRepo, subRepo, nil, nil, nil),
+		affiliateService: &AffiliateService{repo: affiliateRepo, settingService: settings},
+	}
+
+	plan, err := client.SubscriptionPlan.Create().
+		SetGroupID(groupID).
+		SetName("小鸟套餐").
+		SetDescription("full scenario subscription rebate plan").
+		SetPrice(1560).
+		SetValidityDays(30).
+		SetValidityUnit("days").
+		SetFeatures("").
+		SetProductName("").
+		SetForSale(true).
+		Save(ctx)
+	require.NoError(t, err)
+
+	order, err := svc.createOrderInTx(
+		ctx,
+		CreateOrderRequest{
+			UserID:      invitee.ID,
+			PaymentType: payment.TypeAlipay,
+			OrderType:   payment.OrderTypeSubscription,
+			ClientIP:    "127.0.0.1",
+			SrcHost:     "app.example.com",
+		},
+		&User{ID: invitee.ID, Email: invitee.Email, Username: invitee.Username},
+		plan,
+		&PaymentConfig{MaxPendingOrders: 3, OrderTimeoutMin: 30},
+		1560,
+		1560,
+		0,
+		1560,
+		&payment.InstanceSelection{ProviderKey: payment.TypeAlipay},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, order.SubscriptionRebateBaseAmount)
+	require.InDelta(t, 3000.0, *order.SubscriptionRebateBaseAmount, 1e-9)
+
+	paidAt := time.Now()
+	order, err = client.PaymentOrder.UpdateOneID(order.ID).
+		SetStatus(OrderStatusPaid).
+		SetPaymentTradeNo("alipay-full-scenario").
+		SetPaidAt(paidAt).
+		Save(ctx)
+	require.NoError(t, err)
+
+	require.NoError(t, svc.ExecuteSubscriptionFulfillment(ctx, order.ID))
+	sub, err := subRepo.GetByUserIDAndGroupID(ctx, invitee.ID, groupID)
+	require.NoError(t, err)
+	require.NotNil(t, sub.TotalLimitUSD)
+	require.InDelta(t, 1560.0, *sub.TotalLimitUSD, 1e-9)
+
+	require.Len(t, affiliateRepo.accrued, 1)
+	require.Equal(t, inviter.ID, affiliateRepo.accrued[0].inviterID)
+	require.Equal(t, invitee.ID, affiliateRepo.accrued[0].inviteeUserID)
+	require.InDelta(t, 300.0, affiliateRepo.accrued[0].amount, 1e-9)
+	require.NotNil(t, affiliateRepo.accrued[0].sourceOrderID)
+	require.Equal(t, order.ID, *affiliateRepo.accrued[0].sourceOrderID)
+
+	audit, err := client.PaymentAuditLog.Query().
+		Where(
+			paymentauditlog.OrderIDEQ(strconvFormatInt(order.ID)),
+			paymentauditlog.ActionEQ("AFFILIATE_REBATE_APPLIED"),
+		).
+		Only(ctx)
+	require.NoError(t, err)
+	var detail map[string]any
+	require.NoError(t, json.Unmarshal([]byte(audit.Detail), &detail))
+	require.Equal(t, payment.OrderTypeSubscription, detail["orderType"])
+	require.InDelta(t, 3000.0, detail["rebateBaseAmount"].(float64), 1e-9)
+	require.InDelta(t, 300.0, detail["rebateAmount"].(float64), 1e-9)
+
+	require.NoError(t, svc.ExecuteSubscriptionFulfillment(ctx, order.ID))
+	require.Len(t, affiliateRepo.accrued, 1)
+
+	unlimitedGroupID := int64(31002)
+	groupRepo.group = &Group{
+		ID:               unlimitedGroupID,
+		Status:           payment.EntityStatusActive,
+		SubscriptionType: SubscriptionTypeSubscription,
+	}
+	unlimitedPlan, err := client.SubscriptionPlan.Create().
+		SetGroupID(unlimitedGroupID).
+		SetName("无限额套餐").
+		SetDescription("unlimited subscription should not rebate").
+		SetPrice(1560).
+		SetValidityDays(30).
+		SetValidityUnit("days").
+		SetFeatures("").
+		SetProductName("").
+		SetForSale(true).
+		Save(ctx)
+	require.NoError(t, err)
+	unlimitedOrder, err := svc.createOrderInTx(
+		ctx,
+		CreateOrderRequest{
+			UserID:      invitee.ID,
+			PaymentType: payment.TypeAlipay,
+			OrderType:   payment.OrderTypeSubscription,
+			ClientIP:    "127.0.0.1",
+			SrcHost:     "app.example.com",
+		},
+		&User{ID: invitee.ID, Email: invitee.Email, Username: invitee.Username},
+		unlimitedPlan,
+		&PaymentConfig{MaxPendingOrders: 3, OrderTimeoutMin: 30},
+		1560,
+		1560,
+		0,
+		1560,
+		&payment.InstanceSelection{ProviderKey: payment.TypeAlipay},
+	)
+	require.NoError(t, err)
+	require.Nil(t, unlimitedOrder.SubscriptionRebateBaseAmount)
+
+	unlimitedOrder, err = client.PaymentOrder.UpdateOneID(unlimitedOrder.ID).
+		SetStatus(OrderStatusPaid).
+		SetPaymentTradeNo("alipay-full-scenario-unlimited").
+		SetPaidAt(time.Now()).
+		Save(ctx)
+	require.NoError(t, err)
+	require.NoError(t, svc.ExecuteSubscriptionFulfillment(ctx, unlimitedOrder.ID))
+	require.Len(t, affiliateRepo.accrued, 1)
+	require.False(t, svc.hasAuditLog(ctx, unlimitedOrder.ID, "AFFILIATE_REBATE_APPLIED"))
+	require.False(t, svc.hasAuditLog(ctx, unlimitedOrder.ID, "AFFILIATE_REBATE_SKIPPED"))
 }
 
 func TestVerifyOrderByOutTradeNoRetriesZeroAmountPaidQueryOnce(t *testing.T) {

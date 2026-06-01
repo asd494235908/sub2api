@@ -314,6 +314,7 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 		}
 		inboundEndpoint := GetInboundEndpoint(c)
 		upstreamEndpoint := GetUpstreamEndpoint(c, account.Platform)
+		billingRequestID := usageBillingRequestID(c)
 
 		upstreamModel := ""
 		if result != nil {
@@ -331,6 +332,7 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 				UserAgent:          userAgent,
 				IPAddress:          clientIP,
 				RequestPayloadHash: requestPayloadHash,
+				BillingRequestID:   billingRequestID,
 				APIKeyService:      h.apiKeyService,
 				ChannelUsageFields: channelMapping.ToUsageFields(parsed.Model, upstreamModel),
 			}); err != nil {

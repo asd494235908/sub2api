@@ -25,6 +25,8 @@ vi.mock('@/api/user', () => ({
   default: {
     getAffiliateDetail: getAffiliateDetailMock,
     transferAffiliateQuota: transferAffiliateQuotaMock,
+    listAffiliateWithdrawals: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+    createAffiliateWithdrawal: vi.fn(),
   },
 }))
 
@@ -88,6 +90,19 @@ vi.mock('vue-i18n', async () => {
     'affiliate.transfer.transferring': '转入中',
     'affiliate.transfer.success': '已转入 {amount}',
     'affiliate.transfer.empty': '暂无可转返利',
+    'affiliate.withdraw.title': '提现到微信',
+    'affiliate.withdraw.description': '人工审核发放',
+    'affiliate.withdraw.amount': '金额',
+    'affiliate.withdraw.accountNote': '收款说明',
+    'affiliate.withdraw.submit': '申请提现',
+    'affiliate.withdraw.submitting': '提交中',
+    'affiliate.withdraw.empty': '暂无可提现',
+    'affiliate.withdraw.noRecords': '暂无提现记录',
+    'affiliate.withdraw.columns.amount': '金额',
+    'affiliate.withdraw.columns.status': '状态',
+    'affiliate.withdraw.columns.account': '收款说明',
+    'affiliate.withdraw.columns.tradeNo': '流水',
+    'affiliate.withdraw.columns.createdAt': '申请时间',
   }
 
   return {
@@ -145,7 +160,7 @@ describe('AffiliateView', () => {
 
     await flushPromises()
 
-    expect(wrapper.findAll('.card')).toHaveLength(7)
+    expect(wrapper.findAll('.card')).toHaveLength(8)
     expect(wrapper.text()).toContain('邀请返利')
     expect(wrapper.text()).toContain('已邀请用户')
     expect(wrapper.text()).toContain('返利比例')
@@ -158,6 +173,8 @@ describe('AffiliateView', () => {
     expect(wrapper.text()).toContain('line3')
     expect(wrapper.text()).toContain('返利转余额')
     expect(wrapper.text()).toContain('转入余额')
+    expect(wrapper.text()).toContain('提现到微信')
+    expect(wrapper.text()).toContain('申请提现')
   })
 
   it('builds invite links with the configured router base path and aff parameter', async () => {

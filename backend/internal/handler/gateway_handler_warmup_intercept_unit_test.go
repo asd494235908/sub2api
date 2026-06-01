@@ -158,6 +158,7 @@ func newTestGatewayHandler(t *testing.T, group *service.Group, accounts []*servi
 		schedulerSnapshot,
 		nil, // concurrencyService (disable load-aware; tryAcquire always acquired)
 		nil, // billingService
+		nil, // paymentService
 		nil, // rateLimitService
 		nil, // billingCacheService
 		nil, // identityService

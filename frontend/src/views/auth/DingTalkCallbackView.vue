@@ -259,6 +259,7 @@ import {
   loadOAuthAffiliateCode,
   oauthAffiliatePayload
 } from '@/utils/oauthAffiliate'
+import { collectDeviceFingerprint, deviceFingerprintPayload } from '@/utils/deviceFingerprint'
 
 const route = useRoute()
 const router = useRouter()
@@ -684,6 +685,7 @@ async function handleCreateAccount(payload: PendingOAuthCreateAccountPayload) {
       password: payload.password,
       verify_code: payload.verifyCode || undefined,
       invitation_code: payload.invitationCode || undefined,
+      ...deviceFingerprintPayload(await collectDeviceFingerprint()),
       ...oauthAffiliatePayload(loadOAuthAffiliateCode()),
       ...serializeAdoptionDecision(currentAdoptionDecision())
     })

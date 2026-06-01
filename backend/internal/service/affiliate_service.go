@@ -72,11 +72,16 @@ type AffiliateSummary struct {
 }
 
 type AffiliateInvitee struct {
-	UserID      int64      `json:"user_id"`
-	Email       string     `json:"email"`
-	Username    string     `json:"username"`
-	CreatedAt   *time.Time `json:"created_at,omitempty"`
-	TotalRebate float64    `json:"total_rebate"`
+	UserID            int64      `json:"user_id"`
+	Email             string     `json:"email"`
+	Username          string     `json:"username"`
+	CreatedAt         *time.Time `json:"created_at,omitempty"`
+	TotalRebate       float64    `json:"total_rebate"`
+	PaidAmount        float64    `json:"paid_amount"`
+	RiskFlagged       bool       `json:"risk_flagged"`
+	RiskReason        string     `json:"risk_reason,omitempty"`
+	IdentityStatus    *string    `json:"identity_status,omitempty"`
+	IdentityExpiresAt *time.Time `json:"identity_expires_at,omitempty"`
 }
 
 type AffiliateDetail struct {
@@ -141,12 +146,14 @@ type AffiliateAdminEntry struct {
 }
 
 type AffiliateInviterEntry struct {
-	UserID      int64   `json:"user_id"`
-	Email       string  `json:"email"`
-	Username    string  `json:"username"`
-	AffCode     string  `json:"aff_code"`
-	AffCount    int     `json:"aff_count"`
-	TotalRebate float64 `json:"total_rebate"`
+	UserID            int64      `json:"user_id"`
+	Email             string     `json:"email"`
+	Username          string     `json:"username"`
+	AffCode           string     `json:"aff_code"`
+	AffCount          int        `json:"aff_count"`
+	TotalRebate       float64    `json:"total_rebate"`
+	IdentityStatus    *string    `json:"identity_status,omitempty"`
+	IdentityExpiresAt *time.Time `json:"identity_expires_at,omitempty"`
 }
 
 type AffiliateInviteRelationChange struct {
@@ -179,20 +186,21 @@ type AffiliateInviteRecord struct {
 }
 
 type AffiliateRebateRecord struct {
-	OrderID         int64     `json:"order_id"`
-	OutTradeNo      string    `json:"out_trade_no"`
-	InviterID       int64     `json:"inviter_id"`
-	InviterEmail    string    `json:"inviter_email"`
-	InviterUsername string    `json:"inviter_username"`
-	InviteeID       int64     `json:"invitee_id"`
-	InviteeEmail    string    `json:"invitee_email"`
-	InviteeUsername string    `json:"invitee_username"`
-	OrderAmount     float64   `json:"order_amount"`
-	PayAmount       float64   `json:"pay_amount"`
-	RebateAmount    float64   `json:"rebate_amount"`
-	PaymentType     string    `json:"payment_type"`
-	OrderStatus     string    `json:"order_status"`
-	CreatedAt       time.Time `json:"created_at"`
+	OrderID          int64     `json:"order_id"`
+	OutTradeNo       string    `json:"out_trade_no"`
+	InviterID        int64     `json:"inviter_id"`
+	InviterEmail     string    `json:"inviter_email"`
+	InviterUsername  string    `json:"inviter_username"`
+	InviteeID        int64     `json:"invitee_id"`
+	InviteeEmail     string    `json:"invitee_email"`
+	InviteeUsername  string    `json:"invitee_username"`
+	OrderAmount      float64   `json:"order_amount"`
+	PayAmount        float64   `json:"pay_amount"`
+	RebateBaseAmount *float64  `json:"rebate_base_amount,omitempty"`
+	RebateAmount     float64   `json:"rebate_amount"`
+	PaymentType      string    `json:"payment_type"`
+	OrderStatus      string    `json:"order_status"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 type AffiliateTransferRecord struct {
@@ -228,6 +236,7 @@ type AffiliateUserOverview struct {
 
 type AffiliateService struct {
 	repo                 AffiliateRepository
+	identityRepo         AffiliateIdentityRepository
 	settingService       *SettingService
 	authCacheInvalidator APIKeyAuthCacheInvalidator
 	billingCacheService  *BillingCacheService
@@ -239,6 +248,12 @@ func NewAffiliateService(repo AffiliateRepository, settingService *SettingServic
 		settingService:       settingService,
 		authCacheInvalidator: authCacheInvalidator,
 		billingCacheService:  billingCacheService,
+	}
+}
+
+func (s *AffiliateService) SetIdentityRepository(repo AffiliateIdentityRepository) {
+	if s != nil {
+		s.identityRepo = repo
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
+	middleware2 "github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -16,16 +17,204 @@ import (
 // listing users with custom settings, updating per-user invite codes
 // and exclusive rebate rates, and batch operations.
 type AffiliateHandler struct {
-	affiliateService *service.AffiliateService
-	adminService     service.AdminService
+	affiliateService     *service.AffiliateService
+	affiliateWithdrawSvc *service.AffiliateWithdrawalService
+	adminService         service.AdminService
 }
 
 // NewAffiliateHandler creates a new admin affiliate handler.
-func NewAffiliateHandler(affiliateService *service.AffiliateService, adminService service.AdminService) *AffiliateHandler {
+func NewAffiliateHandler(affiliateService *service.AffiliateService, affiliateWithdrawSvc *service.AffiliateWithdrawalService, adminService service.AdminService) *AffiliateHandler {
 	return &AffiliateHandler{
-		affiliateService: affiliateService,
-		adminService:     adminService,
+		affiliateService:     affiliateService,
+		affiliateWithdrawSvc: affiliateWithdrawSvc,
+		adminService:         adminService,
 	}
+}
+
+type updateAffiliateIdentityConfigRequest struct {
+	Enabled bool                            `json:"enabled"`
+	Config  service.AffiliateIdentityConfig `json:"config"`
+}
+
+func (h *AffiliateHandler) GetIdentityConfig(c *gin.Context) {
+	if h.affiliateService == nil {
+		response.InternalError(c, "Affiliate service not configured")
+		return
+	}
+	cfg, enabled, err := h.affiliateService.GetAffiliateIdentityConfig(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"enabled": enabled, "config": cfg})
+}
+
+func (h *AffiliateHandler) UpdateIdentityConfig(c *gin.Context) {
+	var req updateAffiliateIdentityConfigRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	if h.affiliateService == nil {
+		response.InternalError(c, "Affiliate service not configured")
+		return
+	}
+	cfg, err := h.affiliateService.UpdateAffiliateIdentityConfig(c.Request.Context(), req.Enabled, &req.Config)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"enabled": req.Enabled, "config": cfg})
+}
+
+func (h *AffiliateHandler) GetWithdrawSettings(c *gin.Context) {
+	if h.affiliateWithdrawSvc == nil {
+		response.ErrorFrom(c, service.ErrAffiliateWithdrawalUnavailable)
+		return
+	}
+	response.Success(c, h.affiliateWithdrawSvc.GetSettings(c.Request.Context()))
+}
+
+func (h *AffiliateHandler) UpdateWithdrawSettings(c *gin.Context) {
+	if h.affiliateWithdrawSvc == nil {
+		response.ErrorFrom(c, service.ErrAffiliateWithdrawalUnavailable)
+		return
+	}
+	var req service.AffiliateWithdrawSettings
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	settings, err := h.affiliateWithdrawSvc.UpdateSettings(c.Request.Context(), req)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, settings)
+}
+
+func (h *AffiliateHandler) ListWithdrawals(c *gin.Context) {
+	if h.affiliateWithdrawSvc == nil {
+		response.ErrorFrom(c, service.ErrAffiliateWithdrawalUnavailable)
+		return
+	}
+	page, pageSize := response.ParsePagination(c)
+	items, total, err := h.affiliateWithdrawSvc.ListAdminWithdrawals(c.Request.Context(), service.AffiliateWithdrawalListFilter{
+		Search:   c.Query("search"),
+		Status:   c.Query("status"),
+		Page:     page,
+		PageSize: pageSize,
+	})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Paginated(c, items, total, page, pageSize)
+}
+
+type affiliateWithdrawalReviewRequest struct {
+	Reason string `json:"reason"`
+	Note   string `json:"note"`
+}
+
+type affiliateWithdrawalPaidRequest struct {
+	PayoutChannel string `json:"payout_channel" binding:"required"`
+	PayoutTradeNo string `json:"payout_trade_no"`
+	AdminNote     string `json:"admin_note"`
+}
+
+func (h *AffiliateHandler) ApproveWithdrawal(c *gin.Context) {
+	id, ok := parseAffiliateWithdrawalID(c)
+	if !ok {
+		return
+	}
+	var req affiliateWithdrawalReviewRequest
+	if c.Request.ContentLength != 0 {
+		if err := c.ShouldBindJSON(&req); err != nil {
+			response.BadRequest(c, "Invalid request: "+err.Error())
+			return
+		}
+	}
+	w, err := h.affiliateWithdrawSvc.ApproveWithdrawal(c.Request.Context(), id, currentAdminID(c), req.Note)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, w)
+}
+
+func (h *AffiliateHandler) RejectWithdrawal(c *gin.Context) {
+	id, ok := parseAffiliateWithdrawalID(c)
+	if !ok {
+		return
+	}
+	var req affiliateWithdrawalReviewRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	w, err := h.affiliateWithdrawSvc.RejectWithdrawal(c.Request.Context(), id, currentAdminID(c), req.Reason)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, w)
+}
+
+func (h *AffiliateHandler) MarkWithdrawalPaid(c *gin.Context) {
+	id, ok := parseAffiliateWithdrawalID(c)
+	if !ok {
+		return
+	}
+	var req affiliateWithdrawalPaidRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	w, err := h.affiliateWithdrawSvc.MarkWithdrawalPaid(c.Request.Context(), id, currentAdminID(c), service.AffiliateWithdrawalPaidInput{
+		PayoutChannel: req.PayoutChannel,
+		PayoutTradeNo: req.PayoutTradeNo,
+		AdminNote:     req.AdminNote,
+	})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, w)
+}
+
+func (h *AffiliateHandler) MarkWithdrawalFailed(c *gin.Context) {
+	id, ok := parseAffiliateWithdrawalID(c)
+	if !ok {
+		return
+	}
+	var req affiliateWithdrawalReviewRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	w, err := h.affiliateWithdrawSvc.MarkWithdrawalFailed(c.Request.Context(), id, currentAdminID(c), req.Reason)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, w)
+}
+
+func parseAffiliateWithdrawalID(c *gin.Context) (int64, bool) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id <= 0 {
+		response.BadRequest(c, "Invalid withdrawal id")
+		return 0, false
+	}
+	return id, true
+}
+
+func currentAdminID(c *gin.Context) int64 {
+	if subject, ok := middleware2.GetAuthSubjectFromContext(c); ok {
+		return subject.UserID
+	}
+	return 0
 }
 
 // ListUsers returns paginated users with custom affiliate settings.

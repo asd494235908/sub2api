@@ -138,6 +138,26 @@ func (_c *SubscriptionPlanCreate) SetNillableForSale(v *bool) *SubscriptionPlanC
 	return _c
 }
 
+// SetPurchaseOncePerActiveSubscription sets the "purchase_once_per_active_subscription" field.
+func (_c *SubscriptionPlanCreate) SetPurchaseOncePerActiveSubscription(v bool) *SubscriptionPlanCreate {
+	_c.mutation.SetPurchaseOncePerActiveSubscription(v)
+	return _c
+}
+
+// SetNillablePurchaseOncePerActiveSubscription sets the "purchase_once_per_active_subscription" field if the given value is not nil.
+func (_c *SubscriptionPlanCreate) SetNillablePurchaseOncePerActiveSubscription(v *bool) *SubscriptionPlanCreate {
+	if v != nil {
+		_c.SetPurchaseOncePerActiveSubscription(*v)
+	}
+	return _c
+}
+
+// SetWeeklySaleDays sets the "weekly_sale_days" field.
+func (_c *SubscriptionPlanCreate) SetWeeklySaleDays(v []int) *SubscriptionPlanCreate {
+	_c.mutation.SetWeeklySaleDays(v)
+	return _c
+}
+
 // SetSaleStartsAt sets the "sale_starts_at" field.
 func (_c *SubscriptionPlanCreate) SetSaleStartsAt(v time.Time) *SubscriptionPlanCreate {
 	_c.mutation.SetSaleStartsAt(v)
@@ -309,6 +329,14 @@ func (_c *SubscriptionPlanCreate) defaults() {
 		v := subscriptionplan.DefaultForSale
 		_c.mutation.SetForSale(v)
 	}
+	if _, ok := _c.mutation.PurchaseOncePerActiveSubscription(); !ok {
+		v := subscriptionplan.DefaultPurchaseOncePerActiveSubscription
+		_c.mutation.SetPurchaseOncePerActiveSubscription(v)
+	}
+	if _, ok := _c.mutation.WeeklySaleDays(); !ok {
+		v := subscriptionplan.DefaultWeeklySaleDays
+		_c.mutation.SetWeeklySaleDays(v)
+	}
 	if _, ok := _c.mutation.DailyPurchaseLimit(); !ok {
 		v := subscriptionplan.DefaultDailyPurchaseLimit
 		_c.mutation.SetDailyPurchaseLimit(v)
@@ -370,6 +398,12 @@ func (_c *SubscriptionPlanCreate) check() error {
 	}
 	if _, ok := _c.mutation.ForSale(); !ok {
 		return &ValidationError{Name: "for_sale", err: errors.New(`ent: missing required field "SubscriptionPlan.for_sale"`)}
+	}
+	if _, ok := _c.mutation.PurchaseOncePerActiveSubscription(); !ok {
+		return &ValidationError{Name: "purchase_once_per_active_subscription", err: errors.New(`ent: missing required field "SubscriptionPlan.purchase_once_per_active_subscription"`)}
+	}
+	if _, ok := _c.mutation.WeeklySaleDays(); !ok {
+		return &ValidationError{Name: "weekly_sale_days", err: errors.New(`ent: missing required field "SubscriptionPlan.weekly_sale_days"`)}
 	}
 	if _, ok := _c.mutation.DailyPurchaseLimit(); !ok {
 		return &ValidationError{Name: "daily_purchase_limit", err: errors.New(`ent: missing required field "SubscriptionPlan.daily_purchase_limit"`)}
@@ -464,6 +498,14 @@ func (_c *SubscriptionPlanCreate) createSpec() (*SubscriptionPlan, *sqlgraph.Cre
 	if value, ok := _c.mutation.ForSale(); ok {
 		_spec.SetField(subscriptionplan.FieldForSale, field.TypeBool, value)
 		_node.ForSale = value
+	}
+	if value, ok := _c.mutation.PurchaseOncePerActiveSubscription(); ok {
+		_spec.SetField(subscriptionplan.FieldPurchaseOncePerActiveSubscription, field.TypeBool, value)
+		_node.PurchaseOncePerActiveSubscription = value
+	}
+	if value, ok := _c.mutation.WeeklySaleDays(); ok {
+		_spec.SetField(subscriptionplan.FieldWeeklySaleDays, field.TypeJSON, value)
+		_node.WeeklySaleDays = value
 	}
 	if value, ok := _c.mutation.SaleStartsAt(); ok {
 		_spec.SetField(subscriptionplan.FieldSaleStartsAt, field.TypeTime, value)
@@ -696,6 +738,30 @@ func (u *SubscriptionPlanUpsert) SetForSale(v bool) *SubscriptionPlanUpsert {
 // UpdateForSale sets the "for_sale" field to the value that was provided on create.
 func (u *SubscriptionPlanUpsert) UpdateForSale() *SubscriptionPlanUpsert {
 	u.SetExcluded(subscriptionplan.FieldForSale)
+	return u
+}
+
+// SetPurchaseOncePerActiveSubscription sets the "purchase_once_per_active_subscription" field.
+func (u *SubscriptionPlanUpsert) SetPurchaseOncePerActiveSubscription(v bool) *SubscriptionPlanUpsert {
+	u.Set(subscriptionplan.FieldPurchaseOncePerActiveSubscription, v)
+	return u
+}
+
+// UpdatePurchaseOncePerActiveSubscription sets the "purchase_once_per_active_subscription" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsert) UpdatePurchaseOncePerActiveSubscription() *SubscriptionPlanUpsert {
+	u.SetExcluded(subscriptionplan.FieldPurchaseOncePerActiveSubscription)
+	return u
+}
+
+// SetWeeklySaleDays sets the "weekly_sale_days" field.
+func (u *SubscriptionPlanUpsert) SetWeeklySaleDays(v []int) *SubscriptionPlanUpsert {
+	u.Set(subscriptionplan.FieldWeeklySaleDays, v)
+	return u
+}
+
+// UpdateWeeklySaleDays sets the "weekly_sale_days" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsert) UpdateWeeklySaleDays() *SubscriptionPlanUpsert {
+	u.SetExcluded(subscriptionplan.FieldWeeklySaleDays)
 	return u
 }
 
@@ -1036,6 +1102,34 @@ func (u *SubscriptionPlanUpsertOne) SetForSale(v bool) *SubscriptionPlanUpsertOn
 func (u *SubscriptionPlanUpsertOne) UpdateForSale() *SubscriptionPlanUpsertOne {
 	return u.Update(func(s *SubscriptionPlanUpsert) {
 		s.UpdateForSale()
+	})
+}
+
+// SetPurchaseOncePerActiveSubscription sets the "purchase_once_per_active_subscription" field.
+func (u *SubscriptionPlanUpsertOne) SetPurchaseOncePerActiveSubscription(v bool) *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetPurchaseOncePerActiveSubscription(v)
+	})
+}
+
+// UpdatePurchaseOncePerActiveSubscription sets the "purchase_once_per_active_subscription" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertOne) UpdatePurchaseOncePerActiveSubscription() *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdatePurchaseOncePerActiveSubscription()
+	})
+}
+
+// SetWeeklySaleDays sets the "weekly_sale_days" field.
+func (u *SubscriptionPlanUpsertOne) SetWeeklySaleDays(v []int) *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetWeeklySaleDays(v)
+	})
+}
+
+// UpdateWeeklySaleDays sets the "weekly_sale_days" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertOne) UpdateWeeklySaleDays() *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateWeeklySaleDays()
 	})
 }
 
@@ -1562,6 +1656,34 @@ func (u *SubscriptionPlanUpsertBulk) SetForSale(v bool) *SubscriptionPlanUpsertB
 func (u *SubscriptionPlanUpsertBulk) UpdateForSale() *SubscriptionPlanUpsertBulk {
 	return u.Update(func(s *SubscriptionPlanUpsert) {
 		s.UpdateForSale()
+	})
+}
+
+// SetPurchaseOncePerActiveSubscription sets the "purchase_once_per_active_subscription" field.
+func (u *SubscriptionPlanUpsertBulk) SetPurchaseOncePerActiveSubscription(v bool) *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetPurchaseOncePerActiveSubscription(v)
+	})
+}
+
+// UpdatePurchaseOncePerActiveSubscription sets the "purchase_once_per_active_subscription" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertBulk) UpdatePurchaseOncePerActiveSubscription() *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdatePurchaseOncePerActiveSubscription()
+	})
+}
+
+// SetWeeklySaleDays sets the "weekly_sale_days" field.
+func (u *SubscriptionPlanUpsertBulk) SetWeeklySaleDays(v []int) *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetWeeklySaleDays(v)
+	})
+}
+
+// UpdateWeeklySaleDays sets the "weekly_sale_days" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertBulk) UpdateWeeklySaleDays() *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateWeeklySaleDays()
 	})
 }
 

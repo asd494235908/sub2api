@@ -5,7 +5,7 @@
  */
 
 import { apiClient } from '../client'
-import type { PaginatedResponse } from '@/types'
+import type { AffiliateWithdrawal, AffiliateWithdrawSettings, PaginatedResponse } from '@/types'
 
 export interface AffiliateAdminEntry {
   user_id: number
@@ -24,6 +24,8 @@ export interface AffiliateInviterEntry {
   aff_code: string
   aff_count: number
   total_rebate: number
+  identity_status?: string | null
+  identity_expires_at?: string | null
 }
 
 export interface AffiliateInvitee {
@@ -32,6 +34,34 @@ export interface AffiliateInvitee {
   username: string
   created_at?: string
   total_rebate: number
+  paid_amount?: number
+  risk_flagged?: boolean
+  risk_reason?: string
+  identity_status?: string | null
+  identity_expires_at?: string | null
+}
+
+export interface AffiliateIdentityConfig {
+  inviter_rate_multiplier: number
+  invitee_rate_multiplier: number
+  duration_hours: number
+  qualified_invitee_count: number
+  qualified_pay_amount: number
+  eligible_order_types: Array<'balance' | 'subscription' | string>
+  fingerprint_enforcement_enabled: boolean
+  max_accounts_per_fingerprint_hash: number
+}
+
+export interface AdminAffiliateIdentityConfigResponse {
+  enabled: boolean
+  config: AffiliateIdentityConfig
+}
+
+export interface ListAffiliateWithdrawalsParams {
+  page?: number
+  page_size?: number
+  search?: string
+  status?: string
 }
 
 export interface ListAffiliateUsersParams {
@@ -83,6 +113,7 @@ export interface AffiliateRebateRecord {
   invitee_username: string
   order_amount: number
   pay_amount: number
+  rebate_base_amount?: number | null
   rebate_amount: number
   payment_type: string
   order_status: string
@@ -292,6 +323,92 @@ export async function getUserOverview(
   return data
 }
 
+export async function getIdentityConfig(): Promise<AdminAffiliateIdentityConfigResponse> {
+  const { data } = await apiClient.get<AdminAffiliateIdentityConfigResponse>(
+    '/admin/affiliates/identity-config',
+  )
+  return data
+}
+
+export async function updateIdentityConfig(
+  payload: AdminAffiliateIdentityConfigResponse,
+): Promise<AdminAffiliateIdentityConfigResponse> {
+  const { data } = await apiClient.put<AdminAffiliateIdentityConfigResponse>(
+    '/admin/affiliates/identity-config',
+    payload,
+  )
+  return data
+}
+
+export async function getWithdrawSettings(): Promise<AffiliateWithdrawSettings> {
+  const { data } = await apiClient.get<AffiliateWithdrawSettings>(
+    '/admin/affiliates/withdraw-settings',
+  )
+  return data
+}
+
+export async function updateWithdrawSettings(
+  payload: AffiliateWithdrawSettings,
+): Promise<AffiliateWithdrawSettings> {
+  const { data } = await apiClient.put<AffiliateWithdrawSettings>(
+    '/admin/affiliates/withdraw-settings',
+    payload,
+  )
+  return data
+}
+
+export async function listWithdrawals(
+  params: ListAffiliateWithdrawalsParams = {},
+): Promise<PaginatedResponse<AffiliateWithdrawal>> {
+  const { data } = await apiClient.get<PaginatedResponse<AffiliateWithdrawal>>(
+    '/admin/affiliates/withdrawals',
+    {
+      params: {
+        page: params.page ?? 1,
+        page_size: params.page_size ?? 20,
+        search: params.search ?? '',
+        status: params.status || undefined,
+      },
+    },
+  )
+  return data
+}
+
+export async function approveWithdrawal(id: number, note = ''): Promise<AffiliateWithdrawal> {
+  const { data } = await apiClient.post<AffiliateWithdrawal>(
+    `/admin/affiliates/withdrawals/${id}/approve`,
+    { note },
+  )
+  return data
+}
+
+export async function rejectWithdrawal(id: number, reason: string): Promise<AffiliateWithdrawal> {
+  const { data } = await apiClient.post<AffiliateWithdrawal>(
+    `/admin/affiliates/withdrawals/${id}/reject`,
+    { reason },
+  )
+  return data
+}
+
+export async function markWithdrawalPaid(
+  id: number,
+  payload: { payout_channel: string; payout_trade_no?: string; admin_note?: string },
+): Promise<AffiliateWithdrawal> {
+  const { data } = await apiClient.post<AffiliateWithdrawal>(
+    `/admin/affiliates/withdrawals/${id}/paid`,
+    payload,
+  )
+  return data
+}
+
+export async function markWithdrawalFailed(id: number, reason: string): Promise<AffiliateWithdrawal> {
+  const { data } = await apiClient.post<AffiliateWithdrawal>(
+    `/admin/affiliates/withdrawals/${id}/fail`,
+    { reason },
+  )
+  return data
+}
+
 export const affiliatesAPI = {
   listUsers,
   createInviteRelation,
@@ -305,6 +422,15 @@ export const affiliatesAPI = {
   listRebateRecords,
   listTransferRecords,
   getUserOverview,
+  getIdentityConfig,
+  updateIdentityConfig,
+  getWithdrawSettings,
+  updateWithdrawSettings,
+  listWithdrawals,
+  approveWithdrawal,
+  rejectWithdrawal,
+  markWithdrawalPaid,
+  markWithdrawalFailed,
 }
 
 export default affiliatesAPI

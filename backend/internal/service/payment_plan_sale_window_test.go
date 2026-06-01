@@ -404,6 +404,141 @@ func TestValidateSubOrderRejectsUnavailableSaleWindowAndDailyLimit(t *testing.T)
 	}
 }
 
+func TestValidateSubOrderRejectsWeeklySaleOffDay(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentConfigServiceTestClient(t)
+	groupRepo := &paymentPlanSaleWindowGroupRepo{
+		group: &Group{ID: 1, Status: payment.EntityStatusActive, SubscriptionType: SubscriptionTypeSubscription},
+	}
+	svc := &PaymentService{
+		entClient:     client,
+		configService: NewPaymentConfigService(client, &paymentConfigSettingRepoStub{}, nil),
+		groupRepo:     groupRepo,
+	}
+
+	today := serviceWeekdayNumber(time.Now())
+	offDay := today%7 + 1
+	weeklyPlan, err := client.SubscriptionPlan.Create().
+		SetGroupID(1).
+		SetName("weekly-off-day").
+		SetPrice(10).
+		SetValidityDays(30).
+		SetValidityUnit("days").
+		SetForSale(true).
+		SetDailyPurchaseLimit(0).
+		SetWeeklySaleDays([]int{offDay}).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("create weekly off-day plan: %v", err)
+	}
+	if _, err := svc.validateSubOrder(ctx, CreateOrderRequest{PlanID: weeklyPlan.ID}); err == nil || !strings.Contains(err.Error(), "weekly sale day unavailable") {
+		t.Fatalf("validateSubOrder weekly off-day error = %v", err)
+	}
+
+	availablePlan, err := client.SubscriptionPlan.Create().
+		SetGroupID(1).
+		SetName("weekly-available").
+		SetPrice(10).
+		SetValidityDays(30).
+		SetValidityUnit("days").
+		SetForSale(true).
+		SetDailyPurchaseLimit(0).
+		SetWeeklySaleDays([]int{today}).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("create weekly available plan: %v", err)
+	}
+	if _, err := svc.validateSubOrder(ctx, CreateOrderRequest{PlanID: availablePlan.ID}); err != nil {
+		t.Fatalf("validateSubOrder weekly available returned error: %v", err)
+	}
+}
+
+func TestValidateSubOrderPurchaseOncePerActiveSubscription(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentConfigServiceTestClient(t)
+	group, err := client.Group.Create().
+		SetName("purchase-once-group").
+		SetStatus(payment.EntityStatusActive).
+		SetPlatform(PlatformOpenAI).
+		SetSubscriptionType(SubscriptionTypeSubscription).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("create group: %v", err)
+	}
+	groupID := int64(group.ID)
+	groupRepo := &paymentPlanSaleWindowGroupRepo{
+		group: &Group{ID: groupID, Status: payment.EntityStatusActive, SubscriptionType: SubscriptionTypeSubscription},
+	}
+	svc := &PaymentService{
+		entClient:     client,
+		configService: NewPaymentConfigService(client, &paymentConfigSettingRepoStub{}, nil),
+		groupRepo:     groupRepo,
+	}
+	user, err := client.User.Create().
+		SetEmail("purchase-once@example.com").
+		SetPasswordHash("hash").
+		SetUsername("purchase-once-user").
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+	plan, err := client.SubscriptionPlan.Create().
+		SetGroupID(groupID).
+		SetName("once").
+		SetPrice(10).
+		SetValidityDays(30).
+		SetValidityUnit("days").
+		SetForSale(true).
+		SetDailyPurchaseLimit(0).
+		SetPurchaseOncePerActiveSubscription(true).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("create plan: %v", err)
+	}
+	now := time.Now()
+	_, err = client.UserSubscription.Create().
+		SetUserID(user.ID).
+		SetGroupID(groupID).
+		SetStartsAt(now.Add(-time.Hour)).
+		SetExpiresAt(now.Add(time.Hour)).
+		SetStatus(SubscriptionStatusActive).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("create active subscription: %v", err)
+	}
+
+	if _, err := svc.validateSubOrder(ctx, CreateOrderRequest{UserID: user.ID, PlanID: plan.ID}); err == nil || !strings.Contains(err.Error(), "current subscription expires") {
+		t.Fatalf("validateSubOrder active subscription error = %v", err)
+	}
+
+	openPlan, err := client.SubscriptionPlan.Create().
+		SetGroupID(groupID).
+		SetName("open").
+		SetPrice(10).
+		SetValidityDays(30).
+		SetValidityUnit("days").
+		SetForSale(true).
+		SetDailyPurchaseLimit(0).
+		SetPurchaseOncePerActiveSubscription(false).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("create open plan: %v", err)
+	}
+	if _, err := svc.validateSubOrder(ctx, CreateOrderRequest{UserID: user.ID, PlanID: openPlan.ID}); err != nil {
+		t.Fatalf("validateSubOrder open plan returned error: %v", err)
+	}
+
+	_, err = client.UserSubscription.Update().
+		SetExpiresAt(now.Add(-time.Minute)).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("expire subscription: %v", err)
+	}
+	if _, err := svc.validateSubOrder(ctx, CreateOrderRequest{UserID: user.ID, PlanID: plan.ID}); err != nil {
+		t.Fatalf("validateSubOrder expired subscription returned error: %v", err)
+	}
+}
+
 func TestDailySaleWindowValidation(t *testing.T) {
 	ctx := context.Background()
 	client := newPaymentConfigServiceTestClient(t)
@@ -451,11 +586,48 @@ func TestDailySaleWindowValidation(t *testing.T) {
 	}
 }
 
+func TestWeeklySaleDaysValidationNormalizesAndRejectsInvalidDays(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentConfigServiceTestClient(t)
+	svc := NewPaymentConfigService(client, &paymentConfigSettingRepoStub{}, nil)
+
+	plan, err := svc.CreatePlan(ctx, CreatePlanRequest{
+		GroupID:            1,
+		Name:               "Weekly Normalized",
+		Price:              10,
+		ValidityDays:       30,
+		ValidityUnit:       "days",
+		ForSale:            true,
+		DailyPurchaseLimit: 0,
+		WeeklySaleDays:     []int{5, 1, 3, 3},
+	})
+	if err != nil {
+		t.Fatalf("CreatePlan weekly normalized error = %v", err)
+	}
+	if got := plan.WeeklySaleDays; len(got) != 3 || got[0] != 1 || got[1] != 3 || got[2] != 5 {
+		t.Fatalf("weekly sale days = %v, want [1 3 5]", got)
+	}
+
+	_, err = svc.CreatePlan(ctx, CreatePlanRequest{
+		GroupID:            1,
+		Name:               "Weekly Invalid",
+		Price:              10,
+		ValidityDays:       30,
+		ValidityUnit:       "days",
+		ForSale:            true,
+		DailyPurchaseLimit: 0,
+		WeeklySaleDays:     []int{1, 8},
+	})
+	if err == nil || !strings.Contains(err.Error(), "weekly sale day must be between 1 and 7") {
+		t.Fatalf("CreatePlan invalid weekly days error = %v", err)
+	}
+}
+
 func TestSubscriptionPlanDailySaleWindowAvailability(t *testing.T) {
 	dayWindow := &dbent.SubscriptionPlan{
 		ForSale:           true,
-		DailySaleStartsAt: stringPtr("09:00"),
-		DailySaleEndsAt:   stringPtr("18:00"),
+		DailySaleStartsAt: saleWindowStringPtr("09:00"),
+		DailySaleEndsAt:   saleWindowStringPtr("18:00"),
 	}
 	if !subscriptionPlanIsAvailableForSale(dayWindow, time.Date(2026, 5, 27, 10, 0, 0, 0, time.Local)) {
 		t.Fatalf("day window should be available inside daily sale window")
@@ -466,8 +638,8 @@ func TestSubscriptionPlanDailySaleWindowAvailability(t *testing.T) {
 
 	overnightWindow := &dbent.SubscriptionPlan{
 		ForSale:           true,
-		DailySaleStartsAt: stringPtr("22:00"),
-		DailySaleEndsAt:   stringPtr("02:00"),
+		DailySaleStartsAt: saleWindowStringPtr("22:00"),
+		DailySaleEndsAt:   saleWindowStringPtr("02:00"),
 	}
 	if !subscriptionPlanIsAvailableForSale(overnightWindow, time.Date(2026, 5, 27, 23, 0, 0, 0, time.Local)) {
 		t.Fatalf("overnight window should be available before midnight")
@@ -481,15 +653,33 @@ func TestSubscriptionPlanDailySaleWindowAvailability(t *testing.T) {
 
 	manualOff := &dbent.SubscriptionPlan{
 		ForSale:           false,
-		DailySaleStartsAt: stringPtr("09:00"),
-		DailySaleEndsAt:   stringPtr("18:00"),
+		DailySaleStartsAt: saleWindowStringPtr("09:00"),
+		DailySaleEndsAt:   saleWindowStringPtr("18:00"),
 	}
 	if subscriptionPlanIsAvailableForSale(manualOff, time.Date(2026, 5, 27, 10, 0, 0, 0, time.Local)) {
 		t.Fatalf("manual off plan should be unavailable inside daily sale window")
 	}
 }
 
-func stringPtr(value string) *string {
+func TestSubscriptionPlanWeeklySaleAvailability(t *testing.T) {
+	available := &dbent.SubscriptionPlan{
+		ForSale:        true,
+		WeeklySaleDays: []int{1, 3, 5},
+	}
+	if !subscriptionPlanIsAvailableForSale(available, time.Date(2026, 6, 1, 10, 0, 0, 0, time.Local)) {
+		t.Fatalf("weekly plan should be available on Monday")
+	}
+	if subscriptionPlanIsAvailableForSale(available, time.Date(2026, 6, 2, 10, 0, 0, 0, time.Local)) {
+		t.Fatalf("weekly plan should be unavailable on Tuesday")
+	}
+
+	unrestricted := &dbent.SubscriptionPlan{ForSale: true}
+	if !subscriptionPlanIsAvailableForSale(unrestricted, time.Date(2026, 6, 2, 10, 0, 0, 0, time.Local)) {
+		t.Fatalf("empty weekly sale days should not restrict availability")
+	}
+}
+
+func saleWindowStringPtr(value string) *string {
 	return &value
 }
 
@@ -499,6 +689,14 @@ func dailyWindowAround(now time.Time, startOffset, endOffset time.Duration) (str
 
 func formatDailySaleTime(value time.Time) string {
 	return value.Local().Format("15:04")
+}
+
+func serviceWeekdayNumber(value time.Time) int {
+	weekday := int(value.Local().Weekday())
+	if weekday == 0 {
+		return 7
+	}
+	return weekday
 }
 
 func planNames(plans []*dbent.SubscriptionPlan) []string {

@@ -16,8 +16,10 @@ import type {
   UserAuthProvider,
   UserAffiliateDetail,
   AffiliateTransferResponse,
+  AffiliateWithdrawal,
   PlatformQuotasResponse,
 } from '@/types'
+import type { PaginatedResponse } from '@/types'
 
 /**
  * Get current user profile
@@ -208,6 +210,30 @@ export async function transferAffiliateQuota(): Promise<AffiliateTransferRespons
   return data
 }
 
+export async function listAffiliateWithdrawals(params: {
+  page?: number
+  page_size?: number
+  status?: string
+} = {}): Promise<PaginatedResponse<AffiliateWithdrawal>> {
+  const { data } = await apiClient.get<PaginatedResponse<AffiliateWithdrawal>>('/user/aff/withdrawals', {
+    params: {
+      page: params.page ?? 1,
+      page_size: params.page_size ?? 20,
+      status: params.status || undefined,
+    },
+  })
+  return data
+}
+
+export async function createAffiliateWithdrawal(payload: {
+  amount: number
+  payout_method: string
+  payout_account_note: string
+}): Promise<AffiliateWithdrawal> {
+  const { data } = await apiClient.post<AffiliateWithdrawal>('/user/aff/withdrawals', payload)
+  return data
+}
+
 /**
  * 获取当前用户的平台限额 + 用量。
  */
@@ -234,6 +260,8 @@ export const userAPI = {
   startOAuthBinding,
   getAffiliateDetail,
   transferAffiliateQuota,
+  listAffiliateWithdrawals,
+  createAffiliateWithdrawal,
   getMyPlatformQuotas,
 }
 

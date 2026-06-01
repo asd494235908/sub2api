@@ -64,13 +64,14 @@ type bindPendingOAuthLoginRequest struct {
 }
 
 type createPendingOAuthAccountRequest struct {
-	Email            string `json:"email" binding:"required,email"`
-	VerifyCode       string `json:"verify_code,omitempty"`
-	Password         string `json:"password" binding:"required,min=6"`
-	InvitationCode   string `json:"invitation_code,omitempty"`
-	AffCode          string `json:"aff_code,omitempty"`
-	AdoptDisplayName *bool  `json:"adopt_display_name,omitempty"`
-	AdoptAvatar      *bool  `json:"adopt_avatar,omitempty"`
+	Email             string                                  `json:"email" binding:"required,email"`
+	VerifyCode        string                                  `json:"verify_code,omitempty"`
+	Password          string                                  `json:"password" binding:"required,min=6"`
+	InvitationCode    string                                  `json:"invitation_code,omitempty"`
+	AffCode           string                                  `json:"aff_code,omitempty"`
+	DeviceFingerprint service.AffiliateSignupFingerprintInput `json:"device_fingerprint"`
+	AdoptDisplayName  *bool                                   `json:"adopt_display_name,omitempty"`
+	AdoptAvatar       *bool                                   `json:"adopt_avatar,omitempty"`
 }
 
 type sendPendingOAuthVerifyCodeRequest struct {
@@ -1821,6 +1822,7 @@ func (h *AuthHandler) createPendingOAuthAccount(c *gin.Context, provider string)
 	}
 
 	h.authService.RecordSuccessfulLogin(c.Request.Context(), user.ID)
+	h.authService.RecordAffiliateSignupFingerprint(c.Request.Context(), user.ID, req.DeviceFingerprint)
 	// createPendingOAuthAccount = 注册新账户，需要把钉钉昵称同步到 users.username 作为初始值
 	h.maybeSyncDingTalkAfterRegistration(c.Request.Context(), session, user.ID)
 	clearCookies()

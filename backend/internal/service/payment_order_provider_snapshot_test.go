@@ -4,6 +4,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"strconv"
 	"testing"
 
@@ -165,6 +166,139 @@ func TestCreateOrderInTx_SnapshotsSubscriptionPlanValidityDays(t *testing.T) {
 	require.Equal(t, plan.ID, int64PtrValueOrZero(order.PlanID))
 	require.Equal(t, int64(7), int64PtrValueOrZero(order.SubscriptionGroupID))
 	require.Equal(t, 365, intValueOrZero(order.SubscriptionDays))
+}
+
+func TestCreateOrderInTx_SnapshotsSubscriptionRebateBaseFromMaxQuota(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentConfigServiceTestClient(t)
+
+	user, err := client.User.Create().
+		SetEmail("subscription-rebate-base@example.com").
+		SetPasswordHash("hash").
+		SetUsername("subscription-rebate-base-user").
+		Save(ctx)
+	require.NoError(t, err)
+
+	groupID := int64(7001)
+	plan, err := client.SubscriptionPlan.Create().
+		SetGroupID(groupID).
+		SetName("Bird Plan").
+		SetDescription("quota rebate base plan").
+		SetPrice(1560).
+		SetValidityDays(30).
+		SetValidityUnit("days").
+		SetFeatures("").
+		SetProductName("").
+		SetForSale(true).
+		Save(ctx)
+	require.NoError(t, err)
+
+	dailyLimit := 100.0
+	weeklyLimit := 700.0
+	monthlyLimit := 3000.0
+	totalLimit := 1560.0
+	svc := &PaymentService{
+		entClient: client,
+		groupRepo: &paymentEarlyBirdGroupRepo{group: &Group{
+			ID:                        groupID,
+			Status:                    payment.EntityStatusActive,
+			SubscriptionType:          SubscriptionTypeSubscription,
+			DailyLimitUSD:             &dailyLimit,
+			WeeklyLimitUSD:            &weeklyLimit,
+			MonthlyLimitUSD:           &monthlyLimit,
+			SubscriptionTotalLimitUSD: &totalLimit,
+		}},
+	}
+	order, err := svc.createOrderInTx(
+		ctx,
+		CreateOrderRequest{
+			UserID:      user.ID,
+			PaymentType: payment.TypeAlipay,
+			OrderType:   payment.OrderTypeSubscription,
+			ClientIP:    "127.0.0.1",
+			SrcHost:     "app.example.com",
+		},
+		&User{ID: user.ID, Email: user.Email, Username: user.Username},
+		plan,
+		&PaymentConfig{MaxPendingOrders: 3, OrderTimeoutMin: 30},
+		1560,
+		1560,
+		0,
+		1560,
+		&payment.InstanceSelection{ProviderKey: payment.TypeAlipay},
+	)
+	require.NoError(t, err)
+
+	var rebateBase sql.NullFloat64
+	rows, err := client.QueryContext(ctx, "SELECT subscription_rebate_base_amount FROM payment_orders WHERE id = ?", order.ID)
+	require.NoError(t, err)
+	defer func() { _ = rows.Close() }()
+	require.True(t, rows.Next())
+	require.NoError(t, rows.Scan(&rebateBase))
+	require.True(t, rebateBase.Valid)
+	require.InDelta(t, 3000.0, rebateBase.Float64, 1e-9)
+}
+
+func TestCreateOrderInTx_LeavesSubscriptionRebateBaseEmptyWithoutQuota(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentConfigServiceTestClient(t)
+
+	user, err := client.User.Create().
+		SetEmail("subscription-no-rebate-base@example.com").
+		SetPasswordHash("hash").
+		SetUsername("subscription-no-rebate-base-user").
+		Save(ctx)
+	require.NoError(t, err)
+
+	groupID := int64(7002)
+	plan, err := client.SubscriptionPlan.Create().
+		SetGroupID(groupID).
+		SetName("Unlimited Plan").
+		SetDescription("unlimited plan").
+		SetPrice(1560).
+		SetValidityDays(30).
+		SetValidityUnit("days").
+		SetFeatures("").
+		SetProductName("").
+		SetForSale(true).
+		Save(ctx)
+	require.NoError(t, err)
+
+	svc := &PaymentService{
+		entClient: client,
+		groupRepo: &paymentEarlyBirdGroupRepo{group: &Group{
+			ID:               groupID,
+			Status:           payment.EntityStatusActive,
+			SubscriptionType: SubscriptionTypeSubscription,
+		}},
+	}
+	order, err := svc.createOrderInTx(
+		ctx,
+		CreateOrderRequest{
+			UserID:      user.ID,
+			PaymentType: payment.TypeAlipay,
+			OrderType:   payment.OrderTypeSubscription,
+			ClientIP:    "127.0.0.1",
+			SrcHost:     "app.example.com",
+		},
+		&User{ID: user.ID, Email: user.Email, Username: user.Username},
+		plan,
+		&PaymentConfig{MaxPendingOrders: 3, OrderTimeoutMin: 30},
+		1560,
+		1560,
+		0,
+		1560,
+		&payment.InstanceSelection{ProviderKey: payment.TypeAlipay},
+	)
+	require.NoError(t, err)
+
+	var rebateBase sql.NullFloat64
+	rows, err := client.QueryContext(ctx, "SELECT subscription_rebate_base_amount FROM payment_orders WHERE id = ?", order.ID)
+	require.NoError(t, err)
+	defer func() { _ = rows.Close() }()
+	require.True(t, rows.Next())
+	require.NoError(t, rows.Scan(&rebateBase))
+	require.False(t, rebateBase.Valid)
 }
 
 func TestPsComputeValidityDaysAcceptsSingularAndPluralUnits(t *testing.T) {

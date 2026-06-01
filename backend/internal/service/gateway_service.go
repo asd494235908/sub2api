@@ -56,6 +56,7 @@ const (
 	defaultModelsListCacheTTL    = 15 * time.Second
 	postUsageBillingTimeout      = 15 * time.Second
 	debugGatewayBodyEnv          = "SUB2API_DEBUG_GATEWAY_BODY"
+	maxUsageBillingRequestIDLen  = 64
 )
 
 const (
@@ -571,6 +572,7 @@ type GatewayService struct {
 	cfg                   *config.Config
 	schedulerSnapshot     *SchedulerSnapshotService
 	billingService        *BillingService
+	paymentService        *PaymentService
 	rateLimitService      *RateLimitService
 	billingCacheService   *BillingCacheService
 	identityService       *IdentityService
@@ -611,6 +613,7 @@ func NewGatewayService(
 	schedulerSnapshot *SchedulerSnapshotService,
 	concurrencyService *ConcurrencyService,
 	billingService *BillingService,
+	paymentService *PaymentService,
 	rateLimitService *RateLimitService,
 	billingCacheService *BillingCacheService,
 	identityService *IdentityService,
@@ -644,6 +647,7 @@ func NewGatewayService(
 		schedulerSnapshot:     schedulerSnapshot,
 		concurrencyService:    concurrencyService,
 		billingService:        billingService,
+		paymentService:        paymentService,
 		rateLimitService:      rateLimitService,
 		billingCacheService:   billingCacheService,
 		identityService:       identityService,
@@ -7969,6 +7973,7 @@ type RecordUsageInput struct {
 	UserAgent          string             // 请求的 User-Agent
 	IPAddress          string             // 请求的客户端 IP 地址
 	RequestPayloadHash string             // 请求体语义哈希，用于降低 request_id 误复用时的静默误去重风险
+	BillingRequestID   string             // 从请求 context 预先捕获的稳定扣费幂等ID
 	ForceCacheBilling  bool               // 强制缓存计费：将 input_tokens 转为 cache_read 计费（用于粘性会话切换）
 	APIKeyService      APIKeyQuotaUpdater // 可选：用于更新API Key配额
 	QuotaPlatform      string             // user×platform 配额计量平台：handler 在请求 ctx 内经 QuotaPlatform() 算定后传入（后扣运行在 worker 池 background ctx 上，取不到 ForcePlatform）
@@ -8105,19 +8110,42 @@ func postUsageBilling(ctx context.Context, p *postUsageBillingParams, deps *bill
 	// by the caller after recording the usage log.
 }
 
-func resolveUsageBillingRequestID(ctx context.Context, upstreamRequestID string) string {
+func resolveUsageBillingRequestID(ctx context.Context, stableRequestID, upstreamRequestID string) string {
+	if requestID := strings.TrimSpace(stableRequestID); requestID != "" {
+		return normalizeUsageBillingRequestID(requestID)
+	}
 	if ctx != nil {
 		if clientRequestID, _ := ctx.Value(ctxkey.ClientRequestID).(string); strings.TrimSpace(clientRequestID) != "" {
-			return "client:" + strings.TrimSpace(clientRequestID)
+			return normalizeUsageBillingRequestID("client:" + strings.TrimSpace(clientRequestID))
 		}
 		if requestID, _ := ctx.Value(ctxkey.RequestID).(string); strings.TrimSpace(requestID) != "" {
-			return "local:" + strings.TrimSpace(requestID)
+			return normalizeUsageBillingRequestID("local:" + strings.TrimSpace(requestID))
 		}
 	}
 	if requestID := strings.TrimSpace(upstreamRequestID); requestID != "" {
+		return normalizeUsageBillingRequestID(requestID)
+	}
+	return normalizeUsageBillingRequestID("generated:" + generateRequestID())
+}
+
+func normalizeUsageBillingRequestID(requestID string) string {
+	requestID = strings.TrimSpace(requestID)
+	if len(requestID) <= maxUsageBillingRequestIDLen {
 		return requestID
 	}
-	return "generated:" + generateRequestID()
+
+	prefix := "req-h:"
+	switch {
+	case strings.HasPrefix(requestID, "local:"):
+		prefix = "local-h:"
+	case strings.HasPrefix(requestID, "client:"):
+		prefix = "client-h:"
+	case strings.HasPrefix(requestID, "generated:"):
+		prefix = "gen-h:"
+	}
+	sum := sha256.Sum256([]byte(requestID))
+	hash := fmt.Sprintf("%x", sum)
+	return prefix + hash[:maxUsageBillingRequestIDLen-len(prefix)]
 }
 
 func resolveUsageBillingPayloadFingerprint(ctx context.Context, requestPayloadHash string) string {
@@ -8446,6 +8474,7 @@ func (s *GatewayService) RecordUsage(ctx context.Context, input *RecordUsageInpu
 		UserAgent:          input.UserAgent,
 		IPAddress:          input.IPAddress,
 		RequestPayloadHash: input.RequestPayloadHash,
+		BillingRequestID:   input.BillingRequestID,
 		ForceCacheBilling:  input.ForceCacheBilling,
 		APIKeyService:      input.APIKeyService,
 		QuotaPlatform:      input.QuotaPlatform,
@@ -8467,6 +8496,7 @@ type RecordUsageLongContextInput struct {
 	UserAgent             string             // 请求的 User-Agent
 	IPAddress             string             // 请求的客户端 IP 地址
 	RequestPayloadHash    string             // 请求体语义哈希，用于降低 request_id 误复用时的静默误去重风险
+	BillingRequestID      string             // 从请求 context 预先捕获的稳定扣费幂等ID
 	LongContextThreshold  int                // 长上下文阈值（如 200000）
 	LongContextMultiplier float64            // 超出阈值部分的倍率（如 2.0）
 	ForceCacheBilling     bool               // 强制缓存计费：将 input_tokens 转为 cache_read 计费（用于粘性会话切换）
@@ -8489,6 +8519,7 @@ func (s *GatewayService) RecordUsageWithLongContext(ctx context.Context, input *
 		UserAgent:          input.UserAgent,
 		IPAddress:          input.IPAddress,
 		RequestPayloadHash: input.RequestPayloadHash,
+		BillingRequestID:   input.BillingRequestID,
 		ForceCacheBilling:  input.ForceCacheBilling,
 		APIKeyService:      input.APIKeyService,
 		QuotaPlatform:      input.QuotaPlatform,
@@ -8511,6 +8542,7 @@ type recordUsageCoreInput struct {
 	UserAgent          string
 	IPAddress          string
 	RequestPayloadHash string
+	BillingRequestID   string
 	ForceCacheBilling  bool
 	APIKeyService      APIKeyQuotaUpdater
 	QuotaPlatform      string
@@ -8554,6 +8586,12 @@ func (s *GatewayService) recordUsageCore(ctx context.Context, input *recordUsage
 	if apiKey.GroupID != nil && apiKey.Group != nil {
 		groupDefault := apiKey.Group.RateMultiplier
 		multiplier = s.getUserGroupRateMultiplier(ctx, user.ID, *apiKey.GroupID, groupDefault)
+	}
+	if s.paymentService != nil && s.paymentService.MemberMultiplierEnabledForKey(ctx, apiKey, subscription) {
+		memberMultiplier := s.paymentService.ResolveMemberMultiplier(ctx, user, apiKey, subscription)
+		if memberMultiplier > 0 && memberMultiplier < multiplier {
+			multiplier = memberMultiplier
+		}
 	}
 	imageMultiplier := resolveImageRateMultiplier(apiKey, multiplier)
 
@@ -8788,7 +8826,7 @@ func (s *GatewayService) buildRecordUsageLog(
 	opts *recordUsageOpts,
 ) *UsageLog {
 	durationMs := int(result.Duration.Milliseconds())
-	requestID := resolveUsageBillingRequestID(ctx, result.RequestID)
+	requestID := resolveUsageBillingRequestID(ctx, input.BillingRequestID, result.RequestID)
 	usageLog := &UsageLog{
 		UserID:                user.ID,
 		APIKeyID:              apiKey.ID,

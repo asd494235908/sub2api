@@ -150,6 +150,11 @@ func SubscriptionTotalLimitUsd(v float64) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldSubscriptionTotalLimitUsd, v))
 }
 
+// SubscriptionRebateBaseAmount applies equality check predicate on the "subscription_rebate_base_amount" field. It's identical to SubscriptionRebateBaseAmountEQ.
+func SubscriptionRebateBaseAmount(v float64) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldSubscriptionRebateBaseAmount, v))
+}
+
 // ProviderInstanceID applies equality check predicate on the "provider_instance_id" field. It's identical to ProviderInstanceIDEQ.
 func ProviderInstanceID(v string) predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldEQ(FieldProviderInstanceID, v))
@@ -1343,6 +1348,56 @@ func SubscriptionTotalLimitUsdIsNil() predicate.PaymentOrder {
 // SubscriptionTotalLimitUsdNotNil applies the NotNil predicate on the "subscription_total_limit_usd" field.
 func SubscriptionTotalLimitUsdNotNil() predicate.PaymentOrder {
 	return predicate.PaymentOrder(sql.FieldNotNull(FieldSubscriptionTotalLimitUsd))
+}
+
+// SubscriptionRebateBaseAmountEQ applies the EQ predicate on the "subscription_rebate_base_amount" field.
+func SubscriptionRebateBaseAmountEQ(v float64) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldEQ(FieldSubscriptionRebateBaseAmount, v))
+}
+
+// SubscriptionRebateBaseAmountNEQ applies the NEQ predicate on the "subscription_rebate_base_amount" field.
+func SubscriptionRebateBaseAmountNEQ(v float64) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNEQ(FieldSubscriptionRebateBaseAmount, v))
+}
+
+// SubscriptionRebateBaseAmountIn applies the In predicate on the "subscription_rebate_base_amount" field.
+func SubscriptionRebateBaseAmountIn(vs ...float64) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldIn(FieldSubscriptionRebateBaseAmount, vs...))
+}
+
+// SubscriptionRebateBaseAmountNotIn applies the NotIn predicate on the "subscription_rebate_base_amount" field.
+func SubscriptionRebateBaseAmountNotIn(vs ...float64) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNotIn(FieldSubscriptionRebateBaseAmount, vs...))
+}
+
+// SubscriptionRebateBaseAmountGT applies the GT predicate on the "subscription_rebate_base_amount" field.
+func SubscriptionRebateBaseAmountGT(v float64) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGT(FieldSubscriptionRebateBaseAmount, v))
+}
+
+// SubscriptionRebateBaseAmountGTE applies the GTE predicate on the "subscription_rebate_base_amount" field.
+func SubscriptionRebateBaseAmountGTE(v float64) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldGTE(FieldSubscriptionRebateBaseAmount, v))
+}
+
+// SubscriptionRebateBaseAmountLT applies the LT predicate on the "subscription_rebate_base_amount" field.
+func SubscriptionRebateBaseAmountLT(v float64) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLT(FieldSubscriptionRebateBaseAmount, v))
+}
+
+// SubscriptionRebateBaseAmountLTE applies the LTE predicate on the "subscription_rebate_base_amount" field.
+func SubscriptionRebateBaseAmountLTE(v float64) predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldLTE(FieldSubscriptionRebateBaseAmount, v))
+}
+
+// SubscriptionRebateBaseAmountIsNil applies the IsNil predicate on the "subscription_rebate_base_amount" field.
+func SubscriptionRebateBaseAmountIsNil() predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldIsNull(FieldSubscriptionRebateBaseAmount))
+}
+
+// SubscriptionRebateBaseAmountNotNil applies the NotNil predicate on the "subscription_rebate_base_amount" field.
+func SubscriptionRebateBaseAmountNotNil() predicate.PaymentOrder {
+	return predicate.PaymentOrder(sql.FieldNotNull(FieldSubscriptionRebateBaseAmount))
 }
 
 // ProviderInstanceIDEQ applies the EQ predicate on the "provider_instance_id" field.

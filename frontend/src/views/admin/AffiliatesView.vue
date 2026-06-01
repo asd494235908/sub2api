@@ -2,6 +2,223 @@
   <AppLayout>
     <div class="space-y-6">
       <div class="card p-6">
+        <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ t('admin.affiliates.identityConfig.title') }}
+            </h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {{ t('admin.affiliates.identityConfig.description') }}
+            </p>
+          </div>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input
+              v-model="identityConfigState.enabled"
+              type="checkbox"
+              class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              :disabled="identityConfigState.loading || identityConfigState.saving"
+            />
+            {{ t('admin.affiliates.identityConfig.enabled') }}
+          </label>
+        </div>
+
+        <div v-if="identityConfigState.loading" class="py-3 text-sm text-gray-500">
+          {{ t('common.loading') }}
+        </div>
+        <div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div>
+            <label class="input-label">{{ t('admin.affiliates.identityConfig.inviterRate') }}</label>
+            <input v-model.number="identityConfigState.config.inviter_rate_multiplier" type="number" min="0.01" step="0.01" class="input" />
+          </div>
+          <div>
+            <label class="input-label">{{ t('admin.affiliates.identityConfig.inviteeRate') }}</label>
+            <input v-model.number="identityConfigState.config.invitee_rate_multiplier" type="number" min="0.01" step="0.01" class="input" />
+          </div>
+          <div>
+            <label class="input-label">{{ t('admin.affiliates.identityConfig.durationHours') }}</label>
+            <input v-model.number="identityConfigState.config.duration_hours" type="number" min="1" step="1" class="input" />
+          </div>
+          <div>
+            <label class="input-label">{{ t('admin.affiliates.identityConfig.qualifiedPayAmount') }}</label>
+            <input v-model.number="identityConfigState.config.qualified_pay_amount" type="number" min="0" step="0.01" class="input" />
+          </div>
+          <div>
+            <label class="input-label">{{ t('admin.affiliates.identityConfig.qualifiedInviteeCount') }}</label>
+            <input v-model.number="identityConfigState.config.qualified_invitee_count" type="number" min="0" step="1" class="input" />
+          </div>
+          <div>
+            <label class="input-label">{{ t('admin.affiliates.identityConfig.maxAccounts') }}</label>
+            <input v-model.number="identityConfigState.config.max_accounts_per_fingerprint_hash" type="number" min="1" step="1" class="input" />
+          </div>
+          <div class="space-y-2">
+            <div class="input-label">{{ t('admin.affiliates.identityConfig.orderTypes') }}</div>
+            <div class="flex flex-wrap gap-3 text-sm text-gray-700 dark:text-gray-300">
+              <label class="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  :checked="identityConfigState.config.eligible_order_types.includes('balance')"
+                  @change="toggleIdentityOrderType('balance')"
+                />
+                {{ t('admin.affiliates.identityConfig.balanceOrder') }}
+              </label>
+              <label class="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  :checked="identityConfigState.config.eligible_order_types.includes('subscription')"
+                  @change="toggleIdentityOrderType('subscription')"
+                />
+                {{ t('admin.affiliates.identityConfig.subscriptionOrder') }}
+              </label>
+            </div>
+          </div>
+          <div class="flex items-end">
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input
+                v-model="identityConfigState.config.fingerprint_enforcement_enabled"
+                type="checkbox"
+                class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              {{ t('admin.affiliates.identityConfig.fingerprintEnabled') }}
+            </label>
+          </div>
+        </div>
+
+        <div class="mt-4 flex justify-end">
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            :disabled="identityConfigState.loading || identityConfigState.saving"
+            @click="saveIdentityConfig"
+          >
+            {{ identityConfigState.saving ? t('common.saving') : t('admin.affiliates.identityConfig.save') }}
+          </button>
+        </div>
+      </div>
+
+      <div class="card p-6">
+        <div class="mb-4 flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ t('admin.affiliates.withdraw.title') }}
+            </h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {{ t('admin.affiliates.withdraw.description') }}
+            </p>
+          </div>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input
+              v-model="withdrawSettings.enabled"
+              type="checkbox"
+              class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              :disabled="withdrawState.settingsLoading || withdrawState.settingsSaving"
+            />
+            {{ t('admin.affiliates.withdraw.enabled') }}
+          </label>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div>
+            <label class="input-label">{{ t('admin.affiliates.withdraw.minAmount') }}</label>
+            <input v-model.number="withdrawSettings.min_amount" type="number" min="0" step="0.01" class="input" />
+          </div>
+          <div>
+            <label class="input-label">{{ t('admin.affiliates.withdraw.maxAmount') }}</label>
+            <input v-model.number="withdrawSettings.max_amount" type="number" min="0" step="0.01" class="input" />
+          </div>
+          <div>
+            <label class="input-label">{{ t('admin.affiliates.withdraw.dailyLimit') }}</label>
+            <input v-model.number="withdrawSettings.daily_request_limit" type="number" min="0" step="1" class="input" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="input-label">{{ t('admin.affiliates.withdraw.helpText') }}</label>
+            <input v-model="withdrawSettings.help_text" type="text" class="input" />
+          </div>
+        </div>
+        <div class="mt-4 flex justify-end">
+          <button class="btn btn-primary btn-sm" :disabled="withdrawState.settingsSaving" @click="saveWithdrawSettings">
+            {{ withdrawState.settingsSaving ? t('common.saving') : t('admin.affiliates.withdraw.saveSettings') }}
+          </button>
+        </div>
+
+        <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex flex-1 flex-wrap gap-3">
+            <input
+              v-model="withdrawState.search"
+              type="text"
+              class="input sm:max-w-md"
+              :placeholder="t('admin.affiliates.withdraw.searchPlaceholder')"
+              @input="onWithdrawSearchInput"
+            />
+            <select v-model="withdrawState.status" class="input w-full sm:w-48" @change="onWithdrawFilterChange">
+              <option value="">{{ t('admin.affiliates.withdraw.allStatuses') }}</option>
+              <option value="pending_review">{{ t('admin.affiliates.withdraw.status.pending_review') }}</option>
+              <option value="approved">{{ t('admin.affiliates.withdraw.status.approved') }}</option>
+              <option value="paid">{{ t('admin.affiliates.withdraw.status.paid') }}</option>
+              <option value="rejected">{{ t('admin.affiliates.withdraw.status.rejected') }}</option>
+              <option value="failed">{{ t('admin.affiliates.withdraw.status.failed') }}</option>
+            </select>
+          </div>
+          <button class="btn btn-secondary btn-sm" @click="loadWithdrawals">
+            {{ t('common.refresh') }}
+          </button>
+        </div>
+
+        <div class="mt-4 overflow-x-auto rounded-lg border border-gray-200 dark:border-dark-700">
+          <table class="w-full min-w-[1040px] table-fixed divide-y divide-gray-200 text-sm dark:divide-dark-700" data-test="withdraw-table">
+            <thead class="bg-gray-50 dark:bg-dark-800">
+              <tr>
+                <th class="w-[23%] px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.affiliates.withdraw.col.user') }}</th>
+                <th class="w-24 px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.affiliates.withdraw.col.amount') }}</th>
+                <th class="w-24 px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.affiliates.withdraw.col.status') }}</th>
+                <th class="w-[21%] px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.affiliates.withdraw.col.account') }}</th>
+                <th class="w-[16%] px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.affiliates.withdraw.col.tradeNo') }}</th>
+                <th class="w-44 px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.affiliates.withdraw.col.createdAt') }}</th>
+                <th class="w-40 px-3 py-2 text-left text-xs font-medium uppercase text-gray-500" data-test="withdraw-actions-header">{{ t('admin.affiliates.withdraw.col.actions') }}</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 bg-white dark:divide-dark-700 dark:bg-dark-900">
+              <tr v-if="withdrawState.loading">
+                <td colspan="7" class="px-3 py-6 text-center text-gray-500">{{ t('common.loading') }}</td>
+              </tr>
+              <tr v-else-if="withdrawState.items.length === 0">
+                <td colspan="7" class="px-3 py-6 text-center text-gray-500">{{ t('admin.affiliates.withdraw.empty') }}</td>
+              </tr>
+              <tr v-for="item in withdrawState.items" v-else :key="item.id">
+                <td class="px-3 py-2 text-gray-900 dark:text-white">
+                  <div class="truncate">{{ item.user_email || '-' }}</div>
+                  <div class="truncate text-xs text-gray-500">#{{ item.user_id }} · {{ item.username || '-' }}</div>
+                </td>
+                <td class="px-3 py-2 font-medium text-gray-900 dark:text-white">{{ formatCurrency(item.amount, 'CNY') }}</td>
+                <td class="px-3 py-2"><span :class="withdrawStatusClass(item.status)">{{ withdrawStatusLabel(item.status) }}</span></td>
+                <td class="truncate px-3 py-2 text-gray-600 dark:text-gray-300">{{ item.payout_account_note || '-' }}</td>
+                <td class="truncate px-3 py-2 text-gray-600 dark:text-gray-300">{{ item.payout_trade_no || '-' }}</td>
+                <td class="px-3 py-2 text-gray-600 dark:text-gray-300">{{ formatDateTime(item.created_at) || '-' }}</td>
+                <td class="w-40 px-3 py-2">
+                  <div v-if="item.status === 'pending_review' || item.status === 'approved'" class="flex flex-wrap gap-2">
+                    <button v-if="item.status === 'pending_review'" class="text-primary-600 hover:underline" @click="approveWithdrawal(item.id)">
+                      {{ t('admin.affiliates.withdraw.actions.approve') }}
+                    </button>
+                    <button v-if="item.status === 'pending_review'" class="text-rose-600 hover:underline" @click="rejectWithdrawal(item.id)">
+                      {{ t('admin.affiliates.withdraw.actions.reject') }}
+                    </button>
+                    <button v-if="item.status === 'approved'" class="text-emerald-600 hover:underline" @click="markWithdrawalPaid(item.id)">
+                      {{ t('admin.affiliates.withdraw.actions.paid') }}
+                    </button>
+                    <button v-if="item.status === 'approved'" class="text-rose-600 hover:underline" @click="markWithdrawalFailed(item.id)">
+                      {{ t('admin.affiliates.withdraw.actions.fail') }}
+                    </button>
+                  </div>
+                  <span v-else class="text-gray-400 dark:text-dark-500" data-test="withdraw-actions-placeholder">-</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card p-6">
         <div class="mb-4">
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
             {{ t('admin.affiliates.title') }}
@@ -54,17 +271,18 @@
                 <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.affiliates.col.code') }}</th>
                 <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.affiliates.col.invitedCount') }}</th>
                 <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.affiliates.col.totalRebate') }}</th>
+                <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.affiliates.col.identity') }}</th>
                 <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.affiliates.col.actions') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 bg-white dark:divide-dark-700 dark:bg-dark-900">
               <tr v-if="inviterState.loading">
-                <td colspan="6" class="px-3 py-6 text-center text-sm text-gray-500">
+                <td colspan="7" class="px-3 py-6 text-center text-sm text-gray-500">
                   {{ t('common.loading') }}
                 </td>
               </tr>
               <tr v-else-if="inviterState.entries.length === 0">
-                <td colspan="6" class="px-3 py-6 text-center text-sm text-gray-500">
+                <td colspan="7" class="px-3 py-6 text-center text-sm text-gray-500">
                   {{ t('admin.affiliates.empty') }}
                 </td>
               </tr>
@@ -74,6 +292,14 @@
                 <td class="px-3 py-2 text-sm font-mono">{{ entry.aff_code }}</td>
                 <td class="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">{{ entry.aff_count }}</td>
                 <td class="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">{{ formatCurrency(entry.total_rebate, 'CNY') }}</td>
+                <td class="px-3 py-2 text-sm">
+                  <span :class="identityBadgeClass(entry.identity_status)">
+                    {{ formatIdentityStatus(entry.identity_status) }}
+                  </span>
+                  <div v-if="entry.identity_expires_at" class="mt-1 text-xs text-gray-500">
+                    {{ formatDateTime(entry.identity_expires_at) }}
+                  </div>
+                </td>
                 <td class="px-3 py-2 text-sm">
                   <button
                     type="button"
@@ -143,6 +369,9 @@
                 <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.affiliates.inviteesCol.username') }}</th>
                 <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.affiliates.inviteesCol.joinedAt') }}</th>
                 <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.affiliates.inviteesCol.totalRebate') }}</th>
+                <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.affiliates.inviteesCol.paidAmount') }}</th>
+                <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.affiliates.inviteesCol.risk') }}</th>
+                <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.affiliates.inviteesCol.identity') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 bg-white dark:divide-dark-700 dark:bg-dark-900">
@@ -151,6 +380,16 @@
                 <td class="px-3 py-2 text-gray-600 dark:text-gray-300">{{ item.username || '-' }}</td>
                 <td class="px-3 py-2 text-gray-600 dark:text-gray-300">{{ formatDateTime(item.created_at) || '-' }}</td>
                 <td class="px-3 py-2 text-gray-600 dark:text-gray-300">{{ formatCurrency(item.total_rebate, 'CNY') }}</td>
+                <td class="px-3 py-2 text-gray-600 dark:text-gray-300">{{ formatCurrency(item.paid_amount || 0, 'CNY') }}</td>
+                <td class="px-3 py-2 text-gray-600 dark:text-gray-300">{{ formatRiskStatus(item.risk_flagged) }}</td>
+                <td class="px-3 py-2">
+                  <span :class="identityBadgeClass(item.identity_status)">
+                    {{ formatIdentityStatus(item.identity_status) }}
+                  </span>
+                  <div v-if="item.identity_expires_at" class="mt-1 text-xs text-gray-500">
+                    {{ formatDateTime(item.identity_expires_at) }}
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -268,13 +507,71 @@ import { useI18n } from 'vue-i18n'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import Icon from '@/components/icons/Icon.vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import { affiliatesAPI, type AffiliateInvitee, type AffiliateInviterEntry, type SimpleUser } from '@/api/admin/affiliates'
+import { affiliatesAPI, type AffiliateIdentityConfig, type AffiliateInvitee, type AffiliateInviterEntry, type SimpleUser } from '@/api/admin/affiliates'
 import { useAppStore } from '@/stores'
 import { extractApiErrorMessage } from '@/utils/apiError'
 import { formatCurrency, formatDateTime } from '@/utils/format'
+import type { AffiliateWithdrawal, AffiliateWithdrawSettings } from '@/types'
 
 const { t } = useI18n()
 const appStore = useAppStore()
+
+function defaultIdentityConfig(): AffiliateIdentityConfig {
+  return {
+    inviter_rate_multiplier: 1.5,
+    invitee_rate_multiplier: 1.4,
+    duration_hours: 720,
+    qualified_invitee_count: 0,
+    qualified_pay_amount: 50,
+    eligible_order_types: ['balance', 'subscription'],
+    fingerprint_enforcement_enabled: true,
+    max_accounts_per_fingerprint_hash: 3,
+  }
+}
+
+const identityConfigState = reactive<{
+  loading: boolean
+  saving: boolean
+  enabled: boolean
+  config: AffiliateIdentityConfig
+}>({
+  loading: false,
+  saving: false,
+  enabled: false,
+  config: defaultIdentityConfig(),
+})
+
+const withdrawSettings = reactive<AffiliateWithdrawSettings>({
+  enabled: false,
+  min_amount: 1,
+  max_amount: 0,
+  daily_request_limit: 3,
+  help_text: '',
+})
+
+const withdrawState = reactive<{
+  settingsLoading: boolean
+  settingsSaving: boolean
+  loading: boolean
+  items: AffiliateWithdrawal[]
+  total: number
+  page: number
+  pageSize: number
+  search: string
+  status: string
+  searchTimer: number | null
+}>({
+  settingsLoading: false,
+  settingsSaving: false,
+  loading: false,
+  items: [],
+  total: 0,
+  page: 1,
+  pageSize: 20,
+  search: '',
+  status: '',
+  searchTimer: null,
+})
 
 const inviterState = reactive<{
   loading: boolean
@@ -352,6 +649,196 @@ function userTimezone(): string {
     return Intl.DateTimeFormat().resolvedOptions().timeZone
   } catch {
     return 'UTC'
+  }
+}
+
+async function loadIdentityConfig() {
+  identityConfigState.loading = true
+  try {
+    const res = await affiliatesAPI.getIdentityConfig()
+    identityConfigState.enabled = res.enabled
+    identityConfigState.config = {
+      ...defaultIdentityConfig(),
+      ...res.config,
+      eligible_order_types: res.config.eligible_order_types?.length
+        ? [...res.config.eligible_order_types]
+        : ['balance', 'subscription'],
+    }
+  } catch (err) {
+    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+  } finally {
+    identityConfigState.loading = false
+  }
+}
+
+function toggleIdentityOrderType(orderType: 'balance' | 'subscription') {
+  const current = new Set(identityConfigState.config.eligible_order_types)
+  if (current.has(orderType)) {
+    current.delete(orderType)
+  } else {
+    current.add(orderType)
+  }
+  identityConfigState.config.eligible_order_types = Array.from(current)
+}
+
+async function saveIdentityConfig() {
+  identityConfigState.saving = true
+  try {
+    const res = await affiliatesAPI.updateIdentityConfig({
+      enabled: identityConfigState.enabled,
+      config: identityConfigState.config,
+    })
+    identityConfigState.enabled = res.enabled
+    identityConfigState.config = {
+      ...defaultIdentityConfig(),
+      ...res.config,
+      eligible_order_types: res.config.eligible_order_types?.length
+        ? [...res.config.eligible_order_types]
+        : ['balance', 'subscription'],
+    }
+    appStore.showSuccess(t('admin.affiliates.identityConfig.saved'))
+  } catch (err) {
+    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+  } finally {
+    identityConfigState.saving = false
+  }
+}
+
+function formatIdentityStatus(status?: string | null): string {
+  return status === 'active'
+    ? t('admin.affiliates.identityConfig.identityActive')
+    : t('admin.affiliates.identityConfig.identityNone')
+}
+
+function identityBadgeClass(status?: string | null): string {
+  return status === 'active'
+    ? 'inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+    : 'inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-dark-700 dark:text-gray-300'
+}
+
+function formatRiskStatus(riskFlagged?: boolean): string {
+  return riskFlagged
+    ? t('admin.affiliates.identityConfig.riskFlagged')
+    : t('admin.affiliates.identityConfig.riskNormal')
+}
+
+async function loadWithdrawSettings() {
+  withdrawState.settingsLoading = true
+  try {
+    const res = await affiliatesAPI.getWithdrawSettings()
+    Object.assign(withdrawSettings, res)
+  } catch (err) {
+    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+  } finally {
+    withdrawState.settingsLoading = false
+  }
+}
+
+async function saveWithdrawSettings() {
+  withdrawState.settingsSaving = true
+  try {
+    const res = await affiliatesAPI.updateWithdrawSettings(withdrawSettings)
+    Object.assign(withdrawSettings, res)
+    appStore.showSuccess(t('admin.affiliates.withdraw.settingsSaved'))
+  } catch (err) {
+    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+  } finally {
+    withdrawState.settingsSaving = false
+  }
+}
+
+async function loadWithdrawals() {
+  withdrawState.loading = true
+  try {
+    const res = await affiliatesAPI.listWithdrawals({
+      page: withdrawState.page,
+      page_size: withdrawState.pageSize,
+      search: withdrawState.search,
+      status: withdrawState.status || undefined,
+    })
+    withdrawState.items = res.items ?? []
+    withdrawState.total = res.total ?? 0
+  } catch (err) {
+    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+  } finally {
+    withdrawState.loading = false
+  }
+}
+
+function onWithdrawSearchInput() {
+  debounceTimer(withdrawState, 300, () => {
+    withdrawState.page = 1
+    void loadWithdrawals()
+  })
+}
+
+function onWithdrawFilterChange() {
+  withdrawState.page = 1
+  void loadWithdrawals()
+}
+
+function withdrawStatusLabel(status: string): string {
+  return t(`admin.affiliates.withdraw.status.${status}`, status)
+}
+
+function withdrawStatusClass(status: string): string {
+  if (status === 'paid') {
+    return 'inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+  }
+  if (status === 'rejected' || status === 'failed') {
+    return 'inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
+  }
+  if (status === 'approved') {
+    return 'inline-flex rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700 dark:bg-sky-900/30 dark:text-sky-300'
+  }
+  return 'inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+}
+
+async function approveWithdrawal(id: number) {
+  try {
+    await affiliatesAPI.approveWithdrawal(id)
+    appStore.showSuccess(t('admin.affiliates.withdraw.messages.approved'))
+    await loadWithdrawals()
+  } catch (err) {
+    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+  }
+}
+
+async function rejectWithdrawal(id: number) {
+  const reason = window.prompt(t('admin.affiliates.withdraw.prompts.rejectReason'))
+  if (!reason) return
+  try {
+    await affiliatesAPI.rejectWithdrawal(id, reason)
+    appStore.showSuccess(t('admin.affiliates.withdraw.messages.rejected'))
+    await loadWithdrawals()
+  } catch (err) {
+    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+  }
+}
+
+async function markWithdrawalPaid(id: number) {
+  const payoutTradeNo = window.prompt(t('admin.affiliates.withdraw.prompts.tradeNo')) || ''
+  try {
+    await affiliatesAPI.markWithdrawalPaid(id, {
+      payout_channel: 'wechat_manual',
+      payout_trade_no: payoutTradeNo,
+    })
+    appStore.showSuccess(t('admin.affiliates.withdraw.messages.paid'))
+    await loadWithdrawals()
+  } catch (err) {
+    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+  }
+}
+
+async function markWithdrawalFailed(id: number) {
+  const reason = window.prompt(t('admin.affiliates.withdraw.prompts.failReason'))
+  if (!reason) return
+  try {
+    await affiliatesAPI.markWithdrawalFailed(id, reason)
+    appStore.showSuccess(t('admin.affiliates.withdraw.messages.failed'))
+    await loadWithdrawals()
+  } catch (err) {
+    appStore.showError(extractApiErrorMessage(err, t('common.error')))
   }
 }
 
@@ -513,6 +1000,9 @@ function clearInvitees() {
 }
 
 onMounted(() => {
+  void loadIdentityConfig()
+  void loadWithdrawSettings()
+  void loadWithdrawals()
   void loadInviters()
 })
 </script>

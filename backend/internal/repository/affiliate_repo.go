@@ -513,15 +513,38 @@ SELECT ua.user_id,
        COALESCE(u.email, ''),
        COALESCE(u.username, ''),
        ua.created_at,
-       COALESCE(SUM(ual.amount), 0)::double precision AS total_rebate
+       COALESCE(SUM(ual.amount), 0)::double precision AS total_rebate,
+       COALESCE(paid.total_paid, 0)::double precision AS paid_amount,
+       COALESCE(f.risk_flagged, false) AS risk_flagged,
+       COALESCE(f.risk_reason, '') AS risk_reason,
+       ident.status AS identity_status,
+       ident.expires_at AS identity_expires_at
 FROM user_affiliates ua
 LEFT JOIN users u ON u.id = ua.user_id
 LEFT JOIN user_affiliate_ledger ual
        ON ual.user_id = $1
       AND ual.source_user_id = ua.user_id
       AND ual.action IN ('accrue', 'signup_bonus')
+LEFT JOIN user_signup_fingerprints f ON f.user_id = ua.user_id
+LEFT JOIN user_affiliate_identities ident
+       ON ident.user_id = ua.user_id
+      AND ident.identity_type = 'invitee'
+      AND ident.source_inviter_id = $1
+      AND ident.status = 'active'
+      AND ident.expires_at > NOW()
+LEFT JOIN (
+    SELECT user_id,
+           COALESCE(SUM(CASE
+             WHEN status = 'partially_refunded' THEN GREATEST(pay_amount - COALESCE(refund_amount, 0), 0)
+             WHEN status = 'completed' THEN pay_amount
+             ELSE 0
+           END), 0)::double precision AS total_paid
+    FROM payment_orders
+    WHERE status IN ('completed', 'partially_refunded')
+    GROUP BY user_id
+) paid ON paid.user_id = ua.user_id
 WHERE ua.inviter_id = $1
-GROUP BY ua.user_id, u.email, u.username, ua.created_at
+GROUP BY ua.user_id, u.email, u.username, ua.created_at, paid.total_paid, f.risk_flagged, f.risk_reason, ident.status, ident.expires_at
 ORDER BY ua.created_at DESC
 LIMIT $2`, inviterID, limit)
 	if err != nil {
@@ -533,10 +556,29 @@ LIMIT $2`, inviterID, limit)
 	for rows.Next() {
 		var item service.AffiliateInvitee
 		var createdAt time.Time
-		if err := rows.Scan(&item.UserID, &item.Email, &item.Username, &createdAt, &item.TotalRebate); err != nil {
+		var identityStatus sql.NullString
+		var identityExpiresAt sql.NullTime
+		if err := rows.Scan(
+			&item.UserID,
+			&item.Email,
+			&item.Username,
+			&createdAt,
+			&item.TotalRebate,
+			&item.PaidAmount,
+			&item.RiskFlagged,
+			&item.RiskReason,
+			&identityStatus,
+			&identityExpiresAt,
+		); err != nil {
 			return nil, err
 		}
 		item.CreatedAt = &createdAt
+		if identityStatus.Valid {
+			item.IdentityStatus = &identityStatus.String
+		}
+		if identityExpiresAt.Valid {
+			item.IdentityExpiresAt = &identityExpiresAt.Time
+		}
 		invitees = append(invitees, item)
 	}
 	if err := rows.Err(); err != nil {
@@ -630,7 +672,9 @@ SELECT ua.user_id,
        COALESCE(u.username, ''),
        COALESCE(ua.aff_code, ''),
        COUNT(DISTINCT ua_child.user_id)::integer AS aff_count,
-       COALESCE(SUM(ual.amount), 0)::double precision AS total_rebate
+       COALESCE(SUM(ual.amount), 0)::double precision AS total_rebate,
+       ident.status AS identity_status,
+       ident.expires_at AS identity_expires_at
 FROM user_affiliates ua
 JOIN users u ON u.id = ua.user_id
 LEFT JOIN user_affiliates ua_child
@@ -639,8 +683,13 @@ LEFT JOIN user_affiliate_ledger ual
        ON ual.user_id = ua.user_id
       AND ual.source_user_id = ua_child.user_id
       AND ual.action IN ('accrue', 'signup_bonus')
+LEFT JOIN user_affiliate_identities ident
+       ON ident.user_id = ua.user_id
+      AND ident.identity_type = 'inviter'
+      AND ident.status = 'active'
+      AND ident.expires_at > NOW()
 `+baseWhere+`
-GROUP BY ua.user_id, u.email, u.username, ua.aff_code
+GROUP BY ua.user_id, u.email, u.username, ua.aff_code, ident.status, ident.expires_at
 HAVING COUNT(DISTINCT ua_child.user_id) > 0
 ORDER BY COUNT(DISTINCT ua_child.user_id) DESC, ua.user_id DESC
 LIMIT $`+fmt.Sprint(len(args)-1)+` OFFSET $`+fmt.Sprint(len(args)), args...)
@@ -652,6 +701,8 @@ LIMIT $`+fmt.Sprint(len(args)-1)+` OFFSET $`+fmt.Sprint(len(args)), args...)
 	items := make([]service.AffiliateInviterEntry, 0)
 	for rows.Next() {
 		var item service.AffiliateInviterEntry
+		var identityStatus sql.NullString
+		var identityExpiresAt sql.NullTime
 		if err := rows.Scan(
 			&item.UserID,
 			&item.Email,
@@ -659,8 +710,16 @@ LIMIT $`+fmt.Sprint(len(args)-1)+` OFFSET $`+fmt.Sprint(len(args)), args...)
 			&item.AffCode,
 			&item.AffCount,
 			&item.TotalRebate,
+			&identityStatus,
+			&identityExpiresAt,
 		); err != nil {
 			return nil, 0, err
+		}
+		if identityStatus.Valid {
+			item.IdentityStatus = &identityStatus.String
+		}
+		if identityExpiresAt.Valid {
+			item.IdentityExpiresAt = &identityExpiresAt.Time
 		}
 		items = append(items, item)
 	}
@@ -770,15 +829,16 @@ WHERE ual.action = 'accrue'
 	}
 
 	orderBy := buildAffiliateRecordOrderBy(filter, map[string]string{
-		"order":         "po.id",
-		"inviter":       "inviter.email",
-		"invitee":       "invitee.email",
-		"order_amount":  "po.amount",
-		"pay_amount":    "po.pay_amount",
-		"rebate_amount": "ual.amount",
-		"payment_type":  "po.payment_type",
-		"order_status":  "po.status",
-		"created_at":    "ual.created_at",
+		"order":              "po.id",
+		"inviter":            "inviter.email",
+		"invitee":            "invitee.email",
+		"order_amount":       "po.amount",
+		"pay_amount":         "po.pay_amount",
+		"rebate_base_amount": "CASE WHEN po.order_type = 'subscription' THEN po.subscription_rebate_base_amount ELSE po.amount END",
+		"rebate_amount":      "ual.amount",
+		"payment_type":       "po.payment_type",
+		"order_status":       "po.status",
+		"created_at":         "ual.created_at",
 	}, "ual.created_at")
 	args = append(args, filter.PageSize, (filter.Page-1)*filter.PageSize)
 	rows, err := client.QueryContext(ctx, `
@@ -792,6 +852,10 @@ SELECT po.id,
        COALESCE(invitee.username, ''),
        po.amount::double precision,
        po.pay_amount::double precision,
+       (CASE
+          WHEN po.order_type = 'subscription' THEN po.subscription_rebate_base_amount
+          ELSE po.amount
+        END)::double precision,
        ual.amount::double precision,
        po.payment_type,
        po.status,
@@ -818,6 +882,7 @@ LIMIT $`+fmt.Sprint(len(args)-1)+` OFFSET $`+fmt.Sprint(len(args)), args...)
 			&item.InviteeUsername,
 			&item.OrderAmount,
 			&item.PayAmount,
+			&item.RebateBaseAmount,
 			&item.RebateAmount,
 			&item.PaymentType,
 			&item.OrderStatus,

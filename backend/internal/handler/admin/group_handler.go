@@ -71,6 +71,13 @@ func (f optionalLimitField) ToServiceInput() *float64 {
 	return &zero
 }
 
+func (f optionalLimitField) ToUpdateServiceInput() *float64 {
+	if !f.set {
+		return nil
+	}
+	return f.value
+}
+
 // NewGroupHandler creates a new admin group handler
 func NewGroupHandler(adminService service.AdminService, dashboardService *service.DashboardService, groupCapacityService *service.GroupCapacityService) *GroupHandler {
 	return &GroupHandler{
@@ -315,7 +322,7 @@ func (h *GroupHandler) Update(c *gin.Context) {
 		DailyLimitUSD:                   req.DailyLimitUSD.ToServiceInput(),
 		WeeklyLimitUSD:                  req.WeeklyLimitUSD.ToServiceInput(),
 		MonthlyLimitUSD:                 req.MonthlyLimitUSD.ToServiceInput(),
-		SubscriptionTotalLimitUSD:       req.SubscriptionTotalLimitUSD.ToServiceInput(),
+		SubscriptionTotalLimitUSD:       req.SubscriptionTotalLimitUSD.ToUpdateServiceInput(),
 		AllowImageGeneration:            req.AllowImageGeneration,
 		ImageRateIndependent:            req.ImageRateIndependent,
 		ImageRateMultiplier:             req.ImageRateMultiplier,

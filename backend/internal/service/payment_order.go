@@ -134,7 +134,17 @@ func (s *PaymentService) validateSubOrder(ctx context.Context, req CreateOrderRe
 		return nil, infraerrors.BadRequest("INVALID_INPUT", "subscription order requires a plan")
 	}
 	plan, err := s.configService.GetPlan(ctx, req.PlanID)
-	if err != nil || !subscriptionPlanIsAvailableForSale(plan, time.Now()) {
+	if err != nil {
+		return nil, infraerrors.NotFound("PLAN_NOT_AVAILABLE", "plan not found or not for sale")
+	}
+	now := time.Now()
+	if plan == nil || !plan.ForSale || !subscriptionPlanIsInSaleWindow(plan, now) {
+		return nil, infraerrors.NotFound("PLAN_NOT_AVAILABLE", "plan not found or not for sale")
+	}
+	if !subscriptionPlanIsInWeeklySaleDays(plan, now) {
+		return nil, infraerrors.Forbidden("PLAN_WEEKLY_SALE_UNAVAILABLE", "weekly sale day unavailable")
+	}
+	if !subscriptionPlanIsInDailySaleWindow(plan, now) {
 		return nil, infraerrors.NotFound("PLAN_NOT_AVAILABLE", "plan not found or not for sale")
 	}
 	if err := s.checkPlanDailyPurchaseLimit(ctx, plan); err != nil {
@@ -147,7 +157,24 @@ func (s *PaymentService) validateSubOrder(ctx context.Context, req CreateOrderRe
 	if !group.IsSubscriptionType() {
 		return nil, infraerrors.BadRequest("GROUP_TYPE_MISMATCH", "group is not a subscription type")
 	}
+	if err := s.checkPlanPurchaseOncePerActiveSubscription(ctx, req.UserID, plan); err != nil {
+		return nil, err
+	}
 	return plan, nil
+}
+
+func (s *PaymentService) checkPlanPurchaseOncePerActiveSubscription(ctx context.Context, userID int64, plan *dbent.SubscriptionPlan) error {
+	if plan == nil || !plan.PurchaseOncePerActiveSubscription || userID <= 0 {
+		return nil
+	}
+	activeSub, err := s.configService.ActiveSubscriptionForPurchaseOnce(ctx, userID, plan.GroupID, time.Now())
+	if err != nil {
+		return err
+	}
+	if activeSub == nil {
+		return nil
+	}
+	return infraerrors.Conflict("SUBSCRIPTION_ACTIVE_PURCHASE_ONCE", "subscription plan can be purchased again after current subscription expires")
 }
 
 func subscriptionPlanIsInSaleWindow(plan *dbent.SubscriptionPlan, now time.Time) bool {
@@ -167,7 +194,23 @@ func subscriptionPlanIsAvailableForSale(plan *dbent.SubscriptionPlan, now time.T
 	if plan == nil || !plan.ForSale || !subscriptionPlanIsInSaleWindow(plan, now) {
 		return false
 	}
-	return subscriptionPlanIsInDailySaleWindow(plan, now)
+	return subscriptionPlanIsInWeeklySaleDays(plan, now) && subscriptionPlanIsInDailySaleWindow(plan, now)
+}
+
+func subscriptionPlanIsInWeeklySaleDays(plan *dbent.SubscriptionPlan, now time.Time) bool {
+	if plan == nil || len(plan.WeeklySaleDays) == 0 {
+		return true
+	}
+	weekday := int(now.Local().Weekday())
+	if weekday == 0 {
+		weekday = 7
+	}
+	for _, saleDay := range plan.WeeklySaleDays {
+		if saleDay == weekday {
+			return true
+		}
+	}
+	return false
 }
 
 func subscriptionPlanIsInDailySaleWindow(plan *dbent.SubscriptionPlan, now time.Time) bool {
@@ -294,8 +337,13 @@ func (s *PaymentService) createOrderInTx(ctx context.Context, req CreateOrderReq
 	if plan != nil {
 		b.SetPlanID(plan.ID).SetSubscriptionGroupID(plan.GroupID).SetSubscriptionDays(psComputeValidityDays(plan.ValidityDays, plan.ValidityUnit))
 		if s.groupRepo != nil {
-			if group, err := s.groupRepo.GetByID(ctx, plan.GroupID); err == nil && group != nil && group.SubscriptionTotalLimitUSD != nil && *group.SubscriptionTotalLimitUSD > 0 {
-				b.SetSubscriptionTotalLimitUsd(*group.SubscriptionTotalLimitUSD)
+			if group, err := s.groupRepo.GetByID(ctx, plan.GroupID); err == nil && group != nil {
+				if group.SubscriptionTotalLimitUSD != nil && *group.SubscriptionTotalLimitUSD > 0 {
+					b.SetSubscriptionTotalLimitUsd(*group.SubscriptionTotalLimitUSD)
+				}
+				if rebateBase := subscriptionRebateBaseAmountFromGroup(group); rebateBase != nil {
+					b.SetSubscriptionRebateBaseAmount(*rebateBase)
+				}
 			}
 		}
 	}
@@ -312,6 +360,27 @@ func (s *PaymentService) createOrderInTx(ctx context.Context, req CreateOrderReq
 		return nil, fmt.Errorf("commit order transaction: %w", err)
 	}
 	return order, nil
+}
+
+func subscriptionRebateBaseAmountFromGroup(group *Group) *float64 {
+	if group == nil {
+		return nil
+	}
+	maxAmount := 0.0
+	for _, amount := range []*float64{
+		group.DailyLimitUSD,
+		group.WeeklyLimitUSD,
+		group.MonthlyLimitUSD,
+		group.SubscriptionTotalLimitUSD,
+	} {
+		if amount != nil && *amount > maxAmount {
+			maxAmount = *amount
+		}
+	}
+	if maxAmount <= 0 {
+		return nil
+	}
+	return &maxAmount
 }
 
 func (s *PaymentService) allocateOutTradeNo(ctx context.Context, tx *dbent.Tx) (string, error) {

@@ -105,6 +105,72 @@
         </div>
 
         <div class="card p-6">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div class="max-w-2xl">
+              <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ t('affiliate.withdraw.title') }}</h3>
+              <p class="mt-1 text-sm text-gray-500 dark:text-dark-400">{{ t('affiliate.withdraw.description') }}</p>
+            </div>
+            <form class="grid gap-3 sm:grid-cols-[120px_minmax(220px,1fr)_auto]" @submit.prevent="submitWithdrawal">
+              <input
+                v-model.number="withdrawForm.amount"
+                type="number"
+                min="0"
+                step="0.01"
+                class="input"
+                :placeholder="t('affiliate.withdraw.amount')"
+              />
+              <input
+                v-model="withdrawForm.payout_account_note"
+                type="text"
+                class="input"
+                :placeholder="t('affiliate.withdraw.accountNote')"
+              />
+              <button class="btn btn-primary" type="submit" :disabled="withdrawing || detail.aff_quota <= 0">
+                <Icon v-if="withdrawing" name="refresh" size="sm" class="animate-spin" />
+                <Icon v-else name="dollar" size="sm" />
+                <span>{{ withdrawing ? t('affiliate.withdraw.submitting') : t('affiliate.withdraw.submit') }}</span>
+              </button>
+            </form>
+          </div>
+          <p v-if="detail.aff_quota <= 0" class="mt-3 text-sm text-amber-600 dark:text-amber-400">
+            {{ t('affiliate.withdraw.empty') }}
+          </p>
+          <div class="mt-5 overflow-x-auto">
+            <table class="w-full min-w-[720px] text-left text-sm">
+              <thead>
+                <tr class="border-b border-gray-200 text-gray-500 dark:border-dark-700 dark:text-dark-400">
+                  <th class="px-3 py-2 font-medium">{{ t('affiliate.withdraw.columns.amount') }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t('affiliate.withdraw.columns.status') }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t('affiliate.withdraw.columns.account') }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t('affiliate.withdraw.columns.tradeNo') }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t('affiliate.withdraw.columns.createdAt') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="withdrawalsLoading">
+                  <td colspan="5" class="px-3 py-6 text-center text-gray-500">{{ t('common.loading') }}</td>
+                </tr>
+                <tr v-else-if="withdrawals.length === 0">
+                  <td colspan="5" class="px-3 py-6 text-center text-gray-500">{{ t('affiliate.withdraw.noRecords') }}</td>
+                </tr>
+                <tr
+                  v-for="item in withdrawals"
+                  v-else
+                  :key="item.id"
+                  class="border-b border-gray-100 last:border-b-0 dark:border-dark-800"
+                >
+                  <td class="px-3 py-3 font-medium text-gray-900 dark:text-white">{{ formatCurrency(item.amount) }}</td>
+                  <td class="px-3 py-3"><span :class="withdrawStatusClass(item.status)">{{ withdrawStatusLabel(item.status) }}</span></td>
+                  <td class="px-3 py-3 text-gray-700 dark:text-gray-300">{{ item.payout_account_note || '-' }}</td>
+                  <td class="px-3 py-3 text-gray-700 dark:text-gray-300">{{ item.payout_trade_no || '-' }}</td>
+                  <td class="px-3 py-3 text-gray-700 dark:text-gray-300">{{ formatDateTime(item.created_at) || '-' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card p-6">
           <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ t('affiliate.invitees.title') }}</h3>
           <div v-if="detail.invitees.length === 0" class="mt-4 rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-dark-700 dark:text-dark-400">
             {{ t('affiliate.invitees.empty') }}
@@ -145,7 +211,7 @@ import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
 import userAPI from '@/api/user'
-import type { UserAffiliateDetail } from '@/types'
+import type { AffiliateWithdrawal, UserAffiliateDetail } from '@/types'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { useClipboard } from '@/composables/useClipboard'
@@ -159,7 +225,14 @@ const { copyToClipboard } = useClipboard()
 
 const loading = ref(true)
 const transferring = ref(false)
+const withdrawing = ref(false)
+const withdrawalsLoading = ref(false)
 const detail = ref<UserAffiliateDetail | null>(null)
+const withdrawals = ref<AffiliateWithdrawal[]>([])
+const withdrawForm = ref({
+  amount: null as number | null,
+  payout_account_note: '',
+})
 
 const inviteLink = computed(() => {
   if (!detail.value) return ''
@@ -196,6 +269,18 @@ async function loadAffiliateDetail(silent = false): Promise<void> {
   }
 }
 
+async function loadWithdrawals(): Promise<void> {
+  withdrawalsLoading.value = true
+  try {
+    const resp = await userAPI.listAffiliateWithdrawals({ page: 1, page_size: 20 })
+    withdrawals.value = resp.items || []
+  } catch (error) {
+    appStore.showError(extractApiErrorMessage(error, t('affiliate.withdraw.loadFailed')))
+  } finally {
+    withdrawalsLoading.value = false
+  }
+}
+
 async function copyCode(): Promise<void> {
   if (!detail.value?.aff_code) return
   await copyToClipboard(detail.value.aff_code, t('affiliate.codeCopied'))
@@ -223,7 +308,56 @@ async function transferQuota(): Promise<void> {
   }
 }
 
+async function submitWithdrawal(): Promise<void> {
+  if (!detail.value || withdrawing.value) return
+  const amount = Number(withdrawForm.value.amount || 0)
+  if (amount <= 0 || amount > detail.value.aff_quota) {
+    appStore.showError(t('affiliate.withdraw.invalidAmount'))
+    return
+  }
+  if (!withdrawForm.value.payout_account_note.trim()) {
+    appStore.showError(t('affiliate.withdraw.accountRequired'))
+    return
+  }
+  withdrawing.value = true
+  try {
+    await userAPI.createAffiliateWithdrawal({
+      amount,
+      payout_method: 'wechat_manual',
+      payout_account_note: withdrawForm.value.payout_account_note.trim(),
+    })
+    appStore.showSuccess(t('affiliate.withdraw.success'))
+    withdrawForm.value = { amount: null, payout_account_note: '' }
+    await Promise.all([
+      loadAffiliateDetail(true),
+      loadWithdrawals(),
+    ])
+  } catch (error) {
+    appStore.showError(extractApiErrorMessage(error, t('affiliate.withdraw.failed')))
+  } finally {
+    withdrawing.value = false
+  }
+}
+
+function withdrawStatusLabel(status: string): string {
+  return t(`affiliate.withdraw.status.${status}`, status)
+}
+
+function withdrawStatusClass(status: string): string {
+  if (status === 'paid') {
+    return 'inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+  }
+  if (status === 'rejected' || status === 'failed') {
+    return 'inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
+  }
+  if (status === 'approved') {
+    return 'inline-flex rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700 dark:bg-sky-900/30 dark:text-sky-300'
+  }
+  return 'inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+}
+
 onMounted(() => {
   void loadAffiliateDetail()
+  void loadWithdrawals()
 })
 </script>

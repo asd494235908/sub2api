@@ -225,6 +225,20 @@ func (_c *PaymentOrderCreate) SetNillableSubscriptionTotalLimitUsd(v *float64) *
 	return _c
 }
 
+// SetSubscriptionRebateBaseAmount sets the "subscription_rebate_base_amount" field.
+func (_c *PaymentOrderCreate) SetSubscriptionRebateBaseAmount(v float64) *PaymentOrderCreate {
+	_c.mutation.SetSubscriptionRebateBaseAmount(v)
+	return _c
+}
+
+// SetNillableSubscriptionRebateBaseAmount sets the "subscription_rebate_base_amount" field if the given value is not nil.
+func (_c *PaymentOrderCreate) SetNillableSubscriptionRebateBaseAmount(v *float64) *PaymentOrderCreate {
+	if v != nil {
+		_c.SetSubscriptionRebateBaseAmount(*v)
+	}
+	return _c
+}
+
 // SetProviderInstanceID sets the "provider_instance_id" field.
 func (_c *PaymentOrderCreate) SetProviderInstanceID(v string) *PaymentOrderCreate {
 	_c.mutation.SetProviderInstanceID(v)
@@ -787,6 +801,10 @@ func (_c *PaymentOrderCreate) createSpec() (*PaymentOrder, *sqlgraph.CreateSpec)
 		_spec.SetField(paymentorder.FieldSubscriptionTotalLimitUsd, field.TypeFloat64, value)
 		_node.SubscriptionTotalLimitUsd = &value
 	}
+	if value, ok := _c.mutation.SubscriptionRebateBaseAmount(); ok {
+		_spec.SetField(paymentorder.FieldSubscriptionRebateBaseAmount, field.TypeFloat64, value)
+		_node.SubscriptionRebateBaseAmount = &value
+	}
 	if value, ok := _c.mutation.ProviderInstanceID(); ok {
 		_spec.SetField(paymentorder.FieldProviderInstanceID, field.TypeString, value)
 		_node.ProviderInstanceID = &value
@@ -1255,6 +1273,30 @@ func (u *PaymentOrderUpsert) AddSubscriptionTotalLimitUsd(v float64) *PaymentOrd
 // ClearSubscriptionTotalLimitUsd clears the value of the "subscription_total_limit_usd" field.
 func (u *PaymentOrderUpsert) ClearSubscriptionTotalLimitUsd() *PaymentOrderUpsert {
 	u.SetNull(paymentorder.FieldSubscriptionTotalLimitUsd)
+	return u
+}
+
+// SetSubscriptionRebateBaseAmount sets the "subscription_rebate_base_amount" field.
+func (u *PaymentOrderUpsert) SetSubscriptionRebateBaseAmount(v float64) *PaymentOrderUpsert {
+	u.Set(paymentorder.FieldSubscriptionRebateBaseAmount, v)
+	return u
+}
+
+// UpdateSubscriptionRebateBaseAmount sets the "subscription_rebate_base_amount" field to the value that was provided on create.
+func (u *PaymentOrderUpsert) UpdateSubscriptionRebateBaseAmount() *PaymentOrderUpsert {
+	u.SetExcluded(paymentorder.FieldSubscriptionRebateBaseAmount)
+	return u
+}
+
+// AddSubscriptionRebateBaseAmount adds v to the "subscription_rebate_base_amount" field.
+func (u *PaymentOrderUpsert) AddSubscriptionRebateBaseAmount(v float64) *PaymentOrderUpsert {
+	u.Add(paymentorder.FieldSubscriptionRebateBaseAmount, v)
+	return u
+}
+
+// ClearSubscriptionRebateBaseAmount clears the value of the "subscription_rebate_base_amount" field.
+func (u *PaymentOrderUpsert) ClearSubscriptionRebateBaseAmount() *PaymentOrderUpsert {
+	u.SetNull(paymentorder.FieldSubscriptionRebateBaseAmount)
 	return u
 }
 
@@ -1995,6 +2037,34 @@ func (u *PaymentOrderUpsertOne) UpdateSubscriptionTotalLimitUsd() *PaymentOrderU
 func (u *PaymentOrderUpsertOne) ClearSubscriptionTotalLimitUsd() *PaymentOrderUpsertOne {
 	return u.Update(func(s *PaymentOrderUpsert) {
 		s.ClearSubscriptionTotalLimitUsd()
+	})
+}
+
+// SetSubscriptionRebateBaseAmount sets the "subscription_rebate_base_amount" field.
+func (u *PaymentOrderUpsertOne) SetSubscriptionRebateBaseAmount(v float64) *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.SetSubscriptionRebateBaseAmount(v)
+	})
+}
+
+// AddSubscriptionRebateBaseAmount adds v to the "subscription_rebate_base_amount" field.
+func (u *PaymentOrderUpsertOne) AddSubscriptionRebateBaseAmount(v float64) *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.AddSubscriptionRebateBaseAmount(v)
+	})
+}
+
+// UpdateSubscriptionRebateBaseAmount sets the "subscription_rebate_base_amount" field to the value that was provided on create.
+func (u *PaymentOrderUpsertOne) UpdateSubscriptionRebateBaseAmount() *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.UpdateSubscriptionRebateBaseAmount()
+	})
+}
+
+// ClearSubscriptionRebateBaseAmount clears the value of the "subscription_rebate_base_amount" field.
+func (u *PaymentOrderUpsertOne) ClearSubscriptionRebateBaseAmount() *PaymentOrderUpsertOne {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.ClearSubscriptionRebateBaseAmount()
 	})
 }
 
@@ -2955,6 +3025,34 @@ func (u *PaymentOrderUpsertBulk) UpdateSubscriptionTotalLimitUsd() *PaymentOrder
 func (u *PaymentOrderUpsertBulk) ClearSubscriptionTotalLimitUsd() *PaymentOrderUpsertBulk {
 	return u.Update(func(s *PaymentOrderUpsert) {
 		s.ClearSubscriptionTotalLimitUsd()
+	})
+}
+
+// SetSubscriptionRebateBaseAmount sets the "subscription_rebate_base_amount" field.
+func (u *PaymentOrderUpsertBulk) SetSubscriptionRebateBaseAmount(v float64) *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.SetSubscriptionRebateBaseAmount(v)
+	})
+}
+
+// AddSubscriptionRebateBaseAmount adds v to the "subscription_rebate_base_amount" field.
+func (u *PaymentOrderUpsertBulk) AddSubscriptionRebateBaseAmount(v float64) *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.AddSubscriptionRebateBaseAmount(v)
+	})
+}
+
+// UpdateSubscriptionRebateBaseAmount sets the "subscription_rebate_base_amount" field to the value that was provided on create.
+func (u *PaymentOrderUpsertBulk) UpdateSubscriptionRebateBaseAmount() *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.UpdateSubscriptionRebateBaseAmount()
+	})
+}
+
+// ClearSubscriptionRebateBaseAmount clears the value of the "subscription_rebate_base_amount" field.
+func (u *PaymentOrderUpsertBulk) ClearSubscriptionRebateBaseAmount() *PaymentOrderUpsertBulk {
+	return u.Update(func(s *PaymentOrderUpsert) {
+		s.ClearSubscriptionRebateBaseAmount()
 	})
 }
 

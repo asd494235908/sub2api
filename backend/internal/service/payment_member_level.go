@@ -117,7 +117,10 @@ func (s *PaymentService) MemberMultiplierEnabledForKey(ctx context.Context, apiK
 	if s == nil || !s.isRechargeKeyBilling(apiKey, subscription) {
 		return false
 	}
-	return s.memberLevelEnabled(ctx)
+	if s.memberLevelEnabled(ctx) {
+		return true
+	}
+	return s.affiliateService != nil && s.affiliateService.affiliateIdentityEnabled(ctx)
 }
 
 func normalizeMemberLevelConfig(cfg *MemberLevelConfig) (*MemberLevelConfig, error) {

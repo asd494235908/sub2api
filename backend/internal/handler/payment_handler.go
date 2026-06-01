@@ -131,6 +131,7 @@ func (h *PaymentHandler) GetCheckoutInfo(c *gin.Context) {
 	groupInfo := h.configService.GetGroupInfoMap(ctx, plans)
 	planList := make([]checkoutPlan, 0, len(plans))
 	now := time.Now()
+	subject, _ := middleware2.GetAuthSubjectFromContext(c)
 	for _, p := range plans {
 		gi := groupInfo[p.GroupID]
 		dailyRemaining, err := h.configService.SubscriptionPlanDailyPurchaseRemaining(ctx, p, now)
@@ -142,27 +143,40 @@ func (h *PaymentHandler) GetCheckoutInfo(c *gin.Context) {
 		if dailyRemaining != nil && *dailyRemaining <= 0 {
 			dailyStatus = "sold_out"
 		}
+		weeklyStatus := service.SubscriptionPlanWeeklySaleState(p, now)
+		weeklyAvailable := weeklyStatus == "available"
+		purchaseOnceAvailable, purchaseOnceUnavailableUntil, err := h.purchaseOnceCheckoutAvailability(ctx, subject.UserID, p, now)
+		if err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
 		planList = append(planList, checkoutPlan{
 			ID: int64(p.ID), GroupID: p.GroupID,
 			GroupPlatform: gi.Platform, GroupName: gi.Name,
 			RateMultiplier: gi.RateMultiplier, DailyLimitUSD: gi.DailyLimitUSD,
 			WeeklyLimitUSD: gi.WeeklyLimitUSD, MonthlyLimitUSD: gi.MonthlyLimitUSD,
 			SubscriptionTotalLimitUSD: gi.SubscriptionTotalLimitUSD,
-			ModelScopes: gi.ModelScopes, SupportedModels: h.supportedModelsForPlan(ctx, p.GroupID, gi.Platform),
+			ModelScopes:               gi.ModelScopes, SupportedModels: h.supportedModelsForPlan(ctx, p.GroupID, gi.Platform),
 			Name: p.Name, Description: p.Description, Price: p.Price, OriginalPrice: p.OriginalPrice,
 			ValidityDays: p.ValidityDays, ValidityUnit: p.ValidityUnit, Features: parseFeatures(p.Features),
 			ProductName: p.ProductName,
 			ForSale:     p.ForSale,
 
-			SaleStartsAt:                 p.SaleStartsAt,
-			SaleEndsAt:                   p.SaleEndsAt,
-			DailyPurchaseLimit:           p.DailyPurchaseLimit,
-			DailyPurchaseRemaining:       dailyRemaining,
-			DailySaleStartsAt:            p.DailySaleStartsAt,
-			DailySaleEndsAt:              p.DailySaleEndsAt,
-			DailySaleStatus:              dailyStatus,
-			DailySaleCountdownSeconds:    dailyCountdown,
-			DailySaleAvailableForPayment: dailyStatus == "available",
+			PurchaseOncePerActiveSubscription: p.PurchaseOncePerActiveSubscription,
+			PurchaseOnceAvailableForPayment:   purchaseOnceAvailable,
+			PurchaseOnceUnavailableUntil:      purchaseOnceUnavailableUntil,
+			SaleStartsAt:                      p.SaleStartsAt,
+			SaleEndsAt:                        p.SaleEndsAt,
+			WeeklySaleDays:                    p.WeeklySaleDays,
+			WeeklySaleStatus:                  weeklyStatus,
+			WeeklySaleAvailableForPayment:     weeklyAvailable,
+			DailyPurchaseLimit:                p.DailyPurchaseLimit,
+			DailyPurchaseRemaining:            dailyRemaining,
+			DailySaleStartsAt:                 p.DailySaleStartsAt,
+			DailySaleEndsAt:                   p.DailySaleEndsAt,
+			DailySaleStatus:                   dailyStatus,
+			DailySaleCountdownSeconds:         dailyCountdown,
+			DailySaleAvailableForPayment:      dailyStatus == "available" && weeklyAvailable,
 		})
 	}
 
@@ -203,35 +217,55 @@ type firstRechargeCheckoutSummary struct {
 }
 
 type checkoutPlan struct {
-	ID                           int64      `json:"id"`
-	GroupID                      int64      `json:"group_id"`
-	GroupPlatform                string     `json:"group_platform"`
-	GroupName                    string     `json:"group_name"`
-	RateMultiplier               float64    `json:"rate_multiplier"`
-	DailyLimitUSD                *float64   `json:"daily_limit_usd"`
-	WeeklyLimitUSD               *float64   `json:"weekly_limit_usd"`
-	MonthlyLimitUSD              *float64   `json:"monthly_limit_usd"`
-	SubscriptionTotalLimitUSD    *float64   `json:"subscription_total_limit_usd"`
-	ModelScopes                  []string   `json:"supported_model_scopes"`
-	SupportedModels              []string   `json:"supported_models"`
-	Name                         string     `json:"name"`
-	Description                  string     `json:"description"`
-	Price                        float64    `json:"price"`
-	OriginalPrice                *float64   `json:"original_price,omitempty"`
-	ValidityDays                 int        `json:"validity_days"`
-	ValidityUnit                 string     `json:"validity_unit"`
-	Features                     []string   `json:"features"`
-	ProductName                  string     `json:"product_name"`
-	ForSale                      bool       `json:"for_sale"`
-	SaleStartsAt                 *time.Time `json:"sale_starts_at,omitempty"`
-	SaleEndsAt                   *time.Time `json:"sale_ends_at,omitempty"`
-	DailyPurchaseLimit           int        `json:"daily_purchase_limit"`
-	DailyPurchaseRemaining       *int       `json:"daily_purchase_remaining"`
-	DailySaleStartsAt            *string    `json:"daily_sale_starts_at"`
-	DailySaleEndsAt              *string    `json:"daily_sale_ends_at"`
-	DailySaleStatus              string     `json:"daily_sale_status"`
-	DailySaleCountdownSeconds    int        `json:"daily_sale_countdown_seconds"`
-	DailySaleAvailableForPayment bool       `json:"daily_sale_available_for_payment"`
+	ID                                int64      `json:"id"`
+	GroupID                           int64      `json:"group_id"`
+	GroupPlatform                     string     `json:"group_platform"`
+	GroupName                         string     `json:"group_name"`
+	RateMultiplier                    float64    `json:"rate_multiplier"`
+	DailyLimitUSD                     *float64   `json:"daily_limit_usd"`
+	WeeklyLimitUSD                    *float64   `json:"weekly_limit_usd"`
+	MonthlyLimitUSD                   *float64   `json:"monthly_limit_usd"`
+	SubscriptionTotalLimitUSD         *float64   `json:"subscription_total_limit_usd"`
+	ModelScopes                       []string   `json:"supported_model_scopes"`
+	SupportedModels                   []string   `json:"supported_models"`
+	Name                              string     `json:"name"`
+	Description                       string     `json:"description"`
+	Price                             float64    `json:"price"`
+	OriginalPrice                     *float64   `json:"original_price,omitempty"`
+	ValidityDays                      int        `json:"validity_days"`
+	ValidityUnit                      string     `json:"validity_unit"`
+	Features                          []string   `json:"features"`
+	ProductName                       string     `json:"product_name"`
+	ForSale                           bool       `json:"for_sale"`
+	PurchaseOncePerActiveSubscription bool       `json:"purchase_once_per_active_subscription"`
+	PurchaseOnceAvailableForPayment   bool       `json:"purchase_once_available_for_payment"`
+	PurchaseOnceUnavailableUntil      *time.Time `json:"purchase_once_unavailable_until,omitempty"`
+	SaleStartsAt                      *time.Time `json:"sale_starts_at,omitempty"`
+	SaleEndsAt                        *time.Time `json:"sale_ends_at,omitempty"`
+	WeeklySaleDays                    []int      `json:"weekly_sale_days"`
+	WeeklySaleStatus                  string     `json:"weekly_sale_status"`
+	WeeklySaleAvailableForPayment     bool       `json:"weekly_sale_available_for_payment"`
+	DailyPurchaseLimit                int        `json:"daily_purchase_limit"`
+	DailyPurchaseRemaining            *int       `json:"daily_purchase_remaining"`
+	DailySaleStartsAt                 *string    `json:"daily_sale_starts_at"`
+	DailySaleEndsAt                   *string    `json:"daily_sale_ends_at"`
+	DailySaleStatus                   string     `json:"daily_sale_status"`
+	DailySaleCountdownSeconds         int        `json:"daily_sale_countdown_seconds"`
+	DailySaleAvailableForPayment      bool       `json:"daily_sale_available_for_payment"`
+}
+
+func (h *PaymentHandler) purchaseOnceCheckoutAvailability(ctx context.Context, userID int64, plan *dbent.SubscriptionPlan, now time.Time) (bool, *time.Time, error) {
+	if plan == nil || !plan.PurchaseOncePerActiveSubscription || userID <= 0 {
+		return true, nil, nil
+	}
+	activeSub, err := h.configService.ActiveSubscriptionForPurchaseOnce(ctx, userID, plan.GroupID, now)
+	if err != nil {
+		return false, nil, err
+	}
+	if activeSub == nil {
+		return true, nil, nil
+	}
+	return false, &activeSub.ExpiresAt, nil
 }
 
 func (h *PaymentHandler) supportedModelsForPlan(ctx context.Context, groupID int64, platform string) []string {

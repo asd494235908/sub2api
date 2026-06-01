@@ -176,7 +176,7 @@ func TestAffiliateHandler_CreateInviteRelationRejectsSameUser(t *testing.T) {
 	t.Parallel()
 
 	svc := &service.AffiliateService{}
-	handler := NewAffiliateHandler(svc, nil)
+	handler := NewAffiliateHandler(svc, nil, nil)
 	gin.SetMode(gin.TestMode)
 	rec := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(rec)

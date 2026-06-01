@@ -152,6 +152,10 @@ func (s *AuthService) Register(ctx context.Context, email, phoneNumber, password
 
 // RegisterWithVerification 用户注册（支持邮件验证、优惠码、邀请码和邀请返利码），返回token和用户。
 func (s *AuthService) RegisterWithVerification(ctx context.Context, email, phoneNumber, password, verifyCode, phoneVerifyCode, promoCode, invitationCode, affiliateCode string) (string, *User, error) {
+	return s.RegisterWithVerificationAndFingerprint(ctx, email, phoneNumber, password, verifyCode, phoneVerifyCode, promoCode, invitationCode, affiliateCode, AffiliateSignupFingerprintInput{})
+}
+
+func (s *AuthService) RegisterWithVerificationAndFingerprint(ctx context.Context, email, phoneNumber, password, verifyCode, phoneVerifyCode, promoCode, invitationCode, affiliateCode string, deviceFingerprint AffiliateSignupFingerprintInput) (string, *User, error) {
 	// 检查是否开放注册（默认关闭：settingService 未配置时不允许注册）
 	if s.settingService == nil || !s.settingService.IsRegistrationEnabled(ctx) {
 		return "", nil, ErrRegDisabled
@@ -274,6 +278,7 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, phone
 	s.assignSubscriptions(ctx, user.ID, grantPlan.Subscriptions, "auto assigned by signup defaults")
 	_ = s.snapshotPlatformQuotaDefaults(ctx, user.ID, &grantPlan)
 	s.bindAffiliateAndApplySignupBonus(ctx, user.ID, affiliateCode, "email")
+	s.recordAffiliateSignupFingerprint(ctx, user.ID, deviceFingerprint)
 
 	// 标记邀请码为已使用（如果使用了邀请码）
 	if invitationRedeemCode != nil {
@@ -935,6 +940,19 @@ func (s *AuthService) bindAffiliateAndApplySignupBonus(ctx context.Context, user
 	if _, _, err := s.affiliateService.ApplySignupBonus(ctx, userID); err != nil {
 		logger.LegacyPrintf("service.auth", "[Auth] Failed to apply affiliate signup bonus for %s user %d: %v", signupKind, userID, err)
 	}
+}
+
+func (s *AuthService) recordAffiliateSignupFingerprint(ctx context.Context, userID int64, input AffiliateSignupFingerprintInput) {
+	if s.affiliateService == nil || userID <= 0 {
+		return
+	}
+	if err := s.affiliateService.RecordSignupFingerprint(ctx, userID, input); err != nil {
+		logger.LegacyPrintf("service.auth", "[Auth] Failed to record affiliate signup fingerprint for user %d: %v", userID, err)
+	}
+}
+
+func (s *AuthService) RecordAffiliateSignupFingerprint(ctx context.Context, userID int64, input AffiliateSignupFingerprintInput) {
+	s.recordAffiliateSignupFingerprint(ctx, userID, input)
 }
 
 func (s *AuthService) bindOAuthAffiliate(ctx context.Context, userID int64, affiliateCode string) {

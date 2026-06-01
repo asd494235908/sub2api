@@ -789,6 +789,39 @@ func TestOpenAIGatewayServiceRecordUsage_PrefersClientRequestIDOverUpstreamReque
 	require.Equal(t, "client:openai-client-stable-123", usageRepo.lastLog.RequestID)
 }
 
+func TestOpenAIGatewayServiceRecordUsage_NormalizesLongBillingRequestID(t *testing.T) {
+	usageRepo := &openAIRecordUsageLogRepoStub{}
+	billingRepo := &openAIRecordUsageBillingRepoStub{result: &UsageBillingApplyResult{Applied: true}}
+	userRepo := &openAIRecordUsageUserRepoStub{}
+	subRepo := &openAIRecordUsageSubRepoStub{}
+	svc := newOpenAIRecordUsageServiceWithBillingRepoForTest(usageRepo, billingRepo, userRepo, subRepo, nil)
+
+	longRequestID := "client:" + strings.Repeat("openai-long-billing-request-id-", 4)
+	err := svc.RecordUsage(context.Background(), &OpenAIRecordUsageInput{
+		Result: &OpenAIForwardResult{
+			RequestID: "upstream-openai-ignored",
+			Usage: OpenAIUsage{
+				InputTokens:  8,
+				OutputTokens: 4,
+			},
+			Model:    "gpt-5.1",
+			Duration: time.Second,
+		},
+		APIKey:           &APIKey{ID: 10050},
+		User:             &User{ID: 20050},
+		Account:          &Account{ID: 30050},
+		BillingRequestID: longRequestID,
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, billingRepo.lastCmd)
+	require.NotNil(t, usageRepo.lastLog)
+	require.LessOrEqual(t, len(billingRepo.lastCmd.RequestID), maxUsageBillingRequestIDLen)
+	require.Equal(t, billingRepo.lastCmd.RequestID, usageRepo.lastLog.RequestID)
+	require.True(t, strings.HasPrefix(billingRepo.lastCmd.RequestID, "client-h:"))
+	require.Equal(t, billingRepo.lastCmd.RequestID, resolveUsageBillingRequestID(context.Background(), longRequestID, ""))
+}
+
 func TestOpenAIGatewayServiceRecordUsage_GeneratesRequestIDWhenAllSourcesMissing(t *testing.T) {
 	usageRepo := &openAIRecordUsageLogRepoStub{}
 	billingRepo := &openAIRecordUsageBillingRepoStub{result: &UsageBillingApplyResult{Applied: true}}

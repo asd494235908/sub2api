@@ -45,6 +45,14 @@
         <template #cell-daily_purchase_limit="{ value }">
           <span class="text-sm">{{ value ? value : t('payment.admin.unlimited') }}</span>
         </template>
+        <template #cell-purchase_once_per_active_subscription="{ value }">
+          <span :class="['badge', value ? 'badge-warning' : 'badge-secondary']">
+            {{ value ? t('common.yes') : t('common.no') }}
+          </span>
+        </template>
+        <template #cell-weekly_sale_days="{ value }">
+          <span class="text-sm text-gray-700 dark:text-gray-300">{{ formatWeeklySaleDays(value) }}</span>
+        </template>
         <template #cell-daily_sale_starts_at="{ value }">
           <span class="text-sm text-gray-700 dark:text-gray-300">{{ formatPlanTime(value) }}</span>
         </template>
@@ -151,6 +159,8 @@ const planColumns = computed((): Column[] => [
   { key: 'sale_starts_at', label: t('payment.admin.saleStartsAt') },
   { key: 'sale_ends_at', label: t('payment.admin.saleEndsAt') },
   { key: 'daily_purchase_limit', label: t('payment.admin.dailyPurchaseLimit') },
+  { key: 'purchase_once_per_active_subscription', label: t('payment.admin.purchaseOncePerActiveSubscription') },
+  { key: 'weekly_sale_days', label: t('payment.admin.weeklySaleDays') },
   { key: 'daily_sale_starts_at', label: t('payment.admin.dailySaleStartsAt') },
   { key: 'daily_sale_ends_at', label: t('payment.admin.dailySaleEndsAt') },
   { key: 'for_sale', label: t('payment.admin.forSale') },
@@ -188,6 +198,20 @@ function formatPlanDateTime(value?: string | null): string {
 
 function formatPlanTime(value?: string | null): string {
   return value || '-'
+}
+
+function formatWeeklySaleDays(value?: number[] | null): string {
+  if (!value || value.length === 0) return t('payment.admin.weeklySaleDaysUnrestricted')
+  const labels: Record<number, string> = {
+    1: t('payment.weekdays.mon'),
+    2: t('payment.weekdays.tue'),
+    3: t('payment.weekdays.wed'),
+    4: t('payment.weekdays.thu'),
+    5: t('payment.weekdays.fri'),
+    6: t('payment.weekdays.sat'),
+    7: t('payment.weekdays.sun'),
+  }
+  return value.map(day => labels[day]).filter(Boolean).join(', ')
 }
 
 

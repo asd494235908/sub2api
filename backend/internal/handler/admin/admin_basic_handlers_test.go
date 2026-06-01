@@ -221,6 +221,24 @@ func TestGroupHandlerEndpoints(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code)
 }
 
+func TestGroupHandlerUpdateTreatsNullSubscriptionTotalLimitAsOmitted(t *testing.T) {
+	router, adminSvc := setupAdminRouter()
+
+	body, _ := json.Marshal(map[string]any{
+		"name":                         "early-bird",
+		"subscription_total_limit_usd": nil,
+	})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/admin/groups/2", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, int64(2), adminSvc.lastUpdateGroup.id)
+	require.NotNil(t, adminSvc.lastUpdateGroup.input)
+	require.Nil(t, adminSvc.lastUpdateGroup.input.SubscriptionTotalLimitUSD)
+}
+
 func TestProxyHandlerEndpoints(t *testing.T) {
 	router, _ := setupAdminRouter()
 

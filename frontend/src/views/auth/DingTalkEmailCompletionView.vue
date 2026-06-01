@@ -37,6 +37,7 @@ import {
   type PendingOAuthExchangeResponse
 } from '@/api/auth'
 import { clearAllAffiliateReferralCodes } from '@/utils/oauthAffiliate'
+import { collectDeviceFingerprint, deviceFingerprintPayload } from '@/utils/deviceFingerprint'
 
 const route = useRoute()
 const router = useRouter()
@@ -82,7 +83,8 @@ async function handleCreateAccount(payload: PendingOAuthCreateAccountPayload) {
         email: payload.email,
         password: payload.password,
         verify_code: payload.verifyCode || undefined,
-        invitation_code: payload.invitationCode || undefined
+        invitation_code: payload.invitationCode || undefined,
+        ...deviceFingerprintPayload(await collectDeviceFingerprint())
       }
     )
 

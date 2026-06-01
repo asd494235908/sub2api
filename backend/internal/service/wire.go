@@ -592,7 +592,8 @@ var ProviderSet = wire.NewSet(
 	NewChannelService,
 	NewModelPricingResolver,
 	NewContentModerationService,
-	NewAffiliateService,
+	ProvideAffiliateService,
+	NewAffiliateWithdrawalService,
 	ProvidePaymentConfigService,
 	ProvidePaymentService,
 	ProvidePaymentOrderExpiryService,
@@ -612,6 +613,12 @@ func ProvidePaymentConfigService(entClient *dbent.Client, settingRepo SettingRep
 func ProvideBalanceNotifyService(emailService *EmailService, settingRepo SettingRepository, accountRepo AccountRepository, notificationEmailService *NotificationEmailService) *BalanceNotifyService {
 	svc := NewBalanceNotifyService(emailService, settingRepo, accountRepo)
 	svc.SetNotificationEmailService(notificationEmailService)
+	return svc
+}
+
+func ProvideAffiliateService(repo AffiliateRepository, identityRepo AffiliateIdentityRepository, settingService *SettingService, authCacheInvalidator APIKeyAuthCacheInvalidator, billingCacheService *BillingCacheService) *AffiliateService {
+	svc := NewAffiliateService(repo, settingService, authCacheInvalidator, billingCacheService)
+	svc.SetIdentityRepository(identityRepo)
 	return svc
 }
 

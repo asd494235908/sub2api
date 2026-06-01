@@ -71,15 +71,16 @@ func NewAuthHandler(cfg *config.Config, authService *service.AuthService, userSe
 
 // RegisterRequest represents the registration request payload
 type RegisterRequest struct {
-	Email           string `json:"email" binding:"required,email"`
-	PhoneNumber     string `json:"phone_number"`
-	Password        string `json:"password" binding:"required,min=6"`
-	VerifyCode      string `json:"verify_code"`
-	PhoneVerifyCode string `json:"phone_verify_code"`
-	TurnstileToken  string `json:"turnstile_token"`
-	PromoCode       string `json:"promo_code"`      // 注册优惠码
-	InvitationCode  string `json:"invitation_code"` // 邀请码
-	AffCode         string `json:"aff_code"`        // 邀请返利码
+	Email             string                                  `json:"email" binding:"required,email"`
+	PhoneNumber       string                                  `json:"phone_number"`
+	Password          string                                  `json:"password" binding:"required,min=6"`
+	VerifyCode        string                                  `json:"verify_code"`
+	PhoneVerifyCode   string                                  `json:"phone_verify_code"`
+	TurnstileToken    string                                  `json:"turnstile_token"`
+	PromoCode         string                                  `json:"promo_code"`      // 注册优惠码
+	InvitationCode    string                                  `json:"invitation_code"` // 邀请码
+	AffCode           string                                  `json:"aff_code"`        // 邀请返利码
+	DeviceFingerprint service.AffiliateSignupFingerprintInput `json:"device_fingerprint"`
 }
 
 func (r *RegisterRequest) UnmarshalJSON(data []byte) error {
@@ -218,7 +219,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	_, user, err := h.authService.RegisterWithVerification(
+	_, user, err := h.authService.RegisterWithVerificationAndFingerprint(
 		c.Request.Context(),
 		req.Email,
 		req.PhoneNumber,
@@ -228,6 +229,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		req.PromoCode,
 		req.InvitationCode,
 		req.AffCode,
+		req.DeviceFingerprint,
 	)
 	if err != nil {
 		response.ErrorFrom(c, err)

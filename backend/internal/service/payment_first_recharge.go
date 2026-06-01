@@ -285,9 +285,16 @@ func (s *PaymentService) ResolveMemberMultiplier(ctx context.Context, user *User
 	}
 	state, err := s.ResolveMemberLevel(ctx, user)
 	if err != nil || state == nil || state.RateMultiplier <= 0 || math.IsNaN(state.RateMultiplier) || math.IsInf(state.RateMultiplier, 0) {
-		return 1
+		return s.resolveAffiliateIdentityMultiplier(ctx, user.ID, 1)
 	}
-	return state.RateMultiplier
+	return s.resolveAffiliateIdentityMultiplier(ctx, user.ID, state.RateMultiplier)
+}
+
+func (s *PaymentService) resolveAffiliateIdentityMultiplier(ctx context.Context, userID int64, currentMultiplier float64) float64 {
+	if s == nil || s.affiliateService == nil || userID <= 0 {
+		return currentMultiplier
+	}
+	return s.affiliateService.ResolveAffiliateIdentityMultiplier(ctx, userID, currentMultiplier)
 }
 
 func (s *PaymentService) ensureFirstRechargeTables(ctx context.Context) error {

@@ -269,6 +269,7 @@ import {
   loadOAuthAffiliateCode,
   oauthAffiliatePayload
 } from '@/utils/oauthAffiliate'
+import { collectDeviceFingerprint, deviceFingerprintPayload } from '@/utils/deviceFingerprint'
 
 const route = useRoute()
 const router = useRouter()
@@ -660,18 +661,24 @@ async function handleSubmitInvitation() {
   try {
     const affCode = loadOAuthAffiliateCode()
     const decision = currentAdoptionDecision()
+    const deviceFingerprint = await collectDeviceFingerprint()
     const completion: PendingOidcCompletion = legacyPendingOAuthToken.value
       ? (
           await apiClient.post<PendingOidcCompletion>('/auth/oauth/oidc/complete-registration', {
             pending_oauth_token: legacyPendingOAuthToken.value,
             invitation_code: invitationCode.value.trim(),
+            ...deviceFingerprintPayload(deviceFingerprint),
             ...oauthAffiliatePayload(affCode),
             ...serializeAdoptionDecision(decision)
           })
         ).data
       : affCode
-        ? await completeOIDCOAuthRegistration(invitationCode.value.trim(), decision, affCode)
-        : await completeOIDCOAuthRegistration(invitationCode.value.trim(), decision)
+        ? deviceFingerprint.composite_hash
+          ? await completeOIDCOAuthRegistration(invitationCode.value.trim(), decision, affCode, deviceFingerprint)
+          : await completeOIDCOAuthRegistration(invitationCode.value.trim(), decision, affCode)
+        : deviceFingerprint.composite_hash
+          ? await completeOIDCOAuthRegistration(invitationCode.value.trim(), decision, undefined, deviceFingerprint)
+          : await completeOIDCOAuthRegistration(invitationCode.value.trim(), decision)
     await finalizePendingAccountResponse(completion)
   } catch (e: unknown) {
     const err = e as { message?: string; response?: { data?: { message?: string } } }
@@ -706,6 +713,7 @@ async function handleCreateAccount(payload: PendingOAuthCreateAccountPayload) {
       password: payload.password,
       verify_code: payload.verifyCode || undefined,
       invitation_code: payload.invitationCode || undefined,
+      ...deviceFingerprintPayload(await collectDeviceFingerprint()),
       ...oauthAffiliatePayload(loadOAuthAffiliateCode()),
       ...serializeAdoptionDecision(currentAdoptionDecision())
     })

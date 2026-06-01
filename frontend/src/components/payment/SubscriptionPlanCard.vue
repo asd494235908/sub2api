@@ -89,6 +89,20 @@
         </div>
       </div>
 
+      <div v-if="hasWeeklySaleInfo" class="mb-3 space-y-1.5 rounded-lg border border-sky-100 bg-sky-50 px-3 py-2 text-xs dark:border-sky-900/40 dark:bg-sky-950/20">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sky-700 dark:text-sky-300">{{ t('payment.planCard.weeklySaleDays') }}</span>
+          <span class="font-medium text-sky-900 dark:text-sky-100">{{ weeklySaleDaysText }}</span>
+        </div>
+        <div v-if="weeklySaleBlocked" class="font-medium text-sky-800 dark:text-sky-200">
+          {{ t('payment.planCard.weeklySaleOffDay') }}
+        </div>
+      </div>
+
+      <div v-if="purchaseOnceBlocked" class="mb-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300">
+        {{ t('payment.purchaseOnceUnavailable') }}
+      </div>
+
       <!-- Features list (compact) -->
       <div v-if="plan.features.length > 0" class="mb-3 space-y-1">
         <div v-for="feature in plan.features" :key="feature" class="flex items-start gap-1.5">
@@ -171,11 +185,36 @@ const iconClass = computed(() => platformIconClass(platform.value))
 const btnClass = computed(() => platformButtonClass(platform.value))
 const discountClass = computed(() => platformDiscountClass(platform.value))
 const pLabel = computed(() => platformLabel(platform.value))
-const canSelectPlan = computed(() => props.plan.daily_sale_available_for_payment !== false && props.plan.daily_sale_status !== 'sold_out')
+const purchaseOnceBlocked = computed(() => props.plan.purchase_once_available_for_payment === false)
+const weeklySaleBlocked = computed(() =>
+  props.plan.weekly_sale_available_for_payment === false || props.plan.weekly_sale_status === 'off_day'
+)
+const canSelectPlan = computed(() =>
+  props.plan.daily_sale_available_for_payment !== false
+  && props.plan.daily_sale_status !== 'sold_out'
+  && !weeklySaleBlocked.value
+  && !purchaseOnceBlocked.value
+)
 const hasDailySaleInfo = computed(() => !!(props.plan.daily_sale_starts_at && props.plan.daily_sale_ends_at) || props.plan.daily_purchase_limit > 0)
+const hasWeeklySaleInfo = computed(() => (props.plan.weekly_sale_days?.length ?? 0) > 0)
 const dailySaleTimeRange = computed(() => {
   if (!props.plan.daily_sale_starts_at || !props.plan.daily_sale_ends_at) return '-'
   return `${props.plan.daily_sale_starts_at} - ${props.plan.daily_sale_ends_at}`
+})
+
+const weekdayLabels = computed<Record<number, string>>(() => ({
+  1: t('payment.weekdays.mon'),
+  2: t('payment.weekdays.tue'),
+  3: t('payment.weekdays.wed'),
+  4: t('payment.weekdays.thu'),
+  5: t('payment.weekdays.fri'),
+  6: t('payment.weekdays.sat'),
+  7: t('payment.weekdays.sun'),
+}))
+const weeklySaleDaysText = computed(() => {
+  const days = props.plan.weekly_sale_days ?? []
+  if (days.length === 0) return t('payment.planCard.weeklySaleUnrestricted')
+  return days.map(day => weekdayLabels.value[day]).filter(Boolean).join('/')
 })
 
 function formatDuration(totalSeconds: number): string {

@@ -142,3 +142,4 @@ deploy/localtest-data/
 deploy/localtest-backups/
 deploy/localtest-build/
 deploy/.env.localtest
+tools/e2e_*.mjs

@@ -29,6 +29,16 @@ func promptArchiveRequestID(c *gin.Context) string {
 	return ""
 }
 
+func usageBillingRequestID(c *gin.Context) string {
+	if requestID := promptArchiveRequestID(c); requestID != "" {
+		return "local:" + requestID
+	}
+	if clientRequestID := promptArchiveClientRequestID(c); clientRequestID != "" {
+		return "client:" + clientRequestID
+	}
+	return ""
+}
+
 func enrichPromptArchiveEnvelope(c *gin.Context, env *service.PromptArchiveEnvelope) *service.PromptArchiveEnvelope {
 	if env == nil {
 		return nil

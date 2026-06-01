@@ -46,6 +46,22 @@
         <div><label class="input-label">{{ t('payment.admin.sortOrder') }}</label><input v-model.number="planForm.sort_order" type="number" min="0" class="input" /></div>
         <div><label class="input-label">{{ t('payment.admin.dailyPurchaseLimit') }}</label><input v-model.number="planForm.daily_purchase_limit" type="number" min="0" step="1" class="input" /></div>
       </div>
+      <div class="flex items-center gap-3">
+        <label class="text-sm text-gray-700 dark:text-gray-300">{{ t('payment.admin.purchaseOncePerActiveSubscription') }}</label>
+        <button
+          type="button"
+          :class="[
+            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+            planForm.purchase_once_per_active_subscription ? 'bg-primary-500' : 'bg-gray-300 dark:bg-dark-600'
+          ]"
+          @click="planForm.purchase_once_per_active_subscription = !planForm.purchase_once_per_active_subscription"
+        >
+          <span :class="[
+            'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+            planForm.purchase_once_per_active_subscription ? 'translate-x-5' : 'translate-x-0'
+          ]" />
+        </button>
+      </div>
       <div class="grid grid-cols-2 gap-4">
         <div><label class="input-label">{{ t('payment.admin.saleStartsAt') }}</label><input v-model="planForm.sale_starts_at" type="datetime-local" class="input" /></div>
         <div><label class="input-label">{{ t('payment.admin.saleEndsAt') }}</label><input v-model="planForm.sale_ends_at" type="datetime-local" class="input" /></div>
@@ -53,6 +69,26 @@
       <div class="grid grid-cols-2 gap-4">
         <div><label class="input-label">{{ t('payment.admin.dailySaleStartsAt') }}</label><input v-model="planForm.daily_sale_starts_at" type="time" class="input" /></div>
         <div><label class="input-label">{{ t('payment.admin.dailySaleEndsAt') }}</label><input v-model="planForm.daily_sale_ends_at" type="time" class="input" /></div>
+      </div>
+      <div>
+        <label class="input-label">{{ t('payment.admin.weeklySaleDays') }}</label>
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="option in weekdayOptions"
+            :key="option.value"
+            type="button"
+            :class="[
+              'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors',
+              isWeeklySaleDaySelected(option.value)
+                ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-300'
+                : 'border-gray-200 bg-white text-gray-600 hover:border-primary-300 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-300'
+            ]"
+            @click="toggleWeeklySaleDay(option.value)"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('payment.admin.weeklySaleDaysHint') }}</p>
       </div>
       <div>
         <label class="input-label">{{ t('payment.admin.features') }}</label>
@@ -114,13 +150,23 @@ const { t } = useI18n()
 const appStore = useAppStore()
 
 const saving = ref(false)
-const planForm = reactive({ name: '', group_id: null as number | null, description: '', price: 0, original_price: 0, validity_days: 30, validity_unit: 'days', sort_order: 0, for_sale: true, sale_starts_at: '', sale_ends_at: '', daily_purchase_limit: 0, daily_sale_starts_at: '', daily_sale_ends_at: '' })
+const planForm = reactive({ name: '', group_id: null as number | null, description: '', price: 0, original_price: 0, validity_days: 30, validity_unit: 'days', sort_order: 0, for_sale: true, purchase_once_per_active_subscription: false, weekly_sale_days: [] as number[], sale_starts_at: '', sale_ends_at: '', daily_purchase_limit: 0, daily_sale_starts_at: '', daily_sale_ends_at: '' })
 const planFeaturesText = ref('')
 
 const validityUnitOptions = computed(() => [
   { value: 'days', label: t('payment.admin.days') },
   { value: 'weeks', label: t('payment.admin.weeks') },
   { value: 'months', label: t('payment.admin.months') },
+])
+
+const weekdayOptions = computed(() => [
+  { value: 1, label: t('payment.weekdays.mon') },
+  { value: 2, label: t('payment.weekdays.tue') },
+  { value: 3, label: t('payment.weekdays.wed') },
+  { value: 4, label: t('payment.weekdays.thu') },
+  { value: 5, label: t('payment.weekdays.fri') },
+  { value: 6, label: t('payment.weekdays.sat') },
+  { value: 7, label: t('payment.weekdays.sun') },
 ])
 
 const groupOptions = computed(() =>
@@ -142,10 +188,10 @@ const selectedGroupInfo = computed(() => {
 watch(() => props.show, (visible) => {
   if (!visible) return
   if (props.plan) {
-    Object.assign(planForm, { name: props.plan.name, group_id: props.plan.group_id, description: props.plan.description, price: props.plan.price, original_price: props.plan.original_price || 0, validity_days: props.plan.validity_days, validity_unit: props.plan.validity_unit || 'days', sort_order: props.plan.sort_order || 0, for_sale: props.plan.for_sale, sale_starts_at: toDateTimeLocal(props.plan.sale_starts_at), sale_ends_at: toDateTimeLocal(props.plan.sale_ends_at), daily_purchase_limit: props.plan.daily_purchase_limit || 0, daily_sale_starts_at: props.plan.daily_sale_starts_at || '', daily_sale_ends_at: props.plan.daily_sale_ends_at || '' })
+    Object.assign(planForm, { name: props.plan.name, group_id: props.plan.group_id, description: props.plan.description, price: props.plan.price, original_price: props.plan.original_price || 0, validity_days: props.plan.validity_days, validity_unit: props.plan.validity_unit || 'days', sort_order: props.plan.sort_order || 0, for_sale: props.plan.for_sale, purchase_once_per_active_subscription: !!props.plan.purchase_once_per_active_subscription, weekly_sale_days: [...(props.plan.weekly_sale_days || [])], sale_starts_at: toDateTimeLocal(props.plan.sale_starts_at), sale_ends_at: toDateTimeLocal(props.plan.sale_ends_at), daily_purchase_limit: props.plan.daily_purchase_limit || 0, daily_sale_starts_at: props.plan.daily_sale_starts_at || '', daily_sale_ends_at: props.plan.daily_sale_ends_at || '' })
     planFeaturesText.value = (props.plan.features || []).join('\n')
   } else {
-    Object.assign(planForm, { name: '', group_id: null, description: '', price: 0, original_price: 0, validity_days: 30, validity_unit: 'days', sort_order: 0, for_sale: true, sale_starts_at: '', sale_ends_at: '', daily_purchase_limit: 0, daily_sale_starts_at: '', daily_sale_ends_at: '' })
+    Object.assign(planForm, { name: '', group_id: null, description: '', price: 0, original_price: 0, validity_days: 30, validity_unit: 'days', sort_order: 0, for_sale: true, purchase_once_per_active_subscription: false, weekly_sale_days: [], sale_starts_at: '', sale_ends_at: '', daily_purchase_limit: 0, daily_sale_starts_at: '', daily_sale_ends_at: '' })
     planFeaturesText.value = ''
   }
 }, { immediate: true })
@@ -170,6 +216,18 @@ function nullableString(value: string) {
   return trimmed ? trimmed : null
 }
 
+function isWeeklySaleDaySelected(day: number) {
+  return planForm.weekly_sale_days.includes(day)
+}
+
+function toggleWeeklySaleDay(day: number) {
+  if (isWeeklySaleDaySelected(day)) {
+    planForm.weekly_sale_days = planForm.weekly_sale_days.filter(value => value !== day)
+    return
+  }
+  planForm.weekly_sale_days = [...planForm.weekly_sale_days, day].sort((a, b) => a - b)
+}
+
 /** Build request payload with snake_case keys matching backend JSON tags */
 function buildPlanPayload() {
   const features = planFeaturesText.value.split('\n').map(f => f.trim()).filter(Boolean).join('\n')
@@ -183,6 +241,8 @@ function buildPlanPayload() {
     validity_unit: planForm.validity_unit,
     sort_order: planForm.sort_order,
     for_sale: planForm.for_sale,
+    purchase_once_per_active_subscription: planForm.purchase_once_per_active_subscription,
+    weekly_sale_days: [...planForm.weekly_sale_days],
     sale_starts_at: fromDateTimeLocal(planForm.sale_starts_at),
     sale_ends_at: fromDateTimeLocal(planForm.sale_ends_at),
     daily_purchase_limit: planForm.daily_purchase_limit || 0,

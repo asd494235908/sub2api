@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -37,6 +38,10 @@ type SubscriptionPlan struct {
 	ProductName string `json:"product_name,omitempty"`
 	// ForSale holds the value of the "for_sale" field.
 	ForSale bool `json:"for_sale,omitempty"`
+	// PurchaseOncePerActiveSubscription holds the value of the "purchase_once_per_active_subscription" field.
+	PurchaseOncePerActiveSubscription bool `json:"purchase_once_per_active_subscription,omitempty"`
+	// WeeklySaleDays holds the value of the "weekly_sale_days" field.
+	WeeklySaleDays []int `json:"weekly_sale_days,omitempty"`
 	// SaleStartsAt holds the value of the "sale_starts_at" field.
 	SaleStartsAt *time.Time `json:"sale_starts_at,omitempty"`
 	// SaleEndsAt holds the value of the "sale_ends_at" field.
@@ -61,7 +66,9 @@ func (*SubscriptionPlan) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case subscriptionplan.FieldForSale:
+		case subscriptionplan.FieldWeeklySaleDays:
+			values[i] = new([]byte)
+		case subscriptionplan.FieldForSale, subscriptionplan.FieldPurchaseOncePerActiveSubscription:
 			values[i] = new(sql.NullBool)
 		case subscriptionplan.FieldPrice, subscriptionplan.FieldOriginalPrice:
 			values[i] = new(sql.NullFloat64)
@@ -152,6 +159,20 @@ func (_m *SubscriptionPlan) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field for_sale", values[i])
 			} else if value.Valid {
 				_m.ForSale = value.Bool
+			}
+		case subscriptionplan.FieldPurchaseOncePerActiveSubscription:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field purchase_once_per_active_subscription", values[i])
+			} else if value.Valid {
+				_m.PurchaseOncePerActiveSubscription = value.Bool
+			}
+		case subscriptionplan.FieldWeeklySaleDays:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field weekly_sale_days", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.WeeklySaleDays); err != nil {
+					return fmt.Errorf("unmarshal field weekly_sale_days: %w", err)
+				}
 			}
 		case subscriptionplan.FieldSaleStartsAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -272,6 +293,12 @@ func (_m *SubscriptionPlan) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("for_sale=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ForSale))
+	builder.WriteString(", ")
+	builder.WriteString("purchase_once_per_active_subscription=")
+	builder.WriteString(fmt.Sprintf("%v", _m.PurchaseOncePerActiveSubscription))
+	builder.WriteString(", ")
+	builder.WriteString("weekly_sale_days=")
+	builder.WriteString(fmt.Sprintf("%v", _m.WeeklySaleDays))
 	builder.WriteString(", ")
 	if v := _m.SaleStartsAt; v != nil {
 		builder.WriteString("sale_starts_at=")

@@ -96,9 +96,20 @@ export interface User {
   balance_notify_extra_emails: NotifyEmailEntry[]
   subscriptions?: UserSubscription[] // User's active subscriptions
   member_level?: MemberLevelState | null
+  affiliate_identity?: AffiliateIdentityState | null
   last_active_at?: string | null
   created_at: string
   updated_at: string
+}
+
+export interface AffiliateIdentityState {
+  user_id: number
+  type: 'inviter' | 'invitee' | string
+  rate_multiplier: number
+  source_inviter_id?: number | null
+  granted_at: string
+  expires_at: string
+  status: 'active' | 'revoked' | string
 }
 
 export interface MemberLevelState {
@@ -142,6 +153,14 @@ export interface RegisterRequest {
   promo_code?: string
   invitation_code?: string
   aff_code?: string
+  device_fingerprint?: DeviceFingerprint
+}
+
+export interface DeviceFingerprint {
+  composite_hash: string
+  canvas_hash: string
+  webgl_hash: string
+  components?: Record<string, string>
 }
 
 export interface AffiliateInvitee {
@@ -150,6 +169,11 @@ export interface AffiliateInvitee {
   username: string
   created_at?: string
   total_rebate: number
+  paid_amount?: number
+  risk_flagged?: boolean
+  risk_reason?: string
+  identity_status?: string | null
+  identity_expires_at?: string | null
 }
 
 export interface UserAffiliateDetail {
@@ -168,6 +192,36 @@ export interface UserAffiliateDetail {
 export interface AffiliateTransferResponse {
   transferred_quota: number
   balance: number
+}
+
+export interface AffiliateWithdrawal {
+  id: number
+  user_id: number
+  user_email?: string
+  username?: string
+  amount: number
+  status: 'pending_review' | 'approved' | 'paid' | 'rejected' | 'failed' | 'cancelled' | string
+  payout_method: string
+  payout_account_note: string
+  admin_note?: string
+  payout_channel?: string
+  payout_trade_no?: string
+  reject_reason?: string
+  failure_reason?: string
+  reviewed_by?: number | null
+  reviewed_at?: string | null
+  paid_by?: number | null
+  paid_at?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface AffiliateWithdrawSettings {
+  enabled: boolean
+  min_amount: number
+  max_amount: number
+  daily_request_limit: number
+  help_text: string
 }
 
 export interface SendVerifyCodeRequest {

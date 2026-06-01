@@ -392,6 +392,33 @@ func (_u *PaymentOrderUpdate) ClearSubscriptionTotalLimitUsd() *PaymentOrderUpda
 	return _u
 }
 
+// SetSubscriptionRebateBaseAmount sets the "subscription_rebate_base_amount" field.
+func (_u *PaymentOrderUpdate) SetSubscriptionRebateBaseAmount(v float64) *PaymentOrderUpdate {
+	_u.mutation.ResetSubscriptionRebateBaseAmount()
+	_u.mutation.SetSubscriptionRebateBaseAmount(v)
+	return _u
+}
+
+// SetNillableSubscriptionRebateBaseAmount sets the "subscription_rebate_base_amount" field if the given value is not nil.
+func (_u *PaymentOrderUpdate) SetNillableSubscriptionRebateBaseAmount(v *float64) *PaymentOrderUpdate {
+	if v != nil {
+		_u.SetSubscriptionRebateBaseAmount(*v)
+	}
+	return _u
+}
+
+// AddSubscriptionRebateBaseAmount adds value to the "subscription_rebate_base_amount" field.
+func (_u *PaymentOrderUpdate) AddSubscriptionRebateBaseAmount(v float64) *PaymentOrderUpdate {
+	_u.mutation.AddSubscriptionRebateBaseAmount(v)
+	return _u
+}
+
+// ClearSubscriptionRebateBaseAmount clears the value of the "subscription_rebate_base_amount" field.
+func (_u *PaymentOrderUpdate) ClearSubscriptionRebateBaseAmount() *PaymentOrderUpdate {
+	_u.mutation.ClearSubscriptionRebateBaseAmount()
+	return _u
+}
+
 // SetProviderInstanceID sets the "provider_instance_id" field.
 func (_u *PaymentOrderUpdate) SetProviderInstanceID(v string) *PaymentOrderUpdate {
 	_u.mutation.SetProviderInstanceID(v)
@@ -977,6 +1004,15 @@ func (_u *PaymentOrderUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if _u.mutation.SubscriptionTotalLimitUsdCleared() {
 		_spec.ClearField(paymentorder.FieldSubscriptionTotalLimitUsd, field.TypeFloat64)
 	}
+	if value, ok := _u.mutation.SubscriptionRebateBaseAmount(); ok {
+		_spec.SetField(paymentorder.FieldSubscriptionRebateBaseAmount, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedSubscriptionRebateBaseAmount(); ok {
+		_spec.AddField(paymentorder.FieldSubscriptionRebateBaseAmount, field.TypeFloat64, value)
+	}
+	if _u.mutation.SubscriptionRebateBaseAmountCleared() {
+		_spec.ClearField(paymentorder.FieldSubscriptionRebateBaseAmount, field.TypeFloat64)
+	}
 	if value, ok := _u.mutation.ProviderInstanceID(); ok {
 		_spec.SetField(paymentorder.FieldProviderInstanceID, field.TypeString, value)
 	}
@@ -1488,6 +1524,33 @@ func (_u *PaymentOrderUpdateOne) AddSubscriptionTotalLimitUsd(v float64) *Paymen
 // ClearSubscriptionTotalLimitUsd clears the value of the "subscription_total_limit_usd" field.
 func (_u *PaymentOrderUpdateOne) ClearSubscriptionTotalLimitUsd() *PaymentOrderUpdateOne {
 	_u.mutation.ClearSubscriptionTotalLimitUsd()
+	return _u
+}
+
+// SetSubscriptionRebateBaseAmount sets the "subscription_rebate_base_amount" field.
+func (_u *PaymentOrderUpdateOne) SetSubscriptionRebateBaseAmount(v float64) *PaymentOrderUpdateOne {
+	_u.mutation.ResetSubscriptionRebateBaseAmount()
+	_u.mutation.SetSubscriptionRebateBaseAmount(v)
+	return _u
+}
+
+// SetNillableSubscriptionRebateBaseAmount sets the "subscription_rebate_base_amount" field if the given value is not nil.
+func (_u *PaymentOrderUpdateOne) SetNillableSubscriptionRebateBaseAmount(v *float64) *PaymentOrderUpdateOne {
+	if v != nil {
+		_u.SetSubscriptionRebateBaseAmount(*v)
+	}
+	return _u
+}
+
+// AddSubscriptionRebateBaseAmount adds value to the "subscription_rebate_base_amount" field.
+func (_u *PaymentOrderUpdateOne) AddSubscriptionRebateBaseAmount(v float64) *PaymentOrderUpdateOne {
+	_u.mutation.AddSubscriptionRebateBaseAmount(v)
+	return _u
+}
+
+// ClearSubscriptionRebateBaseAmount clears the value of the "subscription_rebate_base_amount" field.
+func (_u *PaymentOrderUpdateOne) ClearSubscriptionRebateBaseAmount() *PaymentOrderUpdateOne {
+	_u.mutation.ClearSubscriptionRebateBaseAmount()
 	return _u
 }
 
@@ -2105,6 +2168,15 @@ func (_u *PaymentOrderUpdateOne) sqlSave(ctx context.Context) (_node *PaymentOrd
 	}
 	if _u.mutation.SubscriptionTotalLimitUsdCleared() {
 		_spec.ClearField(paymentorder.FieldSubscriptionTotalLimitUsd, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.SubscriptionRebateBaseAmount(); ok {
+		_spec.SetField(paymentorder.FieldSubscriptionRebateBaseAmount, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedSubscriptionRebateBaseAmount(); ok {
+		_spec.AddField(paymentorder.FieldSubscriptionRebateBaseAmount, field.TypeFloat64, value)
+	}
+	if _u.mutation.SubscriptionRebateBaseAmountCleared() {
+		_spec.ClearField(paymentorder.FieldSubscriptionRebateBaseAmount, field.TypeFloat64)
 	}
 	if value, ok := _u.mutation.ProviderInstanceID(); ok {
 		_spec.SetField(paymentorder.FieldProviderInstanceID, field.TypeString, value)

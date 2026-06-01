@@ -1,9 +1,20 @@
 <template>
   <div>
-    <label class="input-label">
-      {{ t('admin.users.groups') }}
-      <span class="font-normal text-gray-400">{{ t('common.selectedCount', { count: modelValue.length }) }}</span>
-    </label>
+    <div class="mb-1.5 flex items-center justify-between gap-3">
+      <label class="input-label mb-0">
+        {{ t('admin.users.groups') }}
+        <span class="font-normal text-gray-400">{{ t('common.selectedCount', { count: modelValue.length }) }}</span>
+      </label>
+      <button
+        type="button"
+        data-testid="group-selector-select-all"
+        :disabled="selectAllDisabled"
+        class="text-xs font-medium text-primary-600 transition-colors hover:text-primary-700 disabled:cursor-not-allowed disabled:text-gray-400 dark:text-primary-400 dark:hover:text-primary-300 dark:disabled:text-dark-500"
+        @click="handleSelectAll"
+      >
+        {{ t('common.selectAll') }}
+      </button>
+    </div>
     <div
       v-if="isSearchable"
       class="flex items-center gap-2 rounded-t-lg border border-b-0 border-gray-200 bg-gray-50 px-3 py-2 dark:border-dark-600 dark:bg-dark-800"
@@ -87,8 +98,7 @@ const isSearchable = computed(() => {
   return props.searchable
 })
 
-// Filter groups by platform if specified
-const filteredGroups = computed(() => {
+const availableGroups = computed(() => {
   let result: AdminGroup[] = props.groups
   if (props.platform) {
     // antigravity 账户启用混合调度后，可选择 anthropic/gemini 分组
@@ -101,6 +111,12 @@ const filteredGroups = computed(() => {
       result = result.filter((g) => g.platform === props.platform)
     }
   }
+  return result
+})
+
+// Filter groups by platform if specified
+const filteredGroups = computed(() => {
+  let result = availableGroups.value
   if (isSearchable.value && searchText.value) {
     const q = searchText.value.toLowerCase()
     result = result.filter(
@@ -110,10 +126,24 @@ const filteredGroups = computed(() => {
   return result
 })
 
+const selectAllDisabled = computed(() => {
+  return (
+    availableGroups.value.length === 0 ||
+    availableGroups.value.every((group) => props.modelValue.includes(group.id))
+  )
+})
+
 const handleChange = (groupId: number, checked: boolean) => {
   const newValue = checked
     ? [...props.modelValue, groupId]
     : props.modelValue.filter((id) => id !== groupId)
   emit('update:modelValue', newValue)
+}
+
+const handleSelectAll = () => {
+  if (selectAllDisabled.value) return
+  const nextValue = new Set(props.modelValue)
+  availableGroups.value.forEach((group) => nextValue.add(group.id))
+  emit('update:modelValue', Array.from(nextValue))
 }
 </script>

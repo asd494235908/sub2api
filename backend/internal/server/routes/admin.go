@@ -652,6 +652,15 @@ func registerChannelMonitorRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 func registerAffiliateRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	affiliates := admin.Group("/affiliates")
 	{
+		affiliates.GET("/identity-config", h.Admin.Affiliate.GetIdentityConfig)
+		affiliates.PUT("/identity-config", h.Admin.Affiliate.UpdateIdentityConfig)
+		affiliates.GET("/withdraw-settings", h.Admin.Affiliate.GetWithdrawSettings)
+		affiliates.PUT("/withdraw-settings", h.Admin.Affiliate.UpdateWithdrawSettings)
+		affiliates.GET("/withdrawals", h.Admin.Affiliate.ListWithdrawals)
+		affiliates.POST("/withdrawals/:id/approve", h.Admin.Affiliate.ApproveWithdrawal)
+		affiliates.POST("/withdrawals/:id/reject", h.Admin.Affiliate.RejectWithdrawal)
+		affiliates.POST("/withdrawals/:id/paid", h.Admin.Affiliate.MarkWithdrawalPaid)
+		affiliates.POST("/withdrawals/:id/fail", h.Admin.Affiliate.MarkWithdrawalFailed)
 		affiliates.GET("/invites", h.Admin.Affiliate.ListInviteRecords)
 		affiliates.POST("/invites", h.Admin.Affiliate.CreateInviteRelation)
 		affiliates.GET("/rebates", h.Admin.Affiliate.ListRebateRecords)
