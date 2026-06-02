@@ -848,12 +848,14 @@ const selectedPlanDailySaleRange = computed(() => {
   return `${plan.daily_sale_starts_at} - ${plan.daily_sale_ends_at}`
 })
 const selectedPlanDailySaleStatusText = computed(() => {
+  if (selectedPlanWeeklySaleBlocked.value) return t('payment.planCard.weeklySaleOffDay')
   const status = selectedPlan.value?.daily_sale_status
   if (status === 'sold_out') return t('payment.planCard.soldOutToday')
   if (status === 'pending' || status === 'unavailable') return t('payment.planCard.unavailableNow')
   return t('payment.planCard.availableNow')
 })
 const selectedPlanDailySaleCountdownText = computed(() => {
+  if (selectedPlanWeeklySaleBlocked.value) return ''
   const seconds = currentPlanCountdown(selectedPlan.value)
   if (seconds <= 0) return ''
   const key = selectedPlan.value?.daily_sale_status === 'available'

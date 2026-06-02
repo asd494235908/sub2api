@@ -320,4 +320,43 @@ describe("SubscriptionPlanCard", () => {
     expect(button.attributes("disabled")).toBeDefined();
     expect(button.text()).toBe("payment.saleUnavailable");
   });
+
+  it("uses weekly off-day text instead of daily sale countdown when both rules apply", () => {
+    const wrapper = mount(SubscriptionPlanCard, {
+      props: {
+        plan: {
+          id: 9,
+          group_id: 10,
+          group_platform: "openai",
+          name: "Weekly Flash Sale",
+          description: "",
+          price: 10,
+          features: [],
+          rate_multiplier: 1,
+          validity_days: 30,
+          validity_unit: "day",
+          for_sale: true,
+          daily_purchase_limit: 0,
+          daily_sale_starts_at: "09:00",
+          daily_sale_ends_at: "10:00",
+          daily_sale_status: "available",
+          daily_sale_countdown_seconds: 2140,
+          daily_sale_available_for_payment: false,
+          weekly_sale_days: [1, 3, 5],
+          weekly_sale_status: "off_day",
+          weekly_sale_available_for_payment: false,
+          sort_order: 1,
+        },
+      },
+      global: { plugins: [i18n] },
+    });
+
+    expect(wrapper.text()).toContain("payment.planCard.dailySaleTime");
+    expect(wrapper.text()).toContain("09:00 - 10:00");
+    expect(wrapper.text()).toContain("payment.planCard.weeklySaleOffDay");
+    expect(wrapper.text()).not.toContain("payment.planCard.availableNow");
+    expect(wrapper.text()).not.toContain("payment.planCard.dailySaleCountdownToEnd");
+    const button = wrapper.get("button");
+    expect(button.attributes("disabled")).toBeDefined();
+  });
 });

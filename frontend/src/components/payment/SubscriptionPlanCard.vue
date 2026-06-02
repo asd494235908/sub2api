@@ -226,6 +226,7 @@ function formatDuration(totalSeconds: number): string {
 }
 
 const dailySaleCountdownText = computed(() => {
+  if (weeklySaleBlocked.value) return ''
   if (countdownSeconds.value <= 0) return ''
   const key = props.plan.daily_sale_status === 'available'
     ? 'payment.planCard.dailySaleCountdownToEnd'
@@ -234,6 +235,7 @@ const dailySaleCountdownText = computed(() => {
 })
 
 const dailySaleStatusText = computed(() => {
+  if (weeklySaleBlocked.value) return t('payment.planCard.weeklySaleOffDay')
   if (props.plan.daily_sale_status === 'sold_out') return t('payment.planCard.soldOutToday')
   if (props.plan.daily_sale_status === 'pending') return t('payment.planCard.unavailableNow')
   if (props.plan.daily_sale_status === 'unavailable') return t('payment.planCard.unavailableNow')

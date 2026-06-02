@@ -246,6 +246,44 @@ function checkoutInfoWithAvailableDailyPlanFixture() {
   }
 }
 
+function checkoutInfoWithWeeklyOffDayDailyPlanFixture() {
+  return {
+    data: {
+      ...checkoutInfoFixture().data,
+      plans: [
+        {
+          id: 10,
+          group_id: 3,
+          name: 'Weekly Flash Sale',
+          description: '',
+          price: 128,
+          original_price: 0,
+          validity_days: 30,
+          validity_unit: 'day',
+          rate_multiplier: 1,
+          daily_limit_usd: null,
+          weekly_limit_usd: null,
+          monthly_limit_usd: null,
+          features: [],
+          group_platform: 'openai',
+          sort_order: 1,
+          for_sale: true,
+          group_name: 'OpenAI',
+          daily_purchase_limit: 0,
+          daily_sale_starts_at: '09:00',
+          daily_sale_ends_at: '10:00',
+          daily_sale_status: 'available',
+          daily_sale_countdown_seconds: 3600,
+          daily_sale_available_for_payment: false,
+          weekly_sale_days: [1, 3, 5],
+          weekly_sale_status: 'off_day',
+          weekly_sale_available_for_payment: false,
+        },
+      ],
+    },
+  }
+}
+
 function jsapiOrderFixture(resumeToken: string) {
   return {
     order_id: 123,
@@ -750,6 +788,41 @@ describe('PaymentView WeChat JSAPI flow', () => {
     expect(wrapper.text()).toContain('09:00 - 18:00')
     expect(wrapper.text()).not.toContain('payment.planCard.availableTodayLabel')
     expect(wrapper.text()).not.toContain('Remaining today')
+  })
+
+  it('shows weekly off-day text instead of daily countdown for selected plan', async () => {
+    routeState.path = '/purchase'
+    routeState.query = {}
+    getCheckoutInfo.mockResolvedValue(checkoutInfoWithWeeklyOffDayDailyPlanFixture())
+
+    const wrapper = mount(PaymentView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          AmountInput: true,
+          PaymentMethodSelector: true,
+          PaymentStatusPanel: true,
+          Icon: true,
+          Teleport: true,
+          Transition: false,
+        },
+      },
+    })
+    await flushPromises()
+    await flushPromises()
+
+    await wrapper.findComponent({ name: 'SubscriptionPlanCard' }).vm.$emit('select', checkoutInfoWithWeeklyOffDayDailyPlanFixture().data.plans[0])
+    await flushPromises()
+
+    const text = wrapper.text()
+    expect(text).toContain('payment.planCard.dailySaleTime')
+    expect(text).toContain('09:00 - 10:00')
+    expect(text).toContain('payment.planCard.weeklySaleOffDay')
+    expect(text).not.toContain('payment.planCard.availableNow')
+    expect(text).not.toContain('payment.planCard.dailySaleCountdownToEnd')
+    const buttons = wrapper.findAll('button')
+    const submit = buttons.find(button => button.text().includes('payment.createOrder'))
+    expect(submit?.attributes('disabled')).toBeDefined()
   })
 
   it('keeps hot supported model summary visible and reveals all models after selecting a subscription plan', async () => {
