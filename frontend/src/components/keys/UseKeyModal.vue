@@ -370,7 +370,7 @@ const platformNote = computed(() => {
 const showPlatformNote = computed(() => activeClientTab.value !== 'opencode')
 
 const CODEX_BASE_URL = 'https://token.gepinkeji.com/v1'
-const CODEX_MODEL = 'gpt-5.4'
+const CODEX_MODEL = 'gpt-5.5'
 
 const ensureOpenAIV1BaseUrl = (value: string) => {
   const trimmed = value.replace(/\/+$/, '')
@@ -548,8 +548,11 @@ ${keyword('$env:')}${variable('GEMINI_MODEL')}${operator('=')}${string(`"${model
   return { path, content, highlighted }
 }
 
-function generateCodexConfigContent(baseUrl = CODEX_BASE_URL): string {
+function generateCodexConfigContent(baseUrl = CODEX_BASE_URL, options: { websockets?: boolean } = {}): string {
   const normalizedBaseUrl = ensureOpenAIV1BaseUrl(baseUrl)
+  const websocketProviderLine = options.websockets ? 'supports_websockets = true\n' : ''
+  const websocketFeatureLine = options.websockets ? 'responses_websockets_v2 = true\n' : ''
+
   return `model_provider = "OpenAI"
 model = "${CODEX_MODEL}"
 review_model = "${CODEX_MODEL}"
@@ -557,14 +560,15 @@ model_reasoning_effort = "xhigh"
 disable_response_storage = true
 network_access = "enabled"
 windows_wsl_setup_acknowledged = true
-model_context_window = 1000000
-model_auto_compact_token_limit = 900000
 
 [model_providers.OpenAI]
 name = "OpenAI"
 base_url = "${normalizedBaseUrl}"
 wire_api = "responses"
-requires_openai_auth = true`
+${websocketProviderLine}requires_openai_auth = true
+
+[features]
+${websocketFeatureLine}goals = true`
 }
 
 function generateOpenAIFiles(baseUrl: string, apiKey: string): FileConfig[] {
@@ -721,13 +725,6 @@ function generateOpenAIWsFiles(baseUrl: string, apiKey: string): FileConfig[] {
   const isWindows = activeTab.value === 'windows'
   const configDir = isWindows ? '%userprofile%\\.codex' : '~/.codex'
 
-  // config.toml content with WebSocket v2
-  const configContent = `${generateCodexConfigContent(baseUrl)}
-supports_websockets = true
-
-[features]
-responses_websockets_v2 = true`
-
   // auth.json content
   const authContent = `{
   "OPENAI_API_KEY": "${apiKey}"
@@ -736,7 +733,7 @@ responses_websockets_v2 = true`
   return [
     {
       path: `${configDir}/config.toml`,
-      content: configContent,
+      content: generateCodexConfigContent(baseUrl, { websockets: true }),
       hint: t('keys.useKeyModal.openai.configTomlHint')
     },
     {

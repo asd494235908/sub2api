@@ -51,6 +51,7 @@ func TestAPIContracts(t *testing.T) {
 					"id": 1,
 					"email": "alice@example.com",
 					"email_bound": true,
+					"phone_number": "",
 					"username": "alice",
 					"role": "user",
 					"balance": 12.5,
@@ -347,6 +348,7 @@ func TestAPIContracts(t *testing.T) {
 						"is_exclusive": false,
 						"status": "active",
 						"subscription_type": "standard",
+						"subscription_total_limit_usd": null,
 						"daily_limit_usd": null,
 						"weekly_limit_usd": null,
 						"monthly_limit_usd": null,
@@ -413,6 +415,8 @@ func TestAPIContracts(t *testing.T) {
 						"daily_usage_usd": 1.23,
 						"weekly_usage_usd": 2.34,
 						"monthly_usage_usd": 3.45,
+						"total_limit_usd": null,
+						"total_usage_usd": 0,
 						"created_at": "2025-01-02T03:04:05Z",
 						"updated_at": "2025-01-02T03:04:05Z"
 					}
@@ -800,8 +804,8 @@ func TestAPIContracts(t *testing.T) {
 						"api_base_url": "https://api.example.com",
 						"api_key_acl_trust_forwarded_ip": false,
 						"contact_info": "support",
-						"qq_group": "123456789",
-						"wechat_contact": "sub2api_support",
+						"qq_group": "",
+						"wechat_contact": "",
 						"doc_url": "https://docs.example.com",
 					"auth_source_default_email_balance": 0,
 					"auth_source_default_email_concurrency": 5,
@@ -853,6 +857,8 @@ func TestAPIContracts(t *testing.T) {
 					"affiliate_rebate_freeze_hours": 0,
 					"affiliate_rebate_duration_days": 0,
 					"affiliate_rebate_per_invitee_cap": 0,
+					"affiliate_signup_reward_enabled": false,
+					"affiliate_signup_reward_amount": 0,
 					"default_user_rpm_limit": 0,
 					"default_subscriptions": [],
 					"enable_model_fallback": false,
@@ -864,6 +870,10 @@ func TestAPIContracts(t *testing.T) {
 						"identity_patch_prompt": "",
 						"invitation_code_enabled": false,
 						"home_content": "",
+						"home_links": [
+							{"id":"gpshop","label":"格品购物","label_zh":"格品购物","label_en":"Gepin Shop","url":"https://card.gepinkeji.com","enabled":true,"sort_order":0},
+							{"id":"gpci","label":"格品生图","label_zh":"格品生图","label_en":"Gepin Image","url":"https://chat.gepinkeji.com/","enabled":true,"sort_order":1}
+						],
 					"hide_ccs_import_button": false,
 					"purchase_subscription_enabled": false,
 					"purchase_subscription_url": "",
@@ -886,6 +896,7 @@ func TestAPIContracts(t *testing.T) {
 					"payment_visible_method_wxpay_enabled": false,
 					"openai_advanced_scheduler_enabled": true,
 					"openai_codex_user_agent":           "",
+					"openai_allow_claude_code_codex_plugin": false,
 					"openai_fast_policy_settings": {
 						"rules": []
 					},
@@ -912,6 +923,15 @@ func TestAPIContracts(t *testing.T) {
 					"payment_cancel_rate_limit_unit": "",
 					"payment_cancel_rate_limit_window_mode": "",
 					"payment_alipay_force_qrcode": false,
+					"phone_verify_enabled": false,
+					"sms_ihuyi_enabled": false,
+					"sms_ihuyi_api_id": "",
+					"sms_ihuyi_api_key_configured": false,
+					"sms_ihuyi_template_id": "309190",
+					"recharge_activity_enabled": false,
+					"lucky_wheel_enabled": false,
+					"weekly_quota_enabled": false,
+					"weekly_quota_amount": 0,
 					"balance_low_notify_enabled": false,
 					"account_quota_notify_enabled": false,
 					"subscription_expiry_notify_enabled": true,
@@ -1073,6 +1093,10 @@ func TestAPIContracts(t *testing.T) {
 					"wechat_contact": "",
 					"doc_url": "",
 					"home_content": "",
+					"home_links": [
+						{"id":"gpshop","label":"格品购物","label_zh":"格品购物","label_en":"Gepin Shop","url":"https://card.gepinkeji.com","enabled":true,"sort_order":0},
+						{"id":"gpci","label":"格品生图","label_zh":"格品生图","label_en":"Gepin Image","url":"https://chat.gepinkeji.com/","enabled":true,"sort_order":1}
+					],
 					"hide_ccs_import_button": false,
 					"purchase_subscription_enabled": false,
 					"purchase_subscription_url": "",
@@ -1094,6 +1118,8 @@ func TestAPIContracts(t *testing.T) {
 					"affiliate_rebate_freeze_hours": 0,
 					"affiliate_rebate_duration_days": 0,
 					"affiliate_rebate_per_invitee_cap": 0,
+					"affiliate_signup_reward_enabled": false,
+					"affiliate_signup_reward_amount": 0,
 					"default_user_rpm_limit": 0,
 					"default_subscriptions": [],
 					"enable_model_fallback": false,
@@ -1124,6 +1150,7 @@ func TestAPIContracts(t *testing.T) {
 					"payment_visible_method_wxpay_enabled": false,
 					"openai_advanced_scheduler_enabled": false,
 					"openai_codex_user_agent":           "",
+					"openai_allow_claude_code_codex_plugin": false,
 					"openai_fast_policy_settings": {
 						"rules": []
 					},
@@ -1148,6 +1175,15 @@ func TestAPIContracts(t *testing.T) {
 					"payment_cancel_rate_limit_unit": "",
 					"payment_cancel_rate_limit_window_mode": "",
 					"payment_alipay_force_qrcode": false,
+					"phone_verify_enabled": false,
+					"sms_ihuyi_enabled": false,
+					"sms_ihuyi_api_id": "",
+					"sms_ihuyi_api_key_configured": false,
+					"sms_ihuyi_template_id": "309190",
+					"recharge_activity_enabled": false,
+					"lucky_wheel_enabled": false,
+					"weekly_quota_enabled": false,
+					"weekly_quota_amount": 0,
 					"balance_low_notify_enabled": false,
 					"account_quota_notify_enabled": false,
 					"subscription_expiry_notify_enabled": true,
@@ -1427,6 +1463,16 @@ func (r *stubUserRepo) GetByID(ctx context.Context, id int64) (*service.User, er
 func (r *stubUserRepo) GetByEmail(ctx context.Context, email string) (*service.User, error) {
 	for _, user := range r.users {
 		if user.Email == email {
+			clone := *user
+			return &clone, nil
+		}
+	}
+	return nil, service.ErrUserNotFound
+}
+
+func (r *stubUserRepo) GetByPhone(ctx context.Context, phoneNumber string) (*service.User, error) {
+	for _, user := range r.users {
+		if user.PhoneNumber == phoneNumber {
 			clone := *user
 			return &clone, nil
 		}
@@ -1776,7 +1822,7 @@ func (s *stubAccountRepo) SetRateLimited(ctx context.Context, id int64, resetAt 
 	return errors.New("not implemented")
 }
 
-func (s *stubAccountRepo) SetModelRateLimit(ctx context.Context, id int64, scope string, resetAt time.Time) error {
+func (s *stubAccountRepo) SetModelRateLimit(ctx context.Context, id int64, scope string, resetAt time.Time, reason ...string) error {
 	return errors.New("not implemented")
 }
 
@@ -2037,6 +2083,9 @@ func (stubUserSubscriptionRepo) UpdateStatus(ctx context.Context, subscriptionID
 	return errors.New("not implemented")
 }
 func (stubUserSubscriptionRepo) UpdateNotes(ctx context.Context, subscriptionID int64, notes string) error {
+	return errors.New("not implemented")
+}
+func (stubUserSubscriptionRepo) AddTotalLimit(ctx context.Context, subscriptionID int64, amount float64) error {
 	return errors.New("not implemented")
 }
 func (stubUserSubscriptionRepo) ActivateWindows(ctx context.Context, id int64, start time.Time) error {

@@ -142,6 +142,10 @@ func (s *stubUserRepo) GetByEmail(ctx context.Context, email string) (*service.U
 	panic("unexpected GetByEmail call")
 }
 
+func (s *stubUserRepo) GetByPhone(ctx context.Context, phoneNumber string) (*service.User, error) {
+	panic("unexpected GetByPhone call")
+}
+
 func (s *stubUserRepo) GetFirstAdmin(ctx context.Context) (*service.User, error) {
 	panic("unexpected GetFirstAdmin call")
 }

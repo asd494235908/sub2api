@@ -51,7 +51,13 @@ describe('UseKeyModal', () => {
     const config = codeBlock.text()
 
     expect(config).toContain('model_provider = "OpenAI"')
+    expect(config).toContain('model = "gpt-5.5"')
+    expect(config).toContain('review_model = "gpt-5.5"')
     expect(config).toContain('base_url = "https://example.com/v1"')
+    expect(config).toContain('[features]\ngoals = true')
+    expect(config).not.toContain('model = "gpt-5.4"')
+    expect(config).not.toContain('model_context_window')
+    expect(config).not.toContain('model_auto_compact_token_limit')
     expect(wrapper.text()).toContain('~/.codex/config.toml')
     expect(wrapper.text()).toContain('~/.codex/auth.json')
     expect(wrapper.text()).toContain('sk-test-secret')
@@ -81,6 +87,31 @@ describe('UseKeyModal', () => {
 
     const codeBlock = wrapper.find('pre code')
     expect(codeBlock.text()).toContain('base_url = "https://example.com/v1"')
+  })
+
+  it('renders GPT-5.5 and goals feature in OpenAI Codex WebSocket config', async () => {
+    const wrapper = mountOpenAIUseKeyModal('sk-test')
+
+    const wsTab = wrapper.findAll('button').find((button) =>
+      button.text().includes('keys.useKeyModal.cliTabs.codexCliWs')
+    )
+
+    expect(wsTab).toBeDefined()
+    await wsTab!.trigger('click')
+    await nextTick()
+
+    const codeBlocks = wrapper.findAll('pre code').map((code) => code.text())
+    const configToml = codeBlocks.find((content) => content.includes('supports_websockets = true'))
+
+    expect(configToml).toBeDefined()
+    expect(configToml).toContain('base_url = "https://example.com/v1"')
+    expect(configToml).toContain('model = "gpt-5.5"')
+    expect(configToml).toContain('review_model = "gpt-5.5"')
+    expect(configToml).not.toContain('model = "gpt-5.4"')
+    expect(configToml).not.toContain('model_context_window')
+    expect(configToml).not.toContain('model_auto_compact_token_limit')
+    expect(configToml).toContain('supports_websockets = true\nrequires_openai_auth = true')
+    expect(configToml).toContain('[features]\nresponses_websockets_v2 = true\ngoals = true')
   })
 
   it('shows a macOS one-click Codex CLI/App setup script without embedding the API key', async () => {

@@ -72,7 +72,7 @@ func TestUserHandlerListParsesHasPhoneFilter(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	adminSvc := newStubAdminService()
-	handler := NewUserHandler(adminSvc, nil)
+	handler := NewUserHandler(adminSvc, nil, nil, nil)
 
 	recorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(recorder)

@@ -109,7 +109,7 @@ func newAuthHandlerForPhoneTests(t *testing.T, repo *userHandlerRepoStub, settin
 	}
 
 	settingSvc := service.NewSettingService(&authHandlerSettingRepoStub{values: settings}, cfg)
-	authSvc := service.NewAuthService(nil, repo, nil, &userHandlerRefreshTokenCacheStub{}, cfg, settingSvc, nil, nil, nil, nil, nil, nil)
+	authSvc := service.NewAuthService(nil, repo, nil, &userHandlerRefreshTokenCacheStub{}, cfg, settingSvc, nil, nil, nil, nil, nil, nil, nil)
 	smsSvc := service.NewSMSService(&authHandlerPhoneSMSCacheStub{}, &authHandlerPhoneSMSProviderStub{})
 	authSvc.SetSMSService(smsSvc)
 
