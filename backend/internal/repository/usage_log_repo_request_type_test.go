@@ -537,6 +537,86 @@ func TestUsageLogRepositoryGetUserSpendingRanking(t *testing.T) {
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestUsageLogRepositoryGetUserTokenLeaderboardExcludesIgnoredUsers(t *testing.T) {
+	db, mock := newSQLMock(t)
+	repo := &usageLogRepository{sql: db}
+
+	start := time.Date(2026, 6, 2, 0, 0, 0, 0, time.UTC)
+	end := start.Add(24 * time.Hour)
+
+	rows := sqlmock.NewRows([]string{"rank", "user_id", "email", "username", "tokens", "requests", "actual_cost", "total_tokens", "total_requests"}).
+		AddRow(int64(1), int64(3), "top@example.com", "Top User", int64(1200), int64(12), 3.5, int64(2100), int64(30)).
+		AddRow(int64(2), int64(1), "alpha@example.com", "", int64(900), int64(18), 2.5, int64(2100), int64(30))
+
+	mock.ExpectQuery("WITH user_token_usage AS \\(").
+		WithArgs(start, end, sqlmock.AnyArg(), 20).
+		WillReturnRows(rows)
+
+	got, err := repo.GetUserTokenLeaderboard(context.Background(), start, end, 20, []int64{2})
+	require.NoError(t, err)
+	require.Equal(t, &usagestats.UserTokenLeaderboardResponse{
+		Ranking: []usagestats.UserTokenLeaderboardItem{
+			{Rank: 1, UserID: 3, Email: "top@example.com", Username: "Top User", Tokens: 1200, Requests: 12, ActualCost: 3.5},
+			{Rank: 2, UserID: 1, Email: "alpha@example.com", Username: "", Tokens: 900, Requests: 18, ActualCost: 2.5},
+		},
+		TotalTokens:   2100,
+		TotalRequests: 30,
+	}, got)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUsageLogRepositoryGetUserTokenLeaderboardUsesTokenTotalAndStableSort(t *testing.T) {
+	db, mock := newSQLMock(t)
+	repo := &usageLogRepository{sql: db}
+
+	start := time.Date(2026, 6, 2, 0, 0, 0, 0, time.UTC)
+	end := start.Add(24 * time.Hour)
+
+	rows := sqlmock.NewRows([]string{"rank", "user_id", "email", "username", "tokens", "requests", "actual_cost", "total_tokens", "total_requests"}).
+		AddRow(int64(1), int64(5), "beta@example.com", "Beta", int64(100), int64(3), 0.5, int64(300), int64(8)).
+		AddRow(int64(2), int64(1), "alpha@example.com", "Alpha", int64(100), int64(3), 0.7, int64(300), int64(8)).
+		AddRow(int64(3), int64(9), "gamma@example.com", "Gamma", int64(100), int64(2), 0.9, int64(300), int64(8))
+
+	mock.ExpectQuery("SUM\\(u\\.input_tokens \\+ u\\.output_tokens \\+ u\\.cache_creation_tokens \\+ u\\.cache_read_tokens\\).*ORDER BY tokens DESC, requests DESC, user_id ASC").
+		WithArgs(start, end, 10).
+		WillReturnRows(rows)
+
+	got, err := repo.GetUserTokenLeaderboard(context.Background(), start, end, 10, nil)
+	require.NoError(t, err)
+	require.Equal(t, &usagestats.UserTokenLeaderboardResponse{
+		Ranking: []usagestats.UserTokenLeaderboardItem{
+			{Rank: 1, UserID: 5, Email: "beta@example.com", Username: "Beta", Tokens: 100, Requests: 3, ActualCost: 0.5},
+			{Rank: 2, UserID: 1, Email: "alpha@example.com", Username: "Alpha", Tokens: 100, Requests: 3, ActualCost: 0.7},
+			{Rank: 3, UserID: 9, Email: "gamma@example.com", Username: "Gamma", Tokens: 100, Requests: 2, ActualCost: 0.9},
+		},
+		TotalTokens:   300,
+		TotalRequests: 8,
+	}, got)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUsageLogRepositoryGetUserTokenLeaderboardEmptyResult(t *testing.T) {
+	db, mock := newSQLMock(t)
+	repo := &usageLogRepository{sql: db}
+
+	start := time.Date(2026, 6, 2, 0, 0, 0, 0, time.UTC)
+	end := start.Add(24 * time.Hour)
+
+	rows := sqlmock.NewRows([]string{"rank", "user_id", "email", "username", "tokens", "requests", "actual_cost", "total_tokens", "total_requests"})
+	mock.ExpectQuery("WITH user_token_usage AS \\(").
+		WithArgs(start, end, 20).
+		WillReturnRows(rows)
+
+	got, err := repo.GetUserTokenLeaderboard(context.Background(), start, end, 20, nil)
+	require.NoError(t, err)
+	require.Equal(t, &usagestats.UserTokenLeaderboardResponse{
+		Ranking:       []usagestats.UserTokenLeaderboardItem{},
+		TotalTokens:   0,
+		TotalRequests: 0,
+	}, got)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestBuildRequestTypeFilterConditionLegacyFallback(t *testing.T) {
 	tests := []struct {
 		name      string

@@ -375,7 +375,7 @@ func (s *PaymentService) refreshAffiliateIdentitiesForOrder(ctx context.Context,
 	if s == nil || s.affiliateService == nil || o == nil {
 		return
 	}
-	if err := s.affiliateService.RefreshAffiliateIdentitiesForUser(ctx, o.UserID); err != nil {
+	if err := s.affiliateService.RefreshAffiliateIdentitiesForOrderInvitee(ctx, o.UserID); err != nil {
 		slog.Warn("refresh affiliate identities failed", "user_id", o.UserID, "order_id", o.ID, "error", err)
 	}
 }
@@ -609,13 +609,8 @@ func affiliateRebateBaseAmountForOrder(o *dbent.PaymentOrder) float64 {
 		return 0
 	}
 	switch o.OrderType {
-	case payment.OrderTypeBalance:
-		return o.Amount
-	case payment.OrderTypeSubscription:
-		if o.SubscriptionRebateBaseAmount == nil {
-			return 0
-		}
-		return *o.SubscriptionRebateBaseAmount
+	case payment.OrderTypeBalance, payment.OrderTypeSubscription:
+		return o.PayAmount
 	default:
 		return 0
 	}

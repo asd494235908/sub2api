@@ -88,6 +88,26 @@ export interface ApiKeyDailyUsageResponse {
   end_date: string
 }
 
+export type LeaderboardPeriod = 'today' | 'yesterday'
+
+export interface UsageLeaderboardItem {
+  rank: number
+  user_id: number
+  display_name: string
+  tokens: number
+  requests: number
+  actual_cost: number
+}
+
+export interface UsageLeaderboardResponse {
+  period: LeaderboardPeriod
+  start_date: string
+  end_date: string
+  ranking: UsageLeaderboardItem[]
+  total_tokens: number
+  total_requests: number
+}
+
 /**
  * List usage logs with optional filters
  * @param page - Page number (default: 1)
@@ -270,6 +290,16 @@ export async function getMyApiKeyDailyUsage(
   return data
 }
 
+export async function getLeaderboard(params: {
+  period?: LeaderboardPeriod
+  limit?: number
+} = {}): Promise<UsageLeaderboardResponse> {
+  const { data } = await apiClient.get<UsageLeaderboardResponse>('/usage/leaderboard', {
+    params
+  })
+  return data
+}
+
 export interface BatchApiKeyUsageStats {
   api_key_id: number
   today_actual_cost: number
@@ -316,7 +346,8 @@ export const usageAPI = {
   getDashboardTrend,
   getDashboardModels,
   getMyApiKeyDailyUsage,
-  getDashboardApiKeysUsage
+  getDashboardApiKeysUsage,
+  getLeaderboard
 }
 
 export default usageAPI

@@ -190,4 +190,54 @@ describe('Admin RedeemView', () => {
     expect(wrapper.text()).not.toContain('平台额度')
     expect(wrapper.text()).not.toContain('¥15.00')
   })
+
+  it('renders affiliate balance transfers as readonly redeem activity', async () => {
+    listRedeemCodes.mockResolvedValue({
+      items: [
+        {
+          id: -664,
+          code: 'AFF-664',
+          type: 'affiliate_balance',
+          value: 130,
+          status: 'used',
+          used_by: 2,
+          used_at: '2026-06-03T10:00:00Z',
+          created_at: '2026-06-03T10:00:00Z',
+          user: { id: 2, email: 'asd494235908@qq.com' },
+        },
+      ],
+      total: 1,
+      page: 1,
+      page_size: 20,
+      pages: 1,
+    })
+
+    const wrapper = mount(RedeemView, {
+      global: {
+        stubs: {
+          AppLayout: { template: '<div><slot /></div>' },
+          TablePageLayout: {
+            template: '<div><slot name="filters" /><slot name="table" /><slot name="pagination" /></div>',
+          },
+          Icon: { template: '<span />' },
+          Select: {
+            props: ['options'],
+            template: '<div><span v-for="option in options" :key="option.value">{{ option.label }}</span></div>',
+          },
+          DataTable: DataTableStub,
+          Pagination: { template: '<div />' },
+          ConfirmDialog: { template: '<div />' },
+          GroupBadge: { template: '<span />' },
+          GroupOptionItem: { template: '<span />' },
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('返利转余额')
+    expect(wrapper.text()).toContain('¥130.00')
+    expect(wrapper.text()).toContain('asd494235908@qq.com')
+    expect(wrapper.text()).not.toContain('affiliate_balance')
+  })
 })

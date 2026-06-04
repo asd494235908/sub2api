@@ -139,10 +139,34 @@ describe('HomeView', () => {
     const text = wrapper.text()
     const links = wrapper.findAll('a')
 
-    expect(text).toContain('GPT-5.4')
-    expect(text).not.toContain('GPT-5.4 mini')
-    expect(text).toContain('GPT-5.4 nano')
-    expect(text).toContain('GPT Image 2')
+    const supportedModels = [
+      'DeepSeek V4-Pro',
+      'DeepSeek V4-Flash',
+      'Doubao-Seed_1.5',
+      'Doubao-Seed_1.6',
+      'Doubao-Seed_1.8',
+      'Doubao-Seed_2.0',
+      'Qwen3.5-Plus',
+      'Qwen',
+      'Happy horse',
+      'Kling Video API',
+      'MiniMax-M2.7',
+      'MiniMax-M2.5',
+      'GLM-5.1',
+      'GLM-5-Turbo',
+      'GLM-5'
+    ]
+    supportedModels.forEach((model) => expect(text).toContain(model))
+    supportedModels.reduce((previousIndex, model) => {
+      const currentIndex = text.indexOf(model, previousIndex + 1)
+      expect(currentIndex).toBeGreaterThan(previousIndex)
+      return currentIndex
+    }, -1)
+    expect(text).not.toContain('GPT-5.5')
+    expect(text).not.toContain('GPT-5.4')
+    expect(text).not.toContain('GPT Image 2')
+    expect(text).not.toContain('Qwen3.5以前')
+    expect(text).not.toContain('Qwen3.6以后')
 
     expect(text).toContain('格品购物')
     expect(text).toContain('格品生图')
@@ -402,6 +426,8 @@ describe('HomeView', () => {
   })
 
   it('routes homepage documentation links to the token documentation page', () => {
+    expect(TOKEN_DOC_URL).toBe('https://doc.gptk.cc.cd/')
+
     appState.cachedPublicSettings = {
       home_content: '',
       site_logo: '/brand.svg',

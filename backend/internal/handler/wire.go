@@ -90,8 +90,8 @@ func ProvideSettingHandler(settingService *service.SettingService, buildInfo Bui
 }
 
 // ProvideAdminSettingHandler creates admin.SettingHandler with notification template APIs.
-func ProvideAdminSettingHandler(settingService *service.SettingService, emailService *service.EmailService, turnstileService *service.TurnstileService, opsService *service.OpsService, paymentConfigService *service.PaymentConfigService, paymentService *service.PaymentService, promptArchiveService *service.PromptArchiveService, userAttributeService *service.UserAttributeService, notificationEmailService *service.NotificationEmailService) *admin.SettingHandler {
-	h := admin.NewSettingHandler(settingService, emailService, turnstileService, opsService, paymentConfigService, paymentService, promptArchiveService, userAttributeService)
+func ProvideAdminSettingHandler(settingService *service.SettingService, emailService *service.EmailService, turnstileService *service.TurnstileService, opsService *service.OpsService, paymentConfigService *service.PaymentConfigService, paymentService *service.PaymentService, promptArchiveService *service.PromptArchiveService, userAttributeService *service.UserAttributeService, notificationEmailService *service.NotificationEmailService, adminService service.AdminService) *admin.SettingHandler {
+	h := admin.NewSettingHandler(settingService, emailService, turnstileService, opsService, paymentConfigService, paymentService, promptArchiveService, userAttributeService, adminService)
 	h.SetNotificationEmailService(notificationEmailService)
 	return h
 }
@@ -100,6 +100,11 @@ func ProvideAdminSettingHandler(settingService *service.SettingService, emailSer
 // as variadic extras in the constructor.
 func ProvideAuthHandler(cfg *config.Config, authService *service.AuthService, userService *service.UserService, settingService *service.SettingService, promoService *service.PromoService, redeemService *service.RedeemService, totpService *service.TotpService, smsService *service.SMSService, userAttributeService *service.UserAttributeService, paymentService *service.PaymentService) *AuthHandler {
 	return NewAuthHandler(cfg, authService, userService, settingService, promoService, redeemService, totpService, smsService, userAttributeService, paymentService)
+}
+
+// ProvideUsageHandler creates UsageHandler with optional setting-backed leaderboard configuration.
+func ProvideUsageHandler(usageService *service.UsageService, apiKeyService *service.APIKeyService, settingService *service.SettingService) *UsageHandler {
+	return NewUsageHandler(usageService, apiKeyService, settingService)
 }
 
 // ProvideHandlers creates the Handlers struct
@@ -149,7 +154,7 @@ var ProviderSet = wire.NewSet(
 	ProvideAuthHandler,
 	NewUserHandler,
 	NewAPIKeyHandler,
-	NewUsageHandler,
+	ProvideUsageHandler,
 	NewRedeemHandler,
 	NewSubscriptionHandler,
 	NewAnnouncementHandler,

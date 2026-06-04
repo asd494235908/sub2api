@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -18,15 +19,21 @@ import (
 
 // UsageHandler handles usage-related requests
 type UsageHandler struct {
-	usageService  *service.UsageService
-	apiKeyService *service.APIKeyService
+	usageService   *service.UsageService
+	apiKeyService  *service.APIKeyService
+	settingService *service.SettingService
 }
 
 // NewUsageHandler creates a new UsageHandler
-func NewUsageHandler(usageService *service.UsageService, apiKeyService *service.APIKeyService) *UsageHandler {
+func NewUsageHandler(usageService *service.UsageService, apiKeyService *service.APIKeyService, extras ...*service.SettingService) *UsageHandler {
+	var settingService *service.SettingService
+	if len(extras) > 0 {
+		settingService = extras[0]
+	}
 	return &UsageHandler{
-		usageService:  usageService,
-		apiKeyService: apiKeyService,
+		usageService:   usageService,
+		apiKeyService:  apiKeyService,
+		settingService: settingService,
 	}
 }
 
@@ -263,6 +270,138 @@ func (h *UsageHandler) Stats(c *gin.Context) {
 	}
 
 	response.Success(c, stats)
+}
+
+const (
+	defaultUsageLeaderboardLimit = 20
+	maxUsageLeaderboardLimit     = 100
+)
+
+type usageLeaderboardItemResponse struct {
+	Rank        int64   `json:"rank"`
+	UserID      int64   `json:"user_id"`
+	DisplayName string  `json:"display_name"`
+	Tokens      int64   `json:"tokens"`
+	Requests    int64   `json:"requests"`
+	ActualCost  float64 `json:"actual_cost"`
+}
+
+func parseUsageLeaderboardLimit(raw string) (int, bool) {
+	if strings.TrimSpace(raw) == "" {
+		return defaultUsageLeaderboardLimit, true
+	}
+	limit, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, false
+	}
+	if limit <= 0 {
+		return defaultUsageLeaderboardLimit, true
+	}
+	if limit > maxUsageLeaderboardLimit {
+		return maxUsageLeaderboardLimit, true
+	}
+	return limit, true
+}
+
+func usageLeaderboardRange(period, userTZ string) (time.Time, time.Time, string, bool) {
+	normalized := strings.TrimSpace(strings.ToLower(period))
+	if normalized == "" {
+		normalized = "today"
+	}
+	now := timezone.NowInUserLocation(userTZ)
+	todayStart := timezone.StartOfDayInUserLocation(now, userTZ)
+	switch normalized {
+	case "today":
+		return todayStart, todayStart.AddDate(0, 0, 1), normalized, true
+	case "yesterday":
+		start := todayStart.AddDate(0, 0, -1)
+		return start, todayStart, normalized, true
+	default:
+		return time.Time{}, time.Time{}, "", false
+	}
+}
+
+func maskLeaderboardDisplayName(username, email string, userID int64) string {
+	if trimmed := strings.TrimSpace(username); trimmed != "" {
+		return maskPlainIdentifier(trimmed)
+	}
+	if trimmed := strings.TrimSpace(email); trimmed != "" {
+		return maskEmail(trimmed)
+	}
+	return fmt.Sprintf("User #%d", userID)
+}
+
+func maskPlainIdentifier(value string) string {
+	runes := []rune(value)
+	if len(runes) == 0 {
+		return "***"
+	}
+	return string(runes[0]) + "***"
+}
+
+func maskEmail(email string) string {
+	parts := strings.SplitN(email, "@", 2)
+	if len(parts) != 2 || parts[0] == "" {
+		return maskPlainIdentifier(email)
+	}
+	local := []rune(parts[0])
+	return string(local[0]) + "***@" + parts[1]
+}
+
+// Leaderboard handles user-facing token consumption leaderboard.
+// GET /api/v1/usage/leaderboard
+func (h *UsageHandler) Leaderboard(c *gin.Context) {
+	if _, ok := middleware2.GetAuthSubjectFromContext(c); !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	limit, ok := parseUsageLeaderboardLimit(c.Query("limit"))
+	if !ok {
+		response.BadRequest(c, "Invalid limit")
+		return
+	}
+	startTime, endTime, period, ok := usageLeaderboardRange(c.DefaultQuery("period", "today"), c.Query("timezone"))
+	if !ok {
+		response.BadRequest(c, "Invalid period, use today or yesterday")
+		return
+	}
+
+	ignoredUserIDs := []int64{}
+	if h.settingService != nil {
+		settings, err := h.settingService.GetUsageLeaderboardSettings(c.Request.Context())
+		if err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+		ignoredUserIDs = settings.IgnoredUserIDs
+	}
+
+	leaderboard, err := h.usageService.GetUserTokenLeaderboard(c.Request.Context(), startTime, endTime, limit, ignoredUserIDs)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	items := make([]usageLeaderboardItemResponse, 0, len(leaderboard.Ranking))
+	for _, row := range leaderboard.Ranking {
+		items = append(items, usageLeaderboardItemResponse{
+			Rank:        row.Rank,
+			UserID:      row.UserID,
+			DisplayName: maskLeaderboardDisplayName(row.Username, row.Email, row.UserID),
+			Tokens:      row.Tokens,
+			Requests:    row.Requests,
+			ActualCost:  row.ActualCost,
+		})
+	}
+
+	response.Success(c, gin.H{
+		"period":         period,
+		"start_date":     startTime.Format("2006-01-02"),
+		"end_date":       endTime.AddDate(0, 0, -1).Format("2006-01-02"),
+		"ranking":        items,
+		"total_tokens":   leaderboard.TotalTokens,
+		"total_requests": leaderboard.TotalRequests,
+	})
 }
 
 // parseUserTimeRange parses start_date, end_date query parameters for user dashboard

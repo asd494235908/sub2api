@@ -192,6 +192,7 @@ func (h *PaymentHandler) GetCheckoutInfo(c *gin.Context) {
 		HelpImageURL:              cfg.HelpImageURL,
 		StripePublishableKey:      cfg.StripePublishableKey,
 		AlipayForceQRCode:         cfg.AlipayForceQRCode,
+		TestRechargeEnabled:       cfg.TestRechargeEnabled,
 		FirstRecharge:             h.firstRechargeCheckoutSummary(ctx),
 	})
 }
@@ -208,6 +209,7 @@ type checkoutInfoResponse struct {
 	HelpImageURL              string                          `json:"help_image_url"`
 	StripePublishableKey      string                          `json:"stripe_publishable_key"`
 	AlipayForceQRCode         bool                            `json:"alipay_force_qrcode"`
+	TestRechargeEnabled       bool                            `json:"test_recharge_enabled"`
 	FirstRecharge             *firstRechargeCheckoutSummary   `json:"first_recharge,omitempty"`
 }
 
@@ -440,6 +442,7 @@ type CreateOrderRequest struct {
 	PaymentSource     string  `json:"payment_source"`
 	OrderType         string  `json:"order_type"`
 	PlanID            int64   `json:"plan_id"`
+	TestRecharge      bool    `json:"test_recharge"`
 	// IsMobile lets the frontend declare its mobile status directly. When
 	// nil we fall back to User-Agent heuristics (which miss iPadOS / some
 	// embedded browsers that strip the "Mobile" keyword).
@@ -490,6 +493,7 @@ func (h *PaymentHandler) CreateOrder(c *gin.Context) {
 		OrderType:       req.OrderType,
 		PlanID:          req.PlanID,
 		Locale:          c.GetHeader("Accept-Language"),
+		TestRecharge:    req.TestRecharge,
 	})
 	if err != nil {
 		response.ErrorFrom(c, err)

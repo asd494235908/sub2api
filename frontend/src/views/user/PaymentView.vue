@@ -88,6 +88,16 @@
               </span>
               <span v-else>{{ t('payment.createOrder') }} {{ formatSelectedPaymentAmount(totalAmount) }}</span>
             </button>
+            <button
+              v-if="canUseTestRecharge"
+              type="button"
+              class="btn btn-secondary w-full py-3 text-base font-medium"
+              data-test="wechat-test-recharge-button"
+              :disabled="submitting"
+              @click="handleTestRecharge"
+            >
+              {{ t('payment.testRechargeButton') }}
+            </button>
             </template>
           </template>
           <!-- Subscribe Tab -->
@@ -440,6 +450,7 @@ interface CreateOrderOptions {
   paymentType?: string
   isResume?: boolean
   mobileQrFallbackAttempted?: boolean
+  testRecharge?: boolean
 }
 
 interface WeixinJSBridgeLike {
@@ -603,7 +614,7 @@ function onPaymentSettled() {
 // All checkout data from single API call
 const checkout = ref<CheckoutInfoResponse>({
   methods: {}, global_min: 0, global_max: 0,
-  plans: [], balance_disabled: false, balance_recharge_multiplier: 1, recharge_fee_rate: 0, help_text: '', help_image_url: '', stripe_publishable_key: '',
+  plans: [], balance_disabled: false, balance_recharge_multiplier: 1, recharge_fee_rate: 0, help_text: '', help_image_url: '', stripe_publishable_key: '', test_recharge_enabled: false,
 })
 
 const tabs = computed(() => {
@@ -742,6 +753,13 @@ const canSubmit = computed(() =>
     && amountFitsMethod(validAmount.value, selectedMethod.value)
     && selectedLimit.value?.available !== false
 )
+const canUseTestRecharge = computed(() => {
+  const wxpay = visibleMethods.value.wxpay
+  return checkout.value.test_recharge_enabled === true
+    && !checkout.value.balance_disabled
+    && !!wxpay
+    && wxpay.available !== false
+})
 
 // Subscription-specific: method options based on plan price
 const subMethodOptions = computed<PaymentMethodOption[]>(() => {
@@ -903,6 +921,14 @@ async function handleSubmitRecharge() {
   await createOrder(validAmount.value, 'balance')
 }
 
+async function handleTestRecharge() {
+  if (!canUseTestRecharge.value || submitting.value) return
+  await createOrder(0.01, 'balance', undefined, {
+    paymentType: 'wxpay',
+    testRecharge: true,
+  })
+}
+
 async function confirmSubscribe() {
   if (!selectedPlan.value || submitting.value || !planCanBePurchased(selectedPlan.value)) return
   await createOrder(selectedPlan.value.price, 'subscription', selectedPlan.value.id)
@@ -923,6 +949,7 @@ async function createOrder(orderAmount: number, orderType: OrderType, planId?: n
       isMobile: isMobileDevice(),
       isWechatBrowser: typeof window !== 'undefined' && /MicroMessenger/i.test(window.navigator.userAgent),
       forceQRCode: !!(checkout.value.alipay_force_qrcode && normalizeVisibleMethod(requestType) === 'alipay'),
+      testRecharge: options.testRecharge,
     })
     if (options.openid) {
       payload.openid = options.openid

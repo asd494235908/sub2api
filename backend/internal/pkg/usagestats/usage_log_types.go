@@ -162,6 +162,24 @@ type UserSpendingRankingResponse struct {
 	TotalTokens     int64                     `json:"total_tokens"`
 }
 
+// UserTokenLeaderboardItem represents a user token leaderboard row.
+type UserTokenLeaderboardItem struct {
+	Rank       int64   `json:"rank"`
+	UserID     int64   `json:"user_id"`
+	Email      string  `json:"email,omitempty"`
+	Username   string  `json:"username,omitempty"`
+	Tokens     int64   `json:"tokens"`
+	Requests   int64   `json:"requests"`
+	ActualCost float64 `json:"actual_cost"`
+}
+
+// UserTokenLeaderboardResponse represents token leaderboard rows plus totals.
+type UserTokenLeaderboardResponse struct {
+	Ranking       []UserTokenLeaderboardItem `json:"ranking"`
+	TotalTokens   int64                      `json:"total_tokens"`
+	TotalRequests int64                      `json:"total_requests"`
+}
+
 // UserBreakdownItem represents per-user usage breakdown within a dimension (group, model, endpoint).
 type UserBreakdownItem struct {
 	UserID      int64   `json:"user_id"`

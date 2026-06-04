@@ -315,6 +315,149 @@ func TestAffiliateIdentityFingerprintRiskExcludesDuplicateDevice(t *testing.T) {
 	require.Nil(t, secondState)
 }
 
+func TestAffiliateIdentityOrderRefreshGrantsOnlyCurrentInviteeAndInviter(t *testing.T) {
+	ctx := context.Background()
+	repo := newAffiliateIdentityMemoryRepo()
+	settingRepo := &settingPublicRepoStub{values: map[string]string{}}
+	settingSvc := NewSettingService(settingRepo, nil)
+	svc := NewAffiliateService(nil, settingSvc, nil, nil)
+	svc.SetIdentityRepository(repo)
+
+	_, err := svc.UpdateAffiliateIdentityConfig(ctx, true, &AffiliateIdentityConfig{
+		InviterRateMultiplier:         1.5,
+		InviteeRateMultiplier:         1.4,
+		DurationHours:                 24,
+		QualifiedInviteeCount:         0,
+		QualifiedPayAmount:            50,
+		EligibleOrderTypes:            []string{payment.OrderTypeBalance, payment.OrderTypeSubscription},
+		FingerprintEnforcementEnabled: true,
+		MaxAccountsPerFingerprintHash: 3,
+	})
+	require.NoError(t, err)
+
+	inviterID := int64(40)
+	currentInviteeID := int64(41)
+	otherQualifiedInviteeID := int64(42)
+	repo.inviterByInvitee[currentInviteeID] = inviterID
+	repo.inviterByInvitee[otherQualifiedInviteeID] = inviterID
+	repo.paid[currentInviteeID] = 50
+	repo.paid[otherQualifiedInviteeID] = 100
+
+	require.NoError(t, svc.RefreshAffiliateIdentitiesForOrderInvitee(ctx, currentInviteeID))
+
+	require.Equal(t, 1, repo.upsertCount[inviterID])
+	require.Equal(t, 1, repo.upsertCount[currentInviteeID])
+	require.Zero(t, repo.upsertCount[otherQualifiedInviteeID])
+
+	inviterState, err := svc.GetActiveAffiliateIdentity(ctx, inviterID)
+	require.NoError(t, err)
+	require.NotNil(t, inviterState)
+	require.Equal(t, AffiliateIdentityTypeInviter, inviterState.Type)
+
+	currentState, err := svc.GetActiveAffiliateIdentity(ctx, currentInviteeID)
+	require.NoError(t, err)
+	require.NotNil(t, currentState)
+	require.Equal(t, AffiliateIdentityTypeInvitee, currentState.Type)
+
+	otherState, err := svc.GetActiveAffiliateIdentity(ctx, otherQualifiedInviteeID)
+	require.NoError(t, err)
+	require.Nil(t, otherState)
+}
+
+func TestAffiliateIdentityOrderRefreshSkipsInviteeBelowThreshold(t *testing.T) {
+	ctx := context.Background()
+	repo := newAffiliateIdentityMemoryRepo()
+	settingRepo := &settingPublicRepoStub{values: map[string]string{}}
+	settingSvc := NewSettingService(settingRepo, nil)
+	svc := NewAffiliateService(nil, settingSvc, nil, nil)
+	svc.SetIdentityRepository(repo)
+
+	_, err := svc.UpdateAffiliateIdentityConfig(ctx, true, &AffiliateIdentityConfig{
+		InviterRateMultiplier:         1.5,
+		InviteeRateMultiplier:         1.4,
+		DurationHours:                 24,
+		QualifiedPayAmount:            50,
+		EligibleOrderTypes:            []string{payment.OrderTypeBalance},
+		FingerprintEnforcementEnabled: true,
+		MaxAccountsPerFingerprintHash: 3,
+	})
+	require.NoError(t, err)
+
+	inviterID := int64(50)
+	inviteeID := int64(51)
+	repo.inviterByInvitee[inviteeID] = inviterID
+	repo.paid[inviteeID] = 49.99
+
+	require.NoError(t, svc.RefreshAffiliateIdentitiesForOrderInvitee(ctx, inviteeID))
+
+	require.Zero(t, repo.upsertCount[inviterID])
+	require.Zero(t, repo.upsertCount[inviteeID])
+}
+
+func TestAffiliateIdentityOrderRefreshDoesNotRefreshPreviouslyGrantedInvitee(t *testing.T) {
+	ctx := context.Background()
+	repo := newAffiliateIdentityMemoryRepo()
+	settingRepo := &settingPublicRepoStub{values: map[string]string{}}
+	settingSvc := NewSettingService(settingRepo, nil)
+	svc := NewAffiliateService(nil, settingSvc, nil, nil)
+	svc.SetIdentityRepository(repo)
+
+	_, err := svc.UpdateAffiliateIdentityConfig(ctx, true, &AffiliateIdentityConfig{
+		InviterRateMultiplier:         1.5,
+		InviteeRateMultiplier:         1.4,
+		DurationHours:                 24,
+		QualifiedPayAmount:            50,
+		EligibleOrderTypes:            []string{payment.OrderTypeBalance},
+		FingerprintEnforcementEnabled: true,
+		MaxAccountsPerFingerprintHash: 3,
+	})
+	require.NoError(t, err)
+
+	inviterID := int64(60)
+	inviteeID := int64(61)
+	repo.inviterByInvitee[inviteeID] = inviterID
+	repo.paid[inviteeID] = 50
+	expiredAt := time.Now().Add(-time.Hour)
+	require.NoError(t, repo.UpsertIdentity(ctx, inviteeID, AffiliateIdentityTypeInvitee, 1.4, &inviterID, expiredAt, nil))
+	repo.upsertCount[inviteeID] = 0
+
+	require.NoError(t, svc.RefreshAffiliateIdentitiesForOrderInvitee(ctx, inviteeID))
+
+	require.Zero(t, repo.upsertCount[inviterID])
+	require.Zero(t, repo.upsertCount[inviteeID])
+}
+
+func TestAffiliateIdentityOrderRefreshSkipsRiskFlaggedInvitee(t *testing.T) {
+	ctx := context.Background()
+	repo := newAffiliateIdentityMemoryRepo()
+	settingRepo := &settingPublicRepoStub{values: map[string]string{}}
+	settingSvc := NewSettingService(settingRepo, nil)
+	svc := NewAffiliateService(nil, settingSvc, nil, nil)
+	svc.SetIdentityRepository(repo)
+
+	_, err := svc.UpdateAffiliateIdentityConfig(ctx, true, &AffiliateIdentityConfig{
+		InviterRateMultiplier:         1.5,
+		InviteeRateMultiplier:         1.4,
+		DurationHours:                 24,
+		QualifiedPayAmount:            50,
+		EligibleOrderTypes:            []string{payment.OrderTypeBalance},
+		FingerprintEnforcementEnabled: true,
+		MaxAccountsPerFingerprintHash: 3,
+	})
+	require.NoError(t, err)
+
+	inviterID := int64(70)
+	inviteeID := int64(71)
+	repo.inviterByInvitee[inviteeID] = inviterID
+	repo.paid[inviteeID] = 50
+	repo.risk[inviteeID] = true
+
+	require.NoError(t, svc.RefreshAffiliateIdentitiesForOrderInvitee(ctx, inviteeID))
+
+	require.Zero(t, repo.upsertCount[inviterID])
+	require.Zero(t, repo.upsertCount[inviteeID])
+}
+
 func TestAffiliateIdentityMultiplierUsesMostFavorableRate(t *testing.T) {
 	ctx := context.Background()
 	repo := newAffiliateIdentityMemoryRepo()

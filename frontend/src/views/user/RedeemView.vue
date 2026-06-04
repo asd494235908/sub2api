@@ -446,7 +446,7 @@ const contactInfo = ref('')
 
 // Helper functions for history display
 const isBalanceType = (type: string) => {
-  return type === 'balance' || type === 'admin_balance' || type === 'weekly_balance' || type === 'first_recharge_bonus'
+  return type === 'balance' || type === 'admin_balance' || type === 'affiliate_balance' || type === 'weekly_balance' || type === 'first_recharge_bonus'
 }
 
 const isSubscriptionType = (type: string) => {
@@ -482,6 +482,8 @@ const getHistoryItemTitle = (item: RedeemHistoryItem) => {
   }
   if (item.type === 'balance') {
     return t('redeem.balanceAddedRedeem')
+  } else if (item.type === 'affiliate_balance') {
+    return t('redeem.balanceAddedAffiliate')
   } else if (item.type === 'admin_balance') {
     return item.value >= 0 ? t('redeem.balanceAddedAdmin') : t('redeem.balanceDeductedAdmin')
   } else if (item.type === 'concurrency') {

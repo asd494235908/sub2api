@@ -67,11 +67,11 @@
         <h3 class="mb-4 font-serif text-4xl font-bold leading-tight text-zinc-900 dark:text-white md:text-5xl">{{ sideTitle }}</h3>
         <p class="mb-12 text-xl font-medium text-zinc-600 dark:text-slate-300">{{ sideSubtitle }}</p>
 
-        <div class="flex flex-col items-center justify-center gap-4 sm:flex-row">
+        <div class="mx-auto grid w-full max-w-5xl grid-cols-2 justify-items-center gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           <div
             v-for="(item, index) in items"
             :key="item.name"
-            class="rounded-full px-8 py-4 font-semibold"
+            class="flex min-h-16 w-full max-w-[13rem] items-center justify-center rounded-2xl px-4 py-3 text-center text-sm font-semibold leading-snug shadow-sm transition-colors sm:text-base"
             :class="index === 0
               ? 'bg-black text-white shadow-lg dark:bg-cyan-300 dark:text-slate-950'
               : 'border-2 border-zinc-200 bg-white text-black dark:border-slate-700 dark:bg-slate-950 dark:text-white'"

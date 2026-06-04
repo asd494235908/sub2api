@@ -25,6 +25,7 @@ type stubAdminService struct {
 	updatedProxies       []*service.UpdateProxyInput
 	testedProxyIDs       []int64
 	getUserErr           error
+	missingUserIDs       map[int64]bool
 	createAccountErr     error
 	updateAccountErr     error
 	bulkUpdateAccountErr error
@@ -154,6 +155,9 @@ func (s *stubAdminService) ListUsers(ctx context.Context, page, pageSize int, fi
 func (s *stubAdminService) GetUser(ctx context.Context, id int64) (*service.User, error) {
 	if s.getUserErr != nil {
 		return nil, s.getUserErr
+	}
+	if s.missingUserIDs[id] {
+		return nil, service.ErrUserNotFound
 	}
 	for i := range s.users {
 		if s.users[i].ID == id {

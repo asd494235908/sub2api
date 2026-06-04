@@ -13,6 +13,7 @@ type affiliateIdentityMemoryRepo struct {
 	risk             map[int64]bool
 	paid             map[int64]float64
 	identities       map[int64]*AffiliateIdentityState
+	upsertCount      map[int64]int
 }
 
 func newAffiliateIdentityMemoryRepo() *affiliateIdentityMemoryRepo {
@@ -22,6 +23,7 @@ func newAffiliateIdentityMemoryRepo() *affiliateIdentityMemoryRepo {
 		risk:             map[int64]bool{},
 		paid:             map[int64]float64{},
 		identities:       map[int64]*AffiliateIdentityState{},
+		upsertCount:      map[int64]int{},
 	}
 }
 
@@ -60,7 +62,17 @@ func (r *affiliateIdentityMemoryRepo) ListIdentityCandidates(_ context.Context, 
 	return out, nil
 }
 
+func (r *affiliateIdentityMemoryRepo) GetIdentityCandidate(_ context.Context, inviteeUserID int64, _ *AffiliateIdentityConfig) (*AffiliateIdentityCandidate, error) {
+	return &AffiliateIdentityCandidate{UserID: inviteeUserID, PaidAmount: r.paid[inviteeUserID], RiskFlagged: r.risk[inviteeUserID]}, nil
+}
+
+func (r *affiliateIdentityMemoryRepo) HasIdentity(_ context.Context, userID int64, identityType string) (bool, error) {
+	state := r.identities[userID]
+	return state != nil && state.Type == identityType, nil
+}
+
 func (r *affiliateIdentityMemoryRepo) UpsertIdentity(_ context.Context, userID int64, identityType string, rateMultiplier float64, sourceInviterID *int64, expiresAt time.Time, _ map[string]any) error {
+	r.upsertCount[userID]++
 	source := (*int64)(nil)
 	if sourceInviterID != nil {
 		v := *sourceInviterID

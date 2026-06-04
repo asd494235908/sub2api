@@ -5,6 +5,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -245,6 +246,37 @@ func (s *RedeemCodeRepoSuite) TestListWithFilters_GroupPreload() {
 	s.Require().Len(codes, 1)
 	s.Require().NotNil(codes[0].Group, "expected Group preload")
 	s.Require().Equal(group.ID, codes[0].Group.ID)
+}
+
+func (s *RedeemCodeRepoSuite) TestListUserActivity_IncludesAffiliateBalanceTransfers() {
+	user := s.createUser(uniqueTestValue(s.T(), "affiliate-transfer-history") + "@example.com")
+	usedAt := time.Now().UTC().Add(-time.Minute)
+	_, err := s.client.RedeemCode.Create().
+		SetCode("USER-ACTIVITY-BALANCE").
+		SetType(service.RedeemTypeBalance).
+		SetStatus(service.StatusUsed).
+		SetValue(8).
+		SetUsedBy(user.ID).
+		SetUsedAt(usedAt).
+		Save(s.ctx)
+	s.Require().NoError(err)
+
+	_, err = s.client.ExecContext(s.ctx, `
+INSERT INTO user_affiliate_ledger (
+	user_id, action, amount, source_user_id, balance_after, aff_quota_after,
+	aff_frozen_quota_after, aff_history_quota_after, created_at, updated_at
+)
+VALUES ($1, 'transfer', 10.00000000, NULL, 130.00000000, 0.00000000, 0.00000000, 10.00000000, NOW(), NOW())`, user.ID)
+	s.Require().NoError(err)
+
+	items, err := s.repo.ListUserActivity(s.ctx, user.ID, 10)
+	s.Require().NoError(err)
+	s.Require().NotEmpty(items)
+	s.Require().Equal(service.RedeemTypeAffiliateBalance, items[0].Type)
+	s.Require().Equal("affiliate_transfer", items[0].Source)
+	s.Require().Equal(float64(10), items[0].Value)
+	s.Require().NotNil(items[0].UsedAt)
+	s.Require().True(strings.HasPrefix(items[0].Code, "AFF-"), "expected affiliate transfer code prefix, got %q", items[0].Code)
 }
 
 // --- Update ---

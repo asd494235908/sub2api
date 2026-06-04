@@ -213,6 +213,11 @@ type SettingService struct {
 	openAIQuotaAutoPauseSettingsSF    singleflight.Group
 }
 
+// UsageLeaderboardSettings stores user-facing leaderboard configuration.
+type UsageLeaderboardSettings struct {
+	IgnoredUserIDs []int64 `json:"ignored_user_ids"`
+}
+
 // DefaultPlatformQuotaSetting 单 platform 三档限额（nil = 沿用上层；0 = 显式禁用；>0 = 上限）
 type DefaultPlatformQuotaSetting struct {
 	DailyLimitUSD   *float64 `json:"daily"`
@@ -659,6 +664,69 @@ func NewSettingService(settingRepo SettingRepository, cfg *config.Config) *Setti
 		settingRepo: settingRepo,
 		cfg:         cfg,
 	}
+}
+
+// GetUsageLeaderboardSettings returns DB-backed user leaderboard settings.
+func (s *SettingService) GetUsageLeaderboardSettings(ctx context.Context) (*UsageLeaderboardSettings, error) {
+	if s == nil || s.settingRepo == nil {
+		return &UsageLeaderboardSettings{IgnoredUserIDs: []int64{}}, nil
+	}
+	raw, err := s.settingRepo.GetValue(ctx, SettingKeyUsageLeaderboardSettings)
+	if err != nil {
+		if errors.Is(err, ErrSettingNotFound) {
+			return &UsageLeaderboardSettings{IgnoredUserIDs: []int64{}}, nil
+		}
+		return nil, fmt.Errorf("get usage leaderboard settings: %w", err)
+	}
+	var settings UsageLeaderboardSettings
+	if strings.TrimSpace(raw) != "" {
+		if err := json.Unmarshal([]byte(raw), &settings); err != nil {
+			return nil, fmt.Errorf("parse usage leaderboard settings: %w", err)
+		}
+	}
+	settings.IgnoredUserIDs = normalizePositiveInt64List(settings.IgnoredUserIDs)
+	return &settings, nil
+}
+
+// UpdateUsageLeaderboardSettings stores DB-backed user leaderboard settings.
+func (s *SettingService) UpdateUsageLeaderboardSettings(ctx context.Context, settings *UsageLeaderboardSettings) (*UsageLeaderboardSettings, error) {
+	if s == nil || s.settingRepo == nil {
+		return nil, errors.New("setting repository is not configured")
+	}
+	if settings == nil {
+		settings = &UsageLeaderboardSettings{}
+	}
+	normalized := &UsageLeaderboardSettings{
+		IgnoredUserIDs: normalizePositiveInt64List(settings.IgnoredUserIDs),
+	}
+	raw, err := json.Marshal(normalized)
+	if err != nil {
+		return nil, fmt.Errorf("marshal usage leaderboard settings: %w", err)
+	}
+	if err := s.settingRepo.Set(ctx, SettingKeyUsageLeaderboardSettings, string(raw)); err != nil {
+		return nil, fmt.Errorf("update usage leaderboard settings: %w", err)
+	}
+	return normalized, nil
+}
+
+func normalizePositiveInt64List(values []int64) []int64 {
+	if len(values) == 0 {
+		return []int64{}
+	}
+	seen := make(map[int64]struct{}, len(values))
+	out := make([]int64, 0, len(values))
+	for _, value := range values {
+		if value <= 0 {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		out = append(out, value)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	return out
 }
 
 // SetDefaultSubscriptionGroupReader injects an optional group reader for default subscription validation.

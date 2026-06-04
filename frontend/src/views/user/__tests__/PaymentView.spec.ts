@@ -117,6 +117,7 @@ function checkoutInfoFixture() {
       help_text: '',
       help_image_url: '',
       stripe_publishable_key: '',
+      test_recharge_enabled: false,
     },
   }
 }
@@ -620,6 +621,87 @@ describe('PaymentView WeChat JSAPI flow', () => {
     const amountInput = wrapper.findComponent({ name: 'AmountInput' })
 
     expect(amountInput.props('amounts')).toEqual([20, 50, 100, 200, 500, 1000, 2000, 5000])
+  })
+
+  it('hides wechat test recharge button when checkout switch is disabled', async () => {
+    routeState.path = '/purchase'
+    routeState.query = {}
+
+    const wrapper = mount(PaymentView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          AmountInput: true,
+          PaymentMethodSelector: true,
+          PaymentStatusPanel: true,
+          SubscriptionPlanCard: true,
+          Icon: true,
+          Teleport: true,
+          Transition: false,
+        },
+      },
+    })
+    await flushPromises()
+    await flushPromises()
+
+    await wrapper.find('[data-test="tab-recharge"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="wechat-test-recharge-button"]').exists()).toBe(false)
+  })
+
+  it('creates a 0.01 wxpay balance order from wechat test recharge button', async () => {
+    routeState.path = '/purchase'
+    routeState.query = {}
+    getCheckoutInfo.mockResolvedValue({
+      data: {
+        ...checkoutInfoFixture().data,
+        test_recharge_enabled: true,
+      },
+    })
+    createOrder.mockResolvedValue({
+      order_id: 902,
+      amount: 0.01,
+      pay_amount: 0.01,
+      fee_rate: 0,
+      expires_at: '2099-01-01T00:10:00.000Z',
+      payment_type: 'wxpay',
+      qr_code: 'weixin://wxpay/bizpayurl?pr=test-recharge',
+      out_trade_no: 'sub2_test_recharge_902',
+    })
+
+    const wrapper = mount(PaymentView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          AmountInput: true,
+          PaymentMethodSelector: true,
+          PaymentStatusPanel: true,
+          SubscriptionPlanCard: true,
+          Icon: true,
+          Teleport: true,
+          Transition: false,
+        },
+      },
+    })
+    await flushPromises()
+    await flushPromises()
+
+    await wrapper.find('[data-test="tab-recharge"]').trigger('click')
+    await flushPromises()
+
+    const button = wrapper.get('[data-test="wechat-test-recharge-button"]')
+    expect(button.text()).toContain('payment.testRechargeButton')
+
+    await button.trigger('click')
+    await flushPromises()
+
+    expect(createOrder).toHaveBeenCalledWith(expect.objectContaining({
+      amount: 0.01,
+      payment_type: 'wxpay',
+      order_type: 'balance',
+      test_recharge: true,
+    }))
   })
 
   it('shows subscription tab by default on purchase page', async () => {

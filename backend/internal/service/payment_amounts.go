@@ -23,6 +23,10 @@ func calculateCreditedBalance(paymentAmount, multiplier float64) float64 {
 		InexactFloat64()
 }
 
+func CalculateAffiliatePlatformBalance(cashAmount, multiplier float64) float64 {
+	return calculateCreditedBalance(cashAmount, multiplier)
+}
+
 func calculateGatewayRefundAmount(orderAmount, payAmount, refundAmount float64, currency string) float64 {
 	if orderAmount <= 0 || payAmount <= 0 || refundAmount <= 0 {
 		return 0

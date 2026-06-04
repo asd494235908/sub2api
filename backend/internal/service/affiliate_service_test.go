@@ -11,7 +11,14 @@ import (
 )
 
 type affiliateRepoStub struct {
-	summaries        map[int64]*AffiliateSummary
+	summaries       map[int64]*AffiliateSummary
+	invitees        []AffiliateInvitee
+	transferAmount  float64
+	transferBalance float64
+	transferCalls   []struct {
+		userID     int64
+		multiplier float64
+	}
 	setRelationCalls []struct {
 		inviterUserID int64
 		inviteeUserID int64
@@ -28,6 +35,14 @@ type affiliateRepoStub struct {
 	signupBonusApplied bool
 	signupBonusBalance float64
 	signupBonusErr     error
+
+	userRecordCalls []struct {
+		userID int64
+		filter AffiliateRecordFilter
+	}
+	userRecords      []UserAffiliateRecord
+	userRecordsTotal int64
+	userRecordsErr   error
 }
 
 func (s *affiliateRepoStub) EnsureUserAffiliate(_ context.Context, userID int64) (*AffiliateSummary, error) {
@@ -93,15 +108,21 @@ func (s *affiliateRepoStub) GetAccruedRebateFromInvitee(context.Context, int64, 
 }
 
 func (s *affiliateRepoStub) ThawFrozenQuota(context.Context, int64) (float64, error) {
-	panic("unexpected ThawFrozenQuota call")
+	return 0, nil
 }
 
-func (s *affiliateRepoStub) TransferQuotaToBalance(context.Context, int64) (float64, float64, error) {
-	panic("unexpected TransferQuotaToBalance call")
+func (s *affiliateRepoStub) TransferQuotaToBalance(_ context.Context, userID int64, multiplier float64) (float64, float64, error) {
+	s.transferCalls = append(s.transferCalls, struct {
+		userID     int64
+		multiplier float64
+	}{userID: userID, multiplier: multiplier})
+	return s.transferAmount, s.transferBalance, nil
 }
 
 func (s *affiliateRepoStub) ListInvitees(context.Context, int64, int) ([]AffiliateInvitee, error) {
-	panic("unexpected ListInvitees call")
+	out := make([]AffiliateInvitee, len(s.invitees))
+	copy(out, s.invitees)
+	return out, nil
 }
 
 func (s *affiliateRepoStub) UpdateUserAffCode(context.Context, int64, string) error {
@@ -144,8 +165,73 @@ func (s *affiliateRepoStub) ListAffiliateTransferRecords(context.Context, Affili
 	panic("unexpected ListAffiliateTransferRecords call")
 }
 
+func (s *affiliateRepoStub) ListUserAffiliateRecords(_ context.Context, userID int64, filter AffiliateRecordFilter) ([]UserAffiliateRecord, int64, error) {
+	s.userRecordCalls = append(s.userRecordCalls, struct {
+		userID int64
+		filter AffiliateRecordFilter
+	}{userID: userID, filter: filter})
+	out := make([]UserAffiliateRecord, len(s.userRecords))
+	copy(out, s.userRecords)
+	return out, s.userRecordsTotal, s.userRecordsErr
+}
+
 func (s *affiliateRepoStub) GetAffiliateUserOverview(context.Context, int64) (*AffiliateUserOverview, error) {
 	panic("unexpected GetAffiliateUserOverview call")
+}
+
+func TestGetAffiliateDetailReturnsCashAliases(t *testing.T) {
+	t.Parallel()
+	inviterID := int64(7)
+	repo := &affiliateRepoStub{
+		summaries: map[int64]*AffiliateSummary{
+			11: {
+				UserID:          11,
+				AffCode:         "AFFCASH11",
+				InviterID:       &inviterID,
+				AffCount:        2,
+				AffQuota:        9.9,
+				AffFrozenQuota:  1.5,
+				AffHistoryQuota: 20.4,
+			},
+		},
+	}
+	svc := &AffiliateService{repo: repo}
+
+	detail, err := svc.GetAffiliateDetail(context.Background(), 11)
+
+	require.NoError(t, err)
+	require.InDelta(t, 9.9, detail.AffQuota, 1e-9)
+	require.InDelta(t, 9.9, detail.RebateCashBalance, 1e-9)
+	require.InDelta(t, 1.5, detail.FrozenRebateCash, 1e-9)
+	require.InDelta(t, 20.4, detail.TotalRebateCash, 1e-9)
+}
+
+func TestListUserAffiliateRecordsNormalizesFilterAndScopesToUser(t *testing.T) {
+	t.Parallel()
+	orderID := int64(99)
+	repo := &affiliateRepoStub{
+		userRecords: []UserAffiliateRecord{
+			{
+				LedgerID:      1,
+				Action:        "accrue",
+				Amount:        9.9,
+				SourceOrderID: &orderID,
+			},
+		},
+		userRecordsTotal: 1,
+	}
+	svc := &AffiliateService{repo: repo}
+
+	records, total, err := svc.ListUserAffiliateRecords(context.Background(), 11, AffiliateRecordFilter{Page: 0, PageSize: 500})
+
+	require.NoError(t, err)
+	require.Equal(t, int64(1), total)
+	require.Len(t, records, 1)
+	require.Equal(t, int64(11), repo.userRecordCalls[0].userID)
+	require.Equal(t, 1, repo.userRecordCalls[0].filter.Page)
+	require.Equal(t, 100, repo.userRecordCalls[0].filter.PageSize)
+	require.Equal(t, "accrue", records[0].Action)
+	require.InDelta(t, 9.9, records[0].Amount, 1e-9)
 }
 
 // TestResolveRebateRatePercent_PerUserOverride verifies that per-inviter
@@ -255,6 +341,28 @@ func TestApplySignupBonus_AwardsDirectBalanceAndReturnsBalance(t *testing.T) {
 	require.Equal(t, inviterID, repo.signupBonusCalls[0].inviterID)
 	require.Equal(t, inviteeID, repo.signupBonusCalls[0].inviteeUserID)
 	require.InDelta(t, 18.88, repo.signupBonusCalls[0].amount, 1e-9)
+}
+
+func TestTransferAffiliateQuota_UsesBalanceRechargeMultiplierForPlatformAmount(t *testing.T) {
+	t.Parallel()
+
+	repo := &affiliateRepoStub{
+		transferAmount:  10,
+		transferBalance: 260,
+	}
+	settings := NewSettingService(&settingRepoStub{values: map[string]string{
+		SettingBalanceRechargeMult: "13",
+	}}, nil)
+	svc := &AffiliateService{repo: repo, settingService: settings}
+
+	transferredCash, transferredQuota, balance, err := svc.TransferAffiliateQuota(context.Background(), 11)
+	require.NoError(t, err)
+	require.InDelta(t, 10, transferredCash, 1e-9)
+	require.InDelta(t, 130, transferredQuota, 1e-9)
+	require.InDelta(t, 260, balance, 1e-9)
+	require.Len(t, repo.transferCalls, 1)
+	require.Equal(t, int64(11), repo.transferCalls[0].userID)
+	require.InDelta(t, 13, repo.transferCalls[0].multiplier, 1e-9)
 }
 
 func TestAdminSetInviteRelationDelegatesOverwrite(t *testing.T) {

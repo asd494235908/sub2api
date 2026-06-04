@@ -184,6 +184,9 @@ export interface UserAffiliateDetail {
   aff_quota: number
   aff_frozen_quota: number
   aff_history_quota: number
+  rebate_cash_balance?: number
+  frozen_rebate_cash?: number
+  total_rebate_cash?: number
   /** 当前用户作为邀请人时实际生效的返利比例（专属覆盖全局）。0-100。 */
   effective_rebate_rate_percent: number
   invitees: AffiliateInvitee[]
@@ -192,6 +195,24 @@ export interface UserAffiliateDetail {
 export interface AffiliateTransferResponse {
   transferred_quota: number
   balance: number
+  transferred_cash?: number
+  platform_balance?: number
+}
+
+export interface AffiliateCashRecord {
+  ledger_id: number
+  action: string
+  amount: number
+  source_user_id?: number | null
+  source_user_email?: string
+  source_username?: string
+  source_order_id?: number | null
+  balance_after?: number | null
+  rebate_cash_after?: number | null
+  frozen_rebate_cash_after?: number | null
+  total_rebate_cash_after?: number | null
+  frozen_until?: string | null
+  created_at: string
 }
 
 export interface AffiliateWithdrawal {
@@ -1286,6 +1307,7 @@ export type RedeemCodeType =
   | 'subscription'
   | 'invitation'
   | 'weekly_balance'
+  | 'affiliate_balance'
   | 'lucky_wheel_bonus'
 export type UsageRequestType = 'unknown' | 'sync' | 'stream' | 'ws_v2'
 export type ImageSizeSource = 'output' | 'input' | 'default' | 'legacy'

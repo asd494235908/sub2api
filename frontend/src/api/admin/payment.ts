@@ -42,6 +42,7 @@ export interface AdminPaymentConfig {
   product_name_suffix: string
   help_image_url: string
   help_text: string
+  test_recharge_enabled: boolean
 }
 
 /** Fields accepted by PUT /admin/payment/config (all optional via pointer semantics) */
@@ -60,6 +61,7 @@ export interface UpdatePaymentConfigRequest {
   product_name_suffix?: string
   help_image_url?: string
   help_text?: string
+  test_recharge_enabled?: boolean
 }
 
 export const adminPaymentAPI = {

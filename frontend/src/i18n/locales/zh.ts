@@ -565,6 +565,7 @@ export default {
     smsBroadcasts: '群发短信',
     apiKeys: 'API 密钥',
     usage: '使用记录',
+    leaderboard: '消耗榜单',
     redeem: '兑换',
     affiliate: '邀请返利',
     affiliateManagement: '邀请返利',
@@ -1069,6 +1070,30 @@ export default {
     addBalanceWithCode: '使用兑换码充值'
   },
 
+  leaderboard: {
+    title: '消耗榜单',
+    description: '查看今日和昨日用户 Token 消耗排名',
+    tableTitle: 'Token 消耗排名',
+    failedToLoad: '加载消耗榜单失败',
+    empty: '暂无榜单数据',
+    periods: {
+      today: '今日',
+      yesterday: '昨日'
+    },
+    summary: {
+      period: '统计日期',
+      tokens: '总 Token',
+      requests: '总请求'
+    },
+    columns: {
+      rank: '排名',
+      user: '用户',
+      tokens: 'Token',
+      requests: '请求',
+      actualCost: '消耗'
+    }
+  },
+
   // Groups (shared)
   groups: {
     subscription: '订阅'
@@ -1463,7 +1488,7 @@ export default {
 
   affiliate: {
     title: '邀请返利',
-    description: '邀请新用户注册，并将返利额度转入账户余额',
+    description: '邀请新用户注册，获得可提现或可转余额的现金返利',
     yourCode: '我的邀请码',
     inviteLink: '邀请链接',
     copyCode: '复制邀请码',
@@ -1471,35 +1496,39 @@ export default {
     codeCopied: '邀请码已复制',
     linkCopied: '邀请链接已复制',
     loadFailed: '加载邀请返利数据失败',
-    transferFailed: '转入余额失败',
+    transferFailed: '现金返利转余额失败',
     stats: {
       rebateRate: '我的返利比例',
       rebateRateHint: '被邀请用户每次充值后你可获得的返利比例',
       invitedUsers: '邀请人数',
-      availableQuota: '可转返利额度',
-      frozenQuota: '冻结中',
-      frozenQuotaHint: '新产生的返利正在冻结期中',
-      totalQuota: '历史返利额度'
+      availableQuota: '可提现现金返利',
+      frozenQuota: '待解冻现金返利',
+      frozenQuotaHint: '新产生的现金返利正在冻结期中',
+      totalQuota: '累计现金返利'
     },
     transfer: {
-      title: '返利额度转余额',
-      description: '将当前可用返利额度一键转入账户余额',
-      button: '转入余额',
+      title: '现金返利转平台余额',
+      description: '按当前充值倍率转入平台余额；微信提现仍按现金金额发放。',
+      button: '转为平台余额',
       transferring: '转入中...',
-      empty: '当前没有可转入额度',
-      success: '已转入余额：{amount}'
+      empty: '当前没有可转入现金返利',
+      success: '已转入平台余额：{amount}'
     },
     withdraw: {
       title: '提现到微信',
       description: '提交提现申请后，管理员审核并人工发放。',
       amount: '金额',
+      payoutMethod: '收款方式',
+      methods: {
+        wechat_manual: '微信人工转账'
+      },
       accountNote: '微信昵称/微信号/收款说明',
       submit: '申请提现',
       submitting: '提交中...',
-      empty: '当前没有可提现额度',
+      empty: '当前没有可提现现金返利',
       noRecords: '暂无提现记录',
       loadFailed: '加载提现记录失败',
-      invalidAmount: '请输入不超过可用额度的提现金额',
+      invalidAmount: '请输入不超过可用现金返利的提现金额',
       accountRequired: '请填写收款说明',
       success: '提现申请已提交',
       failed: '提现申请失败',
@@ -1517,6 +1546,29 @@ export default {
         rejected: '已驳回',
         failed: '发放失败',
         cancelled: '已取消'
+      }
+    },
+    records: {
+      title: '现金返利流水',
+      description: '查看返利入账、转平台余额和提现相关记录。',
+      empty: '暂无现金返利流水',
+      loadFailed: '加载现金返利流水失败',
+      columns: {
+        action: '类型',
+        amount: '金额',
+        source: '来源',
+        balanceAfter: '现金余额',
+        createdAt: '时间'
+      },
+      actions: {
+        accrue: '返利入账',
+        transfer: '转平台余额',
+        withdraw_request: '提现申请',
+        withdraw_approved: '提现审核通过',
+        withdraw_paid: '提现已发放',
+        withdraw_rejected: '提现驳回',
+        withdraw_failed: '提现失败',
+        withdraw_cancelled: '提现取消'
       }
     },
     invitees: {
@@ -4987,6 +5039,7 @@ export default {
         admin_balance: '余额（管理员）',
         admin_concurrency: '并发数（管理员）',
         weekly_balance: '周额度领取',
+        affiliate_balance: '返利转余额',
         lucky_wheel_bonus: '转盘奖励'
       },
       // 用于选择器和筛选器的直接键
@@ -6683,6 +6736,8 @@ export default {
         cancelRateLimitWindowModeFixed: '固定',
         alipayForceQRCode: '支付宝强制二维码支付',
         alipayForceQRCodeHint: '启用后，移动端支付宝用户将统一使用二维码扫码支付，不再跳转至手机网站支付',
+        testRechargeEnabled: '显示 0.01 元微信测试充值按钮',
+        testRechargeEnabledHint: '开启后，用户充值页会显示测试按钮，并走真实微信支付链路到账',
         helpText: '帮助文本',
         helpImageUrl: '帮助图片链接',
         manageProviders: '管理服务商',
@@ -6926,6 +6981,16 @@ export default {
         keyWarning: '此密钥仅显示一次，请立即复制保存。',
         securityWarning: '警告：此密钥拥有完整的管理员权限，请妥善保管。',
         usage: '使用方法：在请求头中添加 x-api-key: <your-admin-api-key>'
+      },
+      leaderboard: {
+        title: '榜单设置',
+        description: '管理用户侧消耗榜单中需要隐藏的用户',
+        searchUser: '搜索用户',
+        searchPlaceholder: '输入邮箱或用户名',
+        ignoredUsers: '忽略用户',
+        emptyIgnored: '暂无忽略用户',
+        removeIgnored: '移除忽略用户',
+        save: '保存榜单设置'
       },
       soraS3: {
         title: 'Sora 存储配置',
@@ -7654,6 +7719,7 @@ export default {
     fee: '手续费',
     actualPay: '实付金额',
     createOrder: '确认支付',
+    testRechargeButton: '微信测试充值 0.01 元',
     methods: {
       easypay: '易支付',
       alipay: '支付宝',

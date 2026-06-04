@@ -106,7 +106,7 @@ func (r *paymentOrderLifecycleAffiliateRepo) AwardSignupBonus(context.Context, i
 func (r *paymentOrderLifecycleAffiliateRepo) ThawFrozenQuota(context.Context, int64) (float64, error) {
 	panic("unexpected ThawFrozenQuota call")
 }
-func (r *paymentOrderLifecycleAffiliateRepo) TransferQuotaToBalance(context.Context, int64) (float64, float64, error) {
+func (r *paymentOrderLifecycleAffiliateRepo) TransferQuotaToBalance(context.Context, int64, float64) (float64, float64, error) {
 	panic("unexpected TransferQuotaToBalance call")
 }
 func (r *paymentOrderLifecycleAffiliateRepo) ListInvitees(context.Context, int64, int) ([]AffiliateInvitee, error) {
@@ -141,6 +141,9 @@ func (r *paymentOrderLifecycleAffiliateRepo) ListAffiliateRebateRecords(context.
 }
 func (r *paymentOrderLifecycleAffiliateRepo) ListAffiliateTransferRecords(context.Context, AffiliateRecordFilter) ([]AffiliateTransferRecord, int64, error) {
 	panic("unexpected ListAffiliateTransferRecords call")
+}
+func (r *paymentOrderLifecycleAffiliateRepo) ListUserAffiliateRecords(context.Context, int64, AffiliateRecordFilter) ([]UserAffiliateRecord, int64, error) {
+	panic("unexpected ListUserAffiliateRecords call")
 }
 func (r *paymentOrderLifecycleAffiliateRepo) GetAffiliateUserOverview(context.Context, int64) (*AffiliateUserOverview, error) {
 	panic("unexpected GetAffiliateUserOverview call")
@@ -952,7 +955,7 @@ func TestExecuteSubscriptionFulfillmentAddsPayAmountToTotalRechargedAndUpdatesMe
 	require.InDelta(t, 579.0, reloadedUser.TotalRecharged, 1e-9)
 }
 
-func TestExecuteSubscriptionFulfillmentAccruesAffiliateRebateFromSnapshotBase(t *testing.T) {
+func TestExecuteSubscriptionFulfillmentAccruesAffiliateRebateFromPayAmount(t *testing.T) {
 	ctx := context.Background()
 	client := newPaymentOrderLifecycleTestClient(t)
 
@@ -969,13 +972,13 @@ func TestExecuteSubscriptionFulfillmentAccruesAffiliateRebateFromSnapshotBase(t 
 		Save(ctx)
 	require.NoError(t, err)
 
-	rebateBase := 3000.0
+	snapshotRebateBase := 3000.0
 	order, err := client.PaymentOrder.Create().
 		SetUserID(invitee.ID).
 		SetUserEmail(invitee.Email).
 		SetUserName(invitee.Username).
 		SetAmount(1560).
-		SetPayAmount(1560).
+		SetPayAmount(99).
 		SetFeeRate(0).
 		SetRechargeCode("SUBSCRIPTION-AFFILIATE-REBATE").
 		SetOutTradeNo("sub2_subscription_affiliate_rebate").
@@ -984,7 +987,7 @@ func TestExecuteSubscriptionFulfillmentAccruesAffiliateRebateFromSnapshotBase(t 
 		SetOrderType(payment.OrderTypeSubscription).
 		SetSubscriptionGroupID(10).
 		SetSubscriptionDays(30).
-		SetSubscriptionRebateBaseAmount(rebateBase).
+		SetSubscriptionRebateBaseAmount(snapshotRebateBase).
 		SetStatus(OrderStatusPaid).
 		SetExpiresAt(time.Now().Add(time.Hour)).
 		SetPaidAt(time.Now()).
@@ -1015,11 +1018,104 @@ func TestExecuteSubscriptionFulfillmentAccruesAffiliateRebateFromSnapshotBase(t 
 	require.Len(t, affiliateRepo.accrued, 1)
 	require.Equal(t, inviter.ID, affiliateRepo.accrued[0].inviterID)
 	require.Equal(t, invitee.ID, affiliateRepo.accrued[0].inviteeUserID)
-	require.InDelta(t, 300.0, affiliateRepo.accrued[0].amount, 1e-9)
+	require.InDelta(t, 9.9, affiliateRepo.accrued[0].amount, 1e-9)
 	require.NotNil(t, affiliateRepo.accrued[0].sourceOrderID)
 	require.Equal(t, order.ID, *affiliateRepo.accrued[0].sourceOrderID)
 
 	require.NoError(t, svc.ExecuteSubscriptionFulfillment(ctx, order.ID))
+	require.Len(t, affiliateRepo.accrued, 1)
+}
+
+func TestExecuteBalanceFulfillmentAccruesAffiliateRebateFromPayAmount(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentOrderLifecycleTestClient(t)
+
+	inviter, err := client.User.Create().
+		SetEmail("balance-rebate-inviter@example.com").
+		SetPasswordHash("hash").
+		SetUsername("balance-rebate-inviter").
+		Save(ctx)
+	require.NoError(t, err)
+	invitee, err := client.User.Create().
+		SetEmail("balance-rebate-invitee@example.com").
+		SetPasswordHash("hash").
+		SetUsername("balance-rebate-invitee").
+		Save(ctx)
+	require.NoError(t, err)
+
+	order, err := client.PaymentOrder.Create().
+		SetUserID(invitee.ID).
+		SetUserEmail(invitee.Email).
+		SetUserName(invitee.Username).
+		SetAmount(1287).
+		SetPayAmount(99).
+		SetFeeRate(0).
+		SetRechargeCode("BALANCE-AFFILIATE-REBATE").
+		SetOutTradeNo("sub2_balance_affiliate_rebate").
+		SetPaymentType(payment.TypeWxpay).
+		SetPaymentTradeNo("wxpay-trade-balance-affiliate").
+		SetOrderType(payment.OrderTypeBalance).
+		SetStatus(OrderStatusPaid).
+		SetExpiresAt(time.Now().Add(time.Hour)).
+		SetPaidAt(time.Now()).
+		SetClientIP("127.0.0.1").
+		SetSrcHost("api.example.com").
+		Save(ctx)
+	require.NoError(t, err)
+
+	redeemRepo := &paymentOrderLifecycleRedeemRepo{}
+	userRepo := &mockUserRepo{
+		getByIDUser: &User{
+			ID:       invitee.ID,
+			Email:    invitee.Email,
+			Username: invitee.Username,
+			Balance:  0,
+		},
+	}
+	userRepo.updateBalanceFn = func(ctx context.Context, id int64, amount float64) error {
+		require.Equal(t, invitee.ID, id)
+		require.InDelta(t, 1287.0, amount, 1e-9)
+		userRepo.getByIDUser.Balance += amount
+		return nil
+	}
+	affiliateRepo := &paymentOrderLifecycleAffiliateRepo{summaries: map[int64]*AffiliateSummary{
+		invitee.ID: {UserID: invitee.ID, InviterID: &inviter.ID},
+		inviter.ID: {UserID: inviter.ID},
+	}}
+	settings := NewSettingService(&settingRepoStub{values: map[string]string{
+		SettingKeyAffiliateEnabled:    "true",
+		SettingKeyAffiliateRebateRate: "10",
+	}}, nil)
+	svc := &PaymentService{
+		entClient:        client,
+		redeemService:    NewRedeemService(redeemRepo, userRepo, nil, nil, nil, client, nil, nil, nil),
+		userRepo:         userRepo,
+		affiliateService: &AffiliateService{repo: affiliateRepo, settingService: settings},
+	}
+
+	require.NoError(t, svc.ExecuteBalanceFulfillment(ctx, order.ID))
+	require.InDelta(t, 1287.0, userRepo.getByIDUser.Balance, 1e-9)
+	require.Len(t, affiliateRepo.accrued, 1)
+	require.Equal(t, inviter.ID, affiliateRepo.accrued[0].inviterID)
+	require.Equal(t, invitee.ID, affiliateRepo.accrued[0].inviteeUserID)
+	require.InDelta(t, 9.9, affiliateRepo.accrued[0].amount, 1e-9)
+	require.NotNil(t, affiliateRepo.accrued[0].sourceOrderID)
+	require.Equal(t, order.ID, *affiliateRepo.accrued[0].sourceOrderID)
+
+	audit, err := client.PaymentAuditLog.Query().
+		Where(
+			paymentauditlog.OrderIDEQ(strconvFormatInt(order.ID)),
+			paymentauditlog.ActionEQ("AFFILIATE_REBATE_APPLIED"),
+		).
+		Only(ctx)
+	require.NoError(t, err)
+	var detail map[string]any
+	require.NoError(t, json.Unmarshal([]byte(audit.Detail), &detail))
+	require.Equal(t, payment.OrderTypeBalance, detail["orderType"])
+	require.InDelta(t, 99.0, detail["rebateBaseAmount"].(float64), 1e-9)
+	require.InDelta(t, 9.9, detail["rebateAmount"].(float64), 1e-9)
+
+	require.NoError(t, svc.ExecuteBalanceFulfillment(ctx, order.ID))
 	require.Len(t, affiliateRepo.accrued, 1)
 }
 
@@ -1097,9 +1193,9 @@ func TestSubscriptionAffiliateRebateFullScenario(t *testing.T) {
 		plan,
 		&PaymentConfig{MaxPendingOrders: 3, OrderTimeoutMin: 30},
 		1560,
-		1560,
+		99,
 		0,
-		1560,
+		99,
 		&payment.InstanceSelection{ProviderKey: payment.TypeAlipay},
 	)
 	require.NoError(t, err)
@@ -1123,7 +1219,7 @@ func TestSubscriptionAffiliateRebateFullScenario(t *testing.T) {
 	require.Len(t, affiliateRepo.accrued, 1)
 	require.Equal(t, inviter.ID, affiliateRepo.accrued[0].inviterID)
 	require.Equal(t, invitee.ID, affiliateRepo.accrued[0].inviteeUserID)
-	require.InDelta(t, 300.0, affiliateRepo.accrued[0].amount, 1e-9)
+	require.InDelta(t, 9.9, affiliateRepo.accrued[0].amount, 1e-9)
 	require.NotNil(t, affiliateRepo.accrued[0].sourceOrderID)
 	require.Equal(t, order.ID, *affiliateRepo.accrued[0].sourceOrderID)
 
@@ -1137,8 +1233,8 @@ func TestSubscriptionAffiliateRebateFullScenario(t *testing.T) {
 	var detail map[string]any
 	require.NoError(t, json.Unmarshal([]byte(audit.Detail), &detail))
 	require.Equal(t, payment.OrderTypeSubscription, detail["orderType"])
-	require.InDelta(t, 3000.0, detail["rebateBaseAmount"].(float64), 1e-9)
-	require.InDelta(t, 300.0, detail["rebateAmount"].(float64), 1e-9)
+	require.InDelta(t, 99.0, detail["rebateBaseAmount"].(float64), 1e-9)
+	require.InDelta(t, 9.9, detail["rebateAmount"].(float64), 1e-9)
 
 	require.NoError(t, svc.ExecuteSubscriptionFulfillment(ctx, order.ID))
 	require.Len(t, affiliateRepo.accrued, 1)
@@ -1152,7 +1248,7 @@ func TestSubscriptionAffiliateRebateFullScenario(t *testing.T) {
 	unlimitedPlan, err := client.SubscriptionPlan.Create().
 		SetGroupID(unlimitedGroupID).
 		SetName("无限额套餐").
-		SetDescription("unlimited subscription should not rebate").
+		SetDescription("unlimited subscription rebates from pay amount").
 		SetPrice(1560).
 		SetValidityDays(30).
 		SetValidityUnit("days").
@@ -1174,9 +1270,9 @@ func TestSubscriptionAffiliateRebateFullScenario(t *testing.T) {
 		unlimitedPlan,
 		&PaymentConfig{MaxPendingOrders: 3, OrderTimeoutMin: 30},
 		1560,
-		1560,
+		99,
 		0,
-		1560,
+		99,
 		&payment.InstanceSelection{ProviderKey: payment.TypeAlipay},
 	)
 	require.NoError(t, err)
@@ -1189,8 +1285,9 @@ func TestSubscriptionAffiliateRebateFullScenario(t *testing.T) {
 		Save(ctx)
 	require.NoError(t, err)
 	require.NoError(t, svc.ExecuteSubscriptionFulfillment(ctx, unlimitedOrder.ID))
-	require.Len(t, affiliateRepo.accrued, 1)
-	require.False(t, svc.hasAuditLog(ctx, unlimitedOrder.ID, "AFFILIATE_REBATE_APPLIED"))
+	require.Len(t, affiliateRepo.accrued, 2)
+	require.InDelta(t, 9.9, affiliateRepo.accrued[1].amount, 1e-9)
+	require.True(t, svc.hasAuditLog(ctx, unlimitedOrder.ID, "AFFILIATE_REBATE_APPLIED"))
 	require.False(t, svc.hasAuditLog(ctx, unlimitedOrder.ID, "AFFILIATE_REBATE_SKIPPED"))
 }
 

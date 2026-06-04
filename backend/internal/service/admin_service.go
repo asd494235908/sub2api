@@ -3211,6 +3211,9 @@ func (s *adminServiceImpl) CheckProxyExists(ctx context.Context, host string, po
 // Redeem code management implementations
 func (s *adminServiceImpl) ListRedeemCodes(ctx context.Context, page, pageSize int, codeType, status, search string, sortBy, sortOrder string) ([]RedeemCode, int64, error) {
 	params := pagination.PaginationParams{Page: page, PageSize: pageSize, SortBy: sortBy, SortOrder: sortOrder}
+	if codeType == RedeemTypeAffiliateBalance {
+		return s.listAffiliateRedeemCodes(ctx, params, status, search)
+	}
 	if codeType == RedeemTypeLuckyWheelBonus {
 		return s.listLuckyWheelRedeemCodes(ctx, params, status, search)
 	}
@@ -3224,12 +3227,16 @@ func (s *adminServiceImpl) ListRedeemCodes(ctx context.Context, page, pageSize i
 		if err != nil {
 			return nil, 0, err
 		}
+		affiliateCodes, affiliateTotal, err := s.listAffiliateRedeemCodesForAdminMerge(ctx, needed, status, search, mergeSortBy, sortOrder)
+		if err != nil {
+			return nil, 0, err
+		}
 		luckyCodes, luckyTotal, err := s.listLuckyWheelRedeemCodesForAdminMerge(ctx, needed, status, search, mergeSortBy, sortOrder)
 		if err != nil {
 			return nil, 0, err
 		}
-		total := redeemTotal + luckyTotal
-		return mergeRedeemCodeAdminList(redeemCodes, luckyCodes, params, mergeSortBy, sortOrder), total, nil
+		total := redeemTotal + affiliateTotal + luckyTotal
+		return mergeRedeemCodeAdminList(redeemCodes, affiliateCodes, luckyCodes, params, mergeSortBy, sortOrder), total, nil
 	}
 	codes, result, err := s.redeemCodeRepo.ListWithFilters(ctx, params, codeType, status, search)
 	if err != nil {
@@ -3284,6 +3291,28 @@ func (s *adminServiceImpl) listLuckyWheelRedeemCodesForAdminMerge(ctx context.Co
 	return codes, total, nil
 }
 
+func (s *adminServiceImpl) listAffiliateRedeemCodesForAdminMerge(ctx context.Context, needed int, status, search, sortBy, sortOrder string) ([]RedeemCode, int64, error) {
+	batchSize := redeemCodeAdminMergeBatchSize(needed)
+	codes := make([]RedeemCode, 0, needed)
+	var total int64
+	for page := 1; len(codes) < needed; page++ {
+		params := pagination.PaginationParams{Page: page, PageSize: batchSize, SortBy: sortBy, SortOrder: sortOrder}
+		batch, batchTotal, err := s.listAffiliateRedeemCodes(ctx, params, status, search)
+		if err != nil {
+			return nil, 0, err
+		}
+		total = batchTotal
+		codes = append(codes, batch...)
+		if len(batch) < params.Limit() || (total > 0 && int64(len(codes)) >= total) {
+			break
+		}
+	}
+	if len(codes) > needed {
+		codes = codes[:needed]
+	}
+	return codes, total, nil
+}
+
 func redeemCodeAdminMergeBatchSize(needed int) int {
 	if needed < 1 {
 		return pagination.DefaultPagination().Limit()
@@ -3300,6 +3329,142 @@ func normalizeRedeemCodeMergeSortBy(sortBy string) string {
 		return "used_at"
 	}
 	return sortBy
+}
+
+func (s *adminServiceImpl) listAffiliateRedeemCodes(ctx context.Context, params pagination.PaginationParams, status, search string) ([]RedeemCode, int64, error) {
+	if s == nil || s.entClient == nil {
+		return nil, 0, nil
+	}
+	if status != "" && status != StatusUsed {
+		return nil, 0, nil
+	}
+
+	search = strings.ToLower(strings.TrimSpace(search))
+	where := "WHERE l.action = ?"
+	args := []any{"transfer"}
+	if search != "" {
+		where += " AND (LOWER('aff-' || CAST(l.id AS TEXT)) LIKE ? OR LOWER(COALESCE(u.email, '')) LIKE ? OR LOWER(COALESCE(u.username, '')) LIKE ?)"
+		like := "%" + search + "%"
+		args = append(args, like, like, like)
+	}
+
+	countArgs := append([]any{}, args...)
+	countRows, err := s.entClient.QueryContext(ctx, luckyWheelBindVars(s.entClient.Driver().Dialect(), `
+SELECT COUNT(*)
+FROM user_affiliate_ledger l
+LEFT JOIN users u ON u.id = l.user_id
+`+where), countArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	var total sql.NullInt64
+	if countRows.Next() {
+		if err := countRows.Scan(&total); err != nil {
+			_ = countRows.Close()
+			return nil, 0, err
+		}
+	}
+	if err := countRows.Err(); err != nil {
+		_ = countRows.Close()
+		return nil, 0, err
+	}
+	_ = countRows.Close()
+
+	orderBy := affiliateRedeemCodeOrderBy(params.SortBy, params.SortOrder)
+	args = append(args, params.Limit(), params.Offset())
+	rows, err := s.entClient.QueryContext(ctx, luckyWheelBindVars(s.entClient.Driver().Dialect(), `
+SELECT l.id,
+       COALESCE(
+           l.balance_after - (
+               SELECT prev.balance_after
+               FROM user_affiliate_ledger prev
+               WHERE prev.user_id = l.user_id
+                 AND prev.balance_after IS NOT NULL
+                 AND (prev.created_at, prev.id) < (l.created_at, l.id)
+               ORDER BY prev.created_at DESC, prev.id DESC
+               LIMIT 1
+           ),
+           l.amount
+       )::double precision AS platform_amount,
+       l.created_at,
+       l.user_id,
+       u.email,
+       u.username
+FROM user_affiliate_ledger l
+LEFT JOIN users u ON u.id = l.user_id
+`+where+`
+`+orderBy+`
+LIMIT ?
+OFFSET ?`), args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	codes := make([]RedeemCode, 0, params.Limit())
+	for rows.Next() {
+		var (
+			id        int64
+			value     float64
+			createdAt time.Time
+			userID    int64
+			email     sql.NullString
+			username  sql.NullString
+		)
+		if err := rows.Scan(&id, &value, &createdAt, &userID, &email, &username); err != nil {
+			return nil, 0, err
+		}
+		usedAt := createdAt
+		userSummary := &User{ID: userID}
+		if email.Valid {
+			userSummary.Email = email.String
+		}
+		if username.Valid {
+			userSummary.Username = username.String
+		}
+		codes = append(codes, RedeemCode{
+			ID:        -id,
+			Code:      fmt.Sprintf("AFF-%d", id),
+			Type:      RedeemTypeAffiliateBalance,
+			Value:     value,
+			Status:    StatusUsed,
+			UsedBy:    &userID,
+			UsedAt:    &usedAt,
+			CreatedAt: createdAt,
+			User:      userSummary,
+			Source:    "affiliate_transfer",
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	if !total.Valid {
+		return codes, 0, nil
+	}
+	return codes, total.Int64, nil
+}
+
+func affiliateRedeemCodeOrderBy(sortBy, sortOrder string) string {
+	desc := strings.ToLower(strings.TrimSpace(sortOrder)) != pagination.SortOrderAsc
+	direction := "DESC"
+	if !desc {
+		direction = "ASC"
+	}
+
+	switch strings.ToLower(strings.TrimSpace(sortBy)) {
+	case "type":
+		return "ORDER BY l.id " + direction
+	case "value":
+		return "ORDER BY platform_amount " + direction + ", l.id " + direction
+	case "status":
+		return "ORDER BY l.id " + direction
+	case "used_at", "created_at":
+		return "ORDER BY l.created_at " + direction + ", l.id " + direction
+	case "code":
+		return "ORDER BY l.id " + direction
+	default:
+		return "ORDER BY l.id " + direction
+	}
 }
 
 func (s *adminServiceImpl) listLuckyWheelRedeemCodes(ctx context.Context, params pagination.PaginationParams, status, search string) ([]RedeemCode, int64, error) {
@@ -3441,8 +3606,8 @@ func luckyWheelRedeemCodeOrderBy(sortBy, sortOrder string) string {
 	}
 }
 
-func mergeRedeemCodeAdminList(redeemCodes, luckyWheelCodes []RedeemCode, params pagination.PaginationParams, sortBy, sortOrder string) []RedeemCode {
-	combined := append(append([]RedeemCode{}, redeemCodes...), luckyWheelCodes...)
+func mergeRedeemCodeAdminList(redeemCodes, affiliateCodes, luckyWheelCodes []RedeemCode, params pagination.PaginationParams, sortBy, sortOrder string) []RedeemCode {
+	combined := append(append(append([]RedeemCode{}, redeemCodes...), affiliateCodes...), luckyWheelCodes...)
 	sort.SliceStable(combined, func(i, j int) bool {
 		cmp := compareRedeemCodeForAdminList(combined[i], combined[j], sortBy)
 		if cmp == 0 {

@@ -316,10 +316,21 @@ const productCards = computed<Array<{ icon: 'cpu' | 'sparkles' | 'globe' | 'shie
 ])
 
 const modelChoices = computed(() => [
-  { name: 'GPT-5.5', description: t('home.landing.models.items.gpt55'), badge: t('home.landing.models.badges.latest') },
-  { name: 'GPT-5.4', description: t('home.landing.models.items.gpt54'), badge: '' },
-  { name: 'GPT-5.4 nano', description: t('home.landing.models.items.gpt54nano'), badge: '' },
-  { name: 'GPT Image 2', description: t('home.landing.models.items.gptImage2'), badge: '' }
+  { name: 'DeepSeek V4-Pro', description: '', badge: '' },
+  { name: 'DeepSeek V4-Flash', description: '', badge: '' },
+  { name: 'Doubao-Seed_1.5', description: '', badge: '' },
+  { name: 'Doubao-Seed_1.6', description: '', badge: '' },
+  { name: 'Doubao-Seed_1.8', description: '', badge: '' },
+  { name: 'Doubao-Seed_2.0', description: '', badge: '' },
+  { name: 'Qwen3.5-Plus', description: '', badge: '' },
+  { name: 'Qwen', description: '', badge: '' },
+  { name: 'Happy horse', description: '', badge: '' },
+  { name: 'Kling Video API', description: '', badge: '' },
+  { name: 'MiniMax-M2.7', description: '', badge: '' },
+  { name: 'MiniMax-M2.5', description: '', badge: '' },
+  { name: 'GLM-5.1', description: '', badge: '' },
+  { name: 'GLM-5-Turbo', description: '', badge: '' },
+  { name: 'GLM-5', description: '', badge: '' }
 ])
 
 const pricingRows = computed(() => [

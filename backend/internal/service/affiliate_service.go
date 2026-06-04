@@ -85,18 +85,37 @@ type AffiliateInvitee struct {
 }
 
 type AffiliateDetail struct {
-	UserID          int64   `json:"user_id"`
-	AffCode         string  `json:"aff_code"`
-	InviterID       *int64  `json:"inviter_id,omitempty"`
-	AffCount        int     `json:"aff_count"`
-	AffQuota        float64 `json:"aff_quota"`
-	AffFrozenQuota  float64 `json:"aff_frozen_quota"`
-	AffHistoryQuota float64 `json:"aff_history_quota"`
+	UserID            int64   `json:"user_id"`
+	AffCode           string  `json:"aff_code"`
+	InviterID         *int64  `json:"inviter_id,omitempty"`
+	AffCount          int     `json:"aff_count"`
+	AffQuota          float64 `json:"aff_quota"`
+	AffFrozenQuota    float64 `json:"aff_frozen_quota"`
+	AffHistoryQuota   float64 `json:"aff_history_quota"`
+	RebateCashBalance float64 `json:"rebate_cash_balance"`
+	FrozenRebateCash  float64 `json:"frozen_rebate_cash"`
+	TotalRebateCash   float64 `json:"total_rebate_cash"`
 	// EffectiveRebateRatePercent 是当前用户作为邀请人时实际生效的返利比例：
 	// 优先用户自己的专属比例（aff_rebate_rate_percent），否则回退到全局比例。
 	// 用于在用户的 /affiliate 页面直观展示「分享后能拿到多少」。
 	EffectiveRebateRatePercent float64            `json:"effective_rebate_rate_percent"`
 	Invitees                   []AffiliateInvitee `json:"invitees"`
+}
+
+type UserAffiliateRecord struct {
+	LedgerID              int64      `json:"ledger_id"`
+	Action                string     `json:"action"`
+	Amount                float64    `json:"amount"`
+	SourceUserID          *int64     `json:"source_user_id,omitempty"`
+	SourceUserEmail       string     `json:"source_user_email"`
+	SourceUsername        string     `json:"source_username"`
+	SourceOrderID         *int64     `json:"source_order_id,omitempty"`
+	BalanceAfter          *float64   `json:"balance_after,omitempty"`
+	RebateCashAfter       *float64   `json:"rebate_cash_after,omitempty"`
+	FrozenRebateCashAfter *float64   `json:"frozen_rebate_cash_after,omitempty"`
+	TotalRebateCashAfter  *float64   `json:"total_rebate_cash_after,omitempty"`
+	FrozenUntil           *time.Time `json:"frozen_until,omitempty"`
+	CreatedAt             time.Time  `json:"created_at"`
 }
 
 type AffiliateRepository interface {
@@ -108,7 +127,7 @@ type AffiliateRepository interface {
 	AwardSignupBonus(ctx context.Context, inviterID, inviteeUserID int64, amount float64) (bool, float64, error)
 	GetAccruedRebateFromInvitee(ctx context.Context, inviterID, inviteeUserID int64) (float64, error)
 	ThawFrozenQuota(ctx context.Context, userID int64) (float64, error)
-	TransferQuotaToBalance(ctx context.Context, userID int64) (float64, float64, error)
+	TransferQuotaToBalance(ctx context.Context, userID int64, balanceRechargeMultiplier float64) (float64, float64, error)
 	ListInvitees(ctx context.Context, inviterID int64, limit int) ([]AffiliateInvitee, error)
 
 	// 管理端：用户级专属配置
@@ -122,6 +141,7 @@ type AffiliateRepository interface {
 	ListAffiliateInviteRecords(ctx context.Context, filter AffiliateRecordFilter) ([]AffiliateInviteRecord, int64, error)
 	ListAffiliateRebateRecords(ctx context.Context, filter AffiliateRecordFilter) ([]AffiliateRebateRecord, int64, error)
 	ListAffiliateTransferRecords(ctx context.Context, filter AffiliateRecordFilter) ([]AffiliateTransferRecord, int64, error)
+	ListUserAffiliateRecords(ctx context.Context, userID int64, filter AffiliateRecordFilter) ([]UserAffiliateRecord, int64, error)
 	GetAffiliateUserOverview(ctx context.Context, userID int64) (*AffiliateUserOverview, error)
 }
 
@@ -298,6 +318,9 @@ func (s *AffiliateService) GetAffiliateDetail(ctx context.Context, userID int64)
 		AffQuota:                   summary.AffQuota,
 		AffFrozenQuota:             summary.AffFrozenQuota,
 		AffHistoryQuota:            summary.AffHistoryQuota,
+		RebateCashBalance:          summary.AffQuota,
+		FrozenRebateCash:           summary.AffFrozenQuota,
+		TotalRebateCash:            summary.AffHistoryQuota,
 		EffectiveRebateRatePercent: s.resolveRebateRatePercent(ctx, summary),
 		Invitees:                   invitees,
 	}, nil
@@ -482,19 +505,32 @@ func (s *AffiliateService) globalRebateRatePercent(ctx context.Context) float64 
 	return s.settingService.GetAffiliateRebateRatePercent(ctx)
 }
 
-func (s *AffiliateService) TransferAffiliateQuota(ctx context.Context, userID int64) (float64, float64, error) {
+func (s *AffiliateService) TransferAffiliateQuota(ctx context.Context, userID int64) (float64, float64, float64, error) {
 	if s == nil || s.repo == nil {
-		return 0, 0, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+		return 0, 0, 0, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
 	}
 
-	transferred, balance, err := s.repo.TransferQuotaToBalance(ctx, userID)
+	multiplier := s.affiliateBalanceRechargeMultiplier(ctx)
+	transferred, balance, err := s.repo.TransferQuotaToBalance(ctx, userID, multiplier)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
+	platformAmount := calculateCreditedBalance(transferred, multiplier)
 	if transferred > 0 {
 		s.invalidateAffiliateCaches(ctx, userID)
 	}
-	return transferred, balance, nil
+	return transferred, platformAmount, balance, nil
+}
+
+func (s *AffiliateService) affiliateBalanceRechargeMultiplier(ctx context.Context) float64 {
+	if s == nil || s.settingService == nil || s.settingService.settingRepo == nil {
+		return defaultBalanceRechargeMultiplier
+	}
+	raw, err := s.settingService.settingRepo.GetValue(ctx, SettingBalanceRechargeMult)
+	if err != nil {
+		return defaultBalanceRechargeMultiplier
+	}
+	return normalizeBalanceRechargeMultiplier(pcParseFloat(raw, defaultBalanceRechargeMultiplier))
 }
 
 func (s *AffiliateService) listInvitees(ctx context.Context, inviterID int64) ([]AffiliateInvitee, error) {
@@ -690,6 +726,16 @@ func (s *AffiliateService) AdminListTransferRecords(ctx context.Context, filter 
 		return nil, 0, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
 	}
 	return s.repo.ListAffiliateTransferRecords(ctx, normalizeAffiliateRecordFilter(filter))
+}
+
+func (s *AffiliateService) ListUserAffiliateRecords(ctx context.Context, userID int64, filter AffiliateRecordFilter) ([]UserAffiliateRecord, int64, error) {
+	if userID <= 0 {
+		return nil, 0, infraerrors.BadRequest("INVALID_USER", "invalid user")
+	}
+	if s == nil || s.repo == nil {
+		return nil, 0, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+	}
+	return s.repo.ListUserAffiliateRecords(ctx, userID, normalizeAffiliateRecordFilter(filter))
 }
 
 func (s *AffiliateService) AdminGetUserOverview(ctx context.Context, userID int64) (*AffiliateUserOverview, error) {

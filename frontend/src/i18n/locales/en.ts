@@ -565,6 +565,7 @@ export default {
     smsBroadcasts: 'SMS Broadcasts',
     apiKeys: 'API Keys',
     usage: 'Usage',
+    leaderboard: 'Leaderboard',
     redeem: 'Redeem',
     affiliate: 'Affiliate Rebates',
     affiliateManagement: 'Affiliate Rebates',
@@ -1070,6 +1071,30 @@ export default {
     addBalanceWithCode: 'Add balance with a code'
   },
 
+  leaderboard: {
+    title: 'Usage Leaderboard',
+    description: 'View today and yesterday token consumption rankings',
+    tableTitle: 'Token Consumption Ranking',
+    failedToLoad: 'Failed to load usage leaderboard',
+    empty: 'No leaderboard data yet',
+    periods: {
+      today: 'Today',
+      yesterday: 'Yesterday'
+    },
+    summary: {
+      period: 'Date',
+      tokens: 'Total Tokens',
+      requests: 'Total Requests'
+    },
+    columns: {
+      rank: 'Rank',
+      user: 'User',
+      tokens: 'Tokens',
+      requests: 'Requests',
+      actualCost: 'Usage'
+    }
+  },
+
   // Groups (shared)
   groups: {
     subscription: 'Sub'
@@ -1456,7 +1481,7 @@ export default {
 
   affiliate: {
     title: 'Affiliate Rebates',
-    description: 'Invite new users and convert your rebate quota into account balance',
+    description: 'Invite new users and earn cash rebates you can withdraw or convert to balance',
     yourCode: 'Your Affiliate Code',
     inviteLink: 'Invite Link',
     copyCode: 'Copy Code',
@@ -1464,35 +1489,39 @@ export default {
     codeCopied: 'Affiliate code copied',
     linkCopied: 'Invite link copied',
     loadFailed: 'Failed to load affiliate data',
-    transferFailed: 'Failed to transfer affiliate quota',
+    transferFailed: 'Failed to convert cash rebate',
     stats: {
       rebateRate: 'My Rebate Rate',
       rebateRateHint: 'What you earn each time an invitee recharges',
       invitedUsers: 'Invited Users',
-      availableQuota: 'Available Rebate Quota',
-      frozenQuota: 'Frozen',
-      frozenQuotaHint: 'Recently earned rebates pending release',
-      totalQuota: 'Historical Rebate Quota'
+      availableQuota: 'Withdrawable Cash Rebate',
+      frozenQuota: 'Pending Cash Rebate',
+      frozenQuotaHint: 'Recently earned cash rebates pending release',
+      totalQuota: 'Total Cash Rebates'
     },
     transfer: {
-      title: 'Transfer Rebate Quota',
-      description: 'Move available rebate quota into your account balance',
-      button: 'Transfer to Balance',
+      title: 'Convert Cash Rebate',
+      description: 'Convert cash rebate into platform balance using the current recharge multiplier. Withdrawals still pay the cash amount.',
+      button: 'Convert to Balance',
       transferring: 'Transferring...',
-      empty: 'No available rebate quota',
+      empty: 'No available cash rebate',
       success: '{amount} has been transferred to your balance'
     },
     withdraw: {
       title: 'Withdraw to WeChat',
       description: 'Submit a withdrawal request. Admins review it and pay manually.',
       amount: 'Amount',
+      payoutMethod: 'Payout Method',
+      methods: {
+        wechat_manual: 'Manual WeChat Transfer'
+      },
       accountNote: 'WeChat nickname/account/payment note',
       submit: 'Request Withdrawal',
       submitting: 'Submitting...',
-      empty: 'No available rebate quota to withdraw',
+      empty: 'No available cash rebate to withdraw',
       noRecords: 'No withdrawal records yet',
       loadFailed: 'Failed to load withdrawals',
-      invalidAmount: 'Enter an amount within your available quota',
+      invalidAmount: 'Enter an amount within your available cash rebate',
       accountRequired: 'Payment note is required',
       success: 'Withdrawal request submitted',
       failed: 'Failed to submit withdrawal',
@@ -1510,6 +1539,29 @@ export default {
         rejected: 'Rejected',
         failed: 'Failed',
         cancelled: 'Cancelled'
+      }
+    },
+    records: {
+      title: 'Cash Rebate Records',
+      description: 'View rebate income, balance conversions, and withdrawal activity.',
+      empty: 'No cash rebate records yet',
+      loadFailed: 'Failed to load cash rebate records',
+      columns: {
+        action: 'Type',
+        amount: 'Amount',
+        source: 'Source',
+        balanceAfter: 'Cash Balance',
+        createdAt: 'Time'
+      },
+      actions: {
+        accrue: 'Rebate Income',
+        transfer: 'Converted to Balance',
+        withdraw_request: 'Withdrawal Requested',
+        withdraw_approved: 'Withdrawal Approved',
+        withdraw_paid: 'Withdrawal Paid',
+        withdraw_rejected: 'Withdrawal Rejected',
+        withdraw_failed: 'Withdrawal Failed',
+        withdraw_cancelled: 'Withdrawal Cancelled'
       }
     },
     invitees: {
@@ -4919,6 +4971,7 @@ export default {
         admin_balance: 'Balance (Admin)',
         admin_concurrency: 'Concurrency (Admin)',
         weekly_balance: 'Weekly Quota Claim',
+        affiliate_balance: 'Affiliate Balance Transfer',
         lucky_wheel_bonus: 'Lucky Wheel Bonus'
       },
       selectGroup: 'Select Group',
@@ -6524,6 +6577,8 @@ export default {
         cancelRateLimitWindowModeFixed: 'Fixed',
         alipayForceQRCode: 'Force Alipay QR Code',
         alipayForceQRCodeHint: 'When enabled, mobile Alipay users always see a QR code instead of being redirected to the mobile payment page',
+        testRechargeEnabled: 'Show ¥0.01 WeChat test top-up button',
+        testRechargeEnabledHint: 'When enabled, users see a test button on the top-up page and pay through the real WeChat flow',
         helpText: 'Help Text',
         helpImageUrl: 'Help Image URL',
         manageProviders: 'Manage Providers',
@@ -6768,6 +6823,16 @@ export default {
         keyWarning: 'This key will only be shown once. Please copy it now.',
         securityWarning: 'Warning: This key provides full admin access. Keep it secure.',
         usage: 'Usage: Add to request header - x-api-key: <your-admin-api-key>'
+      },
+      leaderboard: {
+        title: 'Leaderboard Settings',
+        description: 'Manage users hidden from the user-facing usage leaderboard',
+        searchUser: 'Search User',
+        searchPlaceholder: 'Enter email or username',
+        ignoredUsers: 'Ignored Users',
+        emptyIgnored: 'No ignored users',
+        removeIgnored: 'Remove ignored user',
+        save: 'Save Leaderboard Settings'
       },
       soraS3: {
         title: 'Sora Storage',
@@ -7471,6 +7536,7 @@ export default {
     fee: 'Fee',
     actualPay: 'Actual Payment',
     createOrder: 'Confirm Payment',
+    testRechargeButton: 'WeChat test top-up ¥0.01',
     methods: {
       easypay: 'EasyPay',
       alipay: 'Alipay',

@@ -16,6 +16,7 @@ import type {
   UserAuthProvider,
   UserAffiliateDetail,
   AffiliateTransferResponse,
+  AffiliateCashRecord,
   AffiliateWithdrawal,
   PlatformQuotasResponse,
 } from '@/types'
@@ -210,6 +211,19 @@ export async function transferAffiliateQuota(): Promise<AffiliateTransferRespons
   return data
 }
 
+export async function listAffiliateRecords(params: {
+  page?: number
+  page_size?: number
+} = {}): Promise<PaginatedResponse<AffiliateCashRecord>> {
+  const { data } = await apiClient.get<PaginatedResponse<AffiliateCashRecord>>('/user/aff/records', {
+    params: {
+      page: params.page ?? 1,
+      page_size: params.page_size ?? 20,
+    },
+  })
+  return data
+}
+
 export async function listAffiliateWithdrawals(params: {
   page?: number
   page_size?: number
@@ -260,6 +274,7 @@ export const userAPI = {
   startOAuthBinding,
   getAffiliateDetail,
   transferAffiliateQuota,
+  listAffiliateRecords,
   listAffiliateWithdrawals,
   createAffiliateWithdrawal,
   getMyPlatformQuotas,

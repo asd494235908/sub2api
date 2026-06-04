@@ -438,6 +438,12 @@ func (r *redeemCodeRepository) ListUserActivity(ctx context.Context, userID int6
 		})
 	}
 
+	affiliateTransfers, err := r.listAffiliateTransferHistory(ctx, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	items = append(items, affiliateTransfers...)
+
 	sessions, err := r.listLuckyWheelRewardHistory(ctx, userID, limit)
 	if err != nil {
 		return nil, err
@@ -460,6 +466,66 @@ func (r *redeemCodeRepository) ListUserActivity(ctx context.Context, userID int6
 		items = items[:limit]
 	}
 	return items, nil
+}
+
+func (r *redeemCodeRepository) listAffiliateTransferHistory(ctx context.Context, userID int64, limit int) ([]service.RedeemHistoryItem, error) {
+	if limit <= 0 {
+		limit = 25
+	}
+	execCtx := clientFromContext(ctx, r.client)
+	rows, err := execCtx.QueryContext(ctx, `
+SELECT id,
+       COALESCE(
+           balance_after - (
+               SELECT prev.balance_after
+               FROM user_affiliate_ledger prev
+               WHERE prev.user_id = transfers.user_id
+                 AND prev.balance_after IS NOT NULL
+                 AND (prev.created_at, prev.id) < (transfers.created_at, transfers.id)
+               ORDER BY prev.created_at DESC, prev.id DESC
+               LIMIT 1
+           ),
+           amount
+       )::double precision AS platform_amount,
+       created_at
+FROM (
+    SELECT id, user_id, amount, balance_after, created_at
+    FROM user_affiliate_ledger
+    WHERE user_id = $1
+      AND action = 'transfer'
+) transfers
+ORDER BY created_at DESC, id DESC
+LIMIT $2`, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	items := make([]service.RedeemHistoryItem, 0)
+	for rows.Next() {
+		var (
+			id             int64
+			platformAmount float64
+			createdAt      time.Time
+		)
+		if err := rows.Scan(&id, &platformAmount, &createdAt); err != nil {
+			return nil, err
+		}
+		usedAt := createdAt
+		items = append(items, service.RedeemHistoryItem{
+			ID:        -id,
+			Code:      "AFF-" + strconv.FormatInt(id, 10),
+			Type:      service.RedeemTypeAffiliateBalance,
+			Value:     platformAmount,
+			Status:    service.StatusUsed,
+			UsedBy:    &userID,
+			UsedAt:    &usedAt,
+			CreatedAt: createdAt,
+			Source:    "affiliate_transfer",
+			Title:     service.RedeemTypeAffiliateBalance,
+		})
+	}
+	return items, rows.Err()
 }
 
 // SumPositiveBalanceByUser returns total recharged amount (sum of value > 0 where type is balance/admin_balance).

@@ -116,6 +116,9 @@ func (s *PaymentService) validateOrderInput(ctx context.Context, req CreateOrder
 	if req.OrderType == payment.OrderTypeBalance && cfg.BalanceDisabled {
 		return nil, infraerrors.Forbidden("BALANCE_PAYMENT_DISABLED", "balance recharge has been disabled")
 	}
+	if req.TestRecharge {
+		return s.validateTestRechargeOrder(ctx, req, cfg)
+	}
 	if req.OrderType == payment.OrderTypeSubscription {
 		return s.validateSubOrder(ctx, req)
 	}
@@ -123,6 +126,25 @@ func (s *PaymentService) validateOrderInput(ctx context.Context, req CreateOrder
 		return nil, infraerrors.BadRequest("INVALID_AMOUNT", "amount must be a positive number")
 	}
 	if (cfg.MinAmount > 0 && req.Amount < cfg.MinAmount) || (cfg.MaxAmount > 0 && req.Amount > cfg.MaxAmount) {
+		return nil, infraerrors.BadRequest("INVALID_AMOUNT", "amount out of range").
+			WithMetadata(map[string]string{"min": fmt.Sprintf("%.2f", cfg.MinAmount), "max": fmt.Sprintf("%.2f", cfg.MaxAmount)})
+	}
+	return nil, nil
+}
+
+func (s *PaymentService) validateTestRechargeOrder(ctx context.Context, req CreateOrderRequest, cfg *PaymentConfig) (*dbent.SubscriptionPlan, error) {
+	if !cfg.TestRechargeEnabled {
+		return nil, infraerrors.Forbidden("TEST_RECHARGE_DISABLED", "test recharge is disabled")
+	}
+	if req.OrderType != payment.OrderTypeBalance ||
+		payment.GetBasePaymentType(req.PaymentType) != payment.TypeWxpay ||
+		math.Abs(req.Amount-0.01) > 0.000001 {
+		return nil, infraerrors.BadRequest("INVALID_TEST_RECHARGE", "test recharge requires a 0.01 wxpay balance order")
+	}
+	if math.IsNaN(req.Amount) || math.IsInf(req.Amount, 0) || req.Amount <= 0 {
+		return nil, infraerrors.BadRequest("INVALID_AMOUNT", "amount must be a positive number")
+	}
+	if cfg.MaxAmount > 0 && req.Amount > cfg.MaxAmount {
 		return nil, infraerrors.BadRequest("INVALID_AMOUNT", "amount out of range").
 			WithMetadata(map[string]string{"min": fmt.Sprintf("%.2f", cfg.MinAmount), "max": fmt.Sprintf("%.2f", cfg.MaxAmount)})
 	}

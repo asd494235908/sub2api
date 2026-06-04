@@ -25,6 +25,47 @@ type userHandlerRepoStub struct {
 	unbound    []string
 }
 
+type affiliateTransferSettingRepoStub struct {
+	values map[string]string
+}
+
+func (s *affiliateTransferSettingRepoStub) Get(context.Context, string) (*service.Setting, error) {
+	panic("unexpected Get call")
+}
+
+func (s *affiliateTransferSettingRepoStub) GetValue(_ context.Context, key string) (string, error) {
+	if v, ok := s.values[key]; ok {
+		return v, nil
+	}
+	return "", service.ErrSettingNotFound
+}
+
+func (s *affiliateTransferSettingRepoStub) Set(context.Context, string, string) error {
+	panic("unexpected Set call")
+}
+
+func (s *affiliateTransferSettingRepoStub) GetMultiple(_ context.Context, keys []string) (map[string]string, error) {
+	out := make(map[string]string, len(keys))
+	for _, key := range keys {
+		if v, ok := s.values[key]; ok {
+			out[key] = v
+		}
+	}
+	return out, nil
+}
+
+func (s *affiliateTransferSettingRepoStub) SetMultiple(context.Context, map[string]string) error {
+	panic("unexpected SetMultiple call")
+}
+
+func (s *affiliateTransferSettingRepoStub) GetAll(context.Context) (map[string]string, error) {
+	panic("unexpected GetAll call")
+}
+
+func (s *affiliateTransferSettingRepoStub) Delete(context.Context, string) error {
+	panic("unexpected Delete call")
+}
+
 func (s *userHandlerRepoStub) Create(context.Context, *service.User) error { return nil }
 func (s *userHandlerRepoStub) GetByID(context.Context, int64) (*service.User, error) {
 	cloned := *s.user
@@ -264,6 +305,195 @@ func TestUserHandlerGetProfileReturnsIdentitySummaries(t *testing.T) {
 	require.False(t, resp.Data.Identities.WeChat.Bound)
 	require.True(t, resp.Data.Identities.WeChat.CanBind)
 	require.Contains(t, resp.Data.Identities.WeChat.BindStartPath, "/api/v1/auth/oauth/wechat/bind/start")
+}
+
+func TestUserHandlerAffiliateCashResponses(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := &handlerAffiliateRepoStub{
+		summaries: map[int64]*service.AffiliateSummary{
+			11: {
+				UserID:          11,
+				AffCode:         "AFFCASH11",
+				AffQuota:        9.9,
+				AffFrozenQuota:  1.2,
+				AffHistoryQuota: 30,
+			},
+		},
+		transferAmount:  9.9,
+		platformBalance: 109.9,
+		records: []service.UserAffiliateRecord{
+			{
+				LedgerID: 1,
+				Action:   "accrue",
+				Amount:   9.9,
+			},
+		},
+		recordsTotal: 1,
+	}
+	settings := service.NewSettingService(&affiliateTransferSettingRepoStub{values: map[string]string{
+		service.SettingBalanceRechargeMult: "13",
+	}}, nil)
+	handler := NewUserHandler(nil, nil, nil, nil, service.NewAffiliateService(repo, settings, nil, nil), nil, nil, nil)
+
+	detailRecorder := httptest.NewRecorder()
+	detailCtx, _ := gin.CreateTestContext(detailRecorder)
+	detailCtx.Request = httptest.NewRequest(http.MethodGet, "/api/v1/user/aff", nil)
+	detailCtx.Set(string(middleware2.ContextKeyUser), middleware2.AuthSubject{UserID: 11})
+	handler.GetAffiliate(detailCtx)
+
+	require.Equal(t, http.StatusOK, detailRecorder.Code)
+	var detailResp struct {
+		Code int `json:"code"`
+		Data struct {
+			AffQuota          float64 `json:"aff_quota"`
+			RebateCashBalance float64 `json:"rebate_cash_balance"`
+			FrozenRebateCash  float64 `json:"frozen_rebate_cash"`
+			TotalRebateCash   float64 `json:"total_rebate_cash"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(detailRecorder.Body.Bytes(), &detailResp))
+	require.InDelta(t, 9.9, detailResp.Data.AffQuota, 1e-9)
+	require.InDelta(t, 9.9, detailResp.Data.RebateCashBalance, 1e-9)
+	require.InDelta(t, 1.2, detailResp.Data.FrozenRebateCash, 1e-9)
+	require.InDelta(t, 30, detailResp.Data.TotalRebateCash, 1e-9)
+
+	transferRecorder := httptest.NewRecorder()
+	transferCtx, _ := gin.CreateTestContext(transferRecorder)
+	transferCtx.Request = httptest.NewRequest(http.MethodPost, "/api/v1/user/aff/transfer", nil)
+	transferCtx.Set(string(middleware2.ContextKeyUser), middleware2.AuthSubject{UserID: 11})
+	handler.TransferAffiliateQuota(transferCtx)
+
+	require.Equal(t, http.StatusOK, transferRecorder.Code)
+	var transferResp struct {
+		Code int `json:"code"`
+		Data struct {
+			TransferredQuota float64 `json:"transferred_quota"`
+			TransferredCash  float64 `json:"transferred_cash"`
+			Balance          float64 `json:"balance"`
+			PlatformBalance  float64 `json:"platform_balance"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(transferRecorder.Body.Bytes(), &transferResp))
+	require.InDelta(t, 128.7, transferResp.Data.TransferredQuota, 1e-9)
+	require.InDelta(t, 9.9, transferResp.Data.TransferredCash, 1e-9)
+	require.InDelta(t, 109.9, transferResp.Data.Balance, 1e-9)
+	require.InDelta(t, 109.9, transferResp.Data.PlatformBalance, 1e-9)
+
+	recordsRecorder := httptest.NewRecorder()
+	recordsCtx, _ := gin.CreateTestContext(recordsRecorder)
+	recordsCtx.Request = httptest.NewRequest(http.MethodGet, "/api/v1/user/aff/records?page=1&page_size=20", nil)
+	recordsCtx.Set(string(middleware2.ContextKeyUser), middleware2.AuthSubject{UserID: 11})
+	handler.ListAffiliateRecords(recordsCtx)
+
+	require.Equal(t, http.StatusOK, recordsRecorder.Code)
+	var recordsResp struct {
+		Code int `json:"code"`
+		Data struct {
+			Items []service.UserAffiliateRecord `json:"items"`
+			Total int64                         `json:"total"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(recordsRecorder.Body.Bytes(), &recordsResp))
+	require.Equal(t, int64(1), recordsResp.Data.Total)
+	require.Len(t, recordsResp.Data.Items, 1)
+	require.Equal(t, "accrue", recordsResp.Data.Items[0].Action)
+	require.InDelta(t, 9.9, recordsResp.Data.Items[0].Amount, 1e-9)
+	require.Equal(t, int64(11), repo.recordCalls[0].userID)
+}
+
+type handlerAffiliateRepoStub struct {
+	summaries       map[int64]*service.AffiliateSummary
+	transferAmount  float64
+	platformBalance float64
+	records         []service.UserAffiliateRecord
+	recordsTotal    int64
+	recordCalls     []struct {
+		userID int64
+		filter service.AffiliateRecordFilter
+	}
+}
+
+func (s *handlerAffiliateRepoStub) EnsureUserAffiliate(_ context.Context, userID int64) (*service.AffiliateSummary, error) {
+	if summary, ok := s.summaries[userID]; ok {
+		cloned := *summary
+		return &cloned, nil
+	}
+	return &service.AffiliateSummary{UserID: userID}, nil
+}
+
+func (s *handlerAffiliateRepoStub) ThawFrozenQuota(context.Context, int64) (float64, error) {
+	return 0, nil
+}
+
+func (s *handlerAffiliateRepoStub) TransferQuotaToBalance(context.Context, int64, float64) (float64, float64, error) {
+	return s.transferAmount, s.platformBalance, nil
+}
+
+func (s *handlerAffiliateRepoStub) ListInvitees(context.Context, int64, int) ([]service.AffiliateInvitee, error) {
+	return nil, nil
+}
+
+func (s *handlerAffiliateRepoStub) ListUserAffiliateRecords(_ context.Context, userID int64, filter service.AffiliateRecordFilter) ([]service.UserAffiliateRecord, int64, error) {
+	s.recordCalls = append(s.recordCalls, struct {
+		userID int64
+		filter service.AffiliateRecordFilter
+	}{userID: userID, filter: filter})
+	out := make([]service.UserAffiliateRecord, len(s.records))
+	copy(out, s.records)
+	return out, s.recordsTotal, nil
+}
+
+func (s *handlerAffiliateRepoStub) GetAffiliateByCode(context.Context, string) (*service.AffiliateSummary, error) {
+	panic("unexpected GetAffiliateByCode call")
+}
+func (s *handlerAffiliateRepoStub) BindInviter(context.Context, int64, int64) (bool, error) {
+	panic("unexpected BindInviter call")
+}
+func (s *handlerAffiliateRepoStub) AdminSetInviteRelation(context.Context, int64, int64, bool) (*service.AffiliateInviteRelationChange, error) {
+	panic("unexpected AdminSetInviteRelation call")
+}
+func (s *handlerAffiliateRepoStub) AccrueQuota(context.Context, int64, int64, float64, int, *int64) (bool, error) {
+	panic("unexpected AccrueQuota call")
+}
+func (s *handlerAffiliateRepoStub) AwardSignupBonus(context.Context, int64, int64, float64) (bool, float64, error) {
+	panic("unexpected AwardSignupBonus call")
+}
+func (s *handlerAffiliateRepoStub) GetAccruedRebateFromInvitee(context.Context, int64, int64) (float64, error) {
+	panic("unexpected GetAccruedRebateFromInvitee call")
+}
+func (s *handlerAffiliateRepoStub) UpdateUserAffCode(context.Context, int64, string) error {
+	panic("unexpected UpdateUserAffCode call")
+}
+func (s *handlerAffiliateRepoStub) ResetUserAffCode(context.Context, int64) (string, error) {
+	panic("unexpected ResetUserAffCode call")
+}
+func (s *handlerAffiliateRepoStub) SetUserRebateRate(context.Context, int64, *float64) error {
+	panic("unexpected SetUserRebateRate call")
+}
+func (s *handlerAffiliateRepoStub) BatchSetUserRebateRate(context.Context, []int64, *float64) error {
+	panic("unexpected BatchSetUserRebateRate call")
+}
+func (s *handlerAffiliateRepoStub) ListUsersWithCustomSettings(context.Context, service.AffiliateAdminFilter) ([]service.AffiliateAdminEntry, int64, error) {
+	panic("unexpected ListUsersWithCustomSettings call")
+}
+func (s *handlerAffiliateRepoStub) ListInvitersWithInvitees(context.Context, service.AffiliateAdminFilter) ([]service.AffiliateInviterEntry, int64, error) {
+	panic("unexpected ListInvitersWithInvitees call")
+}
+func (s *handlerAffiliateRepoStub) ListInviteesByInviter(context.Context, int64, int) ([]service.AffiliateInvitee, error) {
+	panic("unexpected ListInviteesByInviter call")
+}
+func (s *handlerAffiliateRepoStub) ListAffiliateInviteRecords(context.Context, service.AffiliateRecordFilter) ([]service.AffiliateInviteRecord, int64, error) {
+	panic("unexpected ListAffiliateInviteRecords call")
+}
+func (s *handlerAffiliateRepoStub) ListAffiliateRebateRecords(context.Context, service.AffiliateRecordFilter) ([]service.AffiliateRebateRecord, int64, error) {
+	panic("unexpected ListAffiliateRebateRecords call")
+}
+func (s *handlerAffiliateRepoStub) ListAffiliateTransferRecords(context.Context, service.AffiliateRecordFilter) ([]service.AffiliateTransferRecord, int64, error) {
+	panic("unexpected ListAffiliateTransferRecords call")
+}
+func (s *handlerAffiliateRepoStub) GetAffiliateUserOverview(context.Context, int64) (*service.AffiliateUserOverview, error) {
+	panic("unexpected GetAffiliateUserOverview call")
 }
 
 func TestUserHandlerGetProfileReturnsLegacyCompatibilityFields(t *testing.T) {

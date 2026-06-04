@@ -9,6 +9,7 @@ import (
 	"time"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
+	"github.com/Wei-Shaw/sub2api/internal/payment"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/stretchr/testify/require"
 )
@@ -59,17 +60,19 @@ func TestAffiliateRepository_TransferQuotaToBalance_UsesClaimedQuotaBeforeClear(
 		Balance:      5.5,
 		Concurrency:  5,
 	})
+	_, err := client.ExecContext(txCtx, "UPDATE users SET total_recharged = 99 WHERE id = $1", u.ID)
+	require.NoError(t, err)
 
 	affCode := fmt.Sprintf("AFF%09d", time.Now().UnixNano()%1_000_000_000)
-	_, err := client.ExecContext(txCtx, `
+	_, err = client.ExecContext(txCtx, `
 INSERT INTO user_affiliates (user_id, aff_code, aff_quota, aff_history_quota, created_at, updated_at)
 VALUES ($1, $2, $3, $3, NOW(), NOW())`, u.ID, affCode, 12.34)
 	require.NoError(t, err)
 
-	transferred, balance, err := repo.TransferQuotaToBalance(txCtx, u.ID)
+	transferred, balance, err := repo.TransferQuotaToBalance(txCtx, u.ID, 13)
 	require.NoError(t, err)
 	require.InDelta(t, 12.34, transferred, 1e-9)
-	require.InDelta(t, 17.84, balance, 1e-9)
+	require.InDelta(t, 165.92, balance, 1e-9)
 
 	affQuota := querySingleFloat(t, txCtx, client,
 		"SELECT aff_quota::double precision FROM user_affiliates WHERE user_id = $1", u.ID)
@@ -77,7 +80,11 @@ VALUES ($1, $2, $3, $3, NOW(), NOW())`, u.ID, affCode, 12.34)
 
 	persistedBalance := querySingleFloat(t, txCtx, client,
 		"SELECT balance::double precision FROM users WHERE id = $1", u.ID)
-	require.InDelta(t, 17.84, persistedBalance, 1e-9)
+	require.InDelta(t, 165.92, persistedBalance, 1e-9)
+
+	totalRecharged := querySingleFloat(t, txCtx, client,
+		"SELECT total_recharged::double precision FROM users WHERE id = $1", u.ID)
+	require.InDelta(t, 99, totalRecharged, 1e-9)
 
 	ledgerCount := querySingleInt(t, txCtx, client,
 		"SELECT COUNT(*) FROM user_affiliate_ledger WHERE user_id = $1 AND action = 'transfer'", u.ID)
@@ -98,10 +105,164 @@ LIMIT 1`, u.ID)
 	var amount, balanceAfter, quotaAfter, frozenAfter, historyAfter float64
 	require.NoError(t, rows.Scan(&amount, &balanceAfter, &quotaAfter, &frozenAfter, &historyAfter))
 	require.InDelta(t, 12.34, amount, 1e-9)
-	require.InDelta(t, 17.84, balanceAfter, 1e-9)
+	require.InDelta(t, 165.92, balanceAfter, 1e-9)
 	require.InDelta(t, 0.0, quotaAfter, 1e-9)
 	require.InDelta(t, 0.0, frozenAfter, 1e-9)
 	require.InDelta(t, 12.34, historyAfter, 1e-9)
+}
+
+func TestAffiliateRepository_ListUserAffiliateRecords_ReturnsCashLedgerForCurrentUser(t *testing.T) {
+	ctx := context.Background()
+	tx := testEntTx(t)
+	txCtx := dbent.NewTxContext(ctx, tx)
+	client := tx.Client()
+
+	repo := NewAffiliateRepository(client, integrationDB)
+
+	inviter := mustCreateUser(t, client, &service.User{
+		Email:        fmt.Sprintf("affiliate-cash-records-inviter-%d@example.com", time.Now().UnixNano()),
+		PasswordHash: "hash",
+		Role:         service.RoleUser,
+		Status:       service.StatusActive,
+		Balance:      5,
+		Concurrency:  5,
+	})
+	invitee := mustCreateUser(t, client, &service.User{
+		Email:        fmt.Sprintf("affiliate-cash-records-invitee-%d@example.com", time.Now().UnixNano()+1),
+		Username:     "cash-invitee",
+		PasswordHash: "hash",
+		Role:         service.RoleUser,
+		Status:       service.StatusActive,
+		Concurrency:  5,
+	})
+	other := mustCreateUser(t, client, &service.User{
+		Email:        fmt.Sprintf("affiliate-cash-records-other-%d@example.com", time.Now().UnixNano()+2),
+		PasswordHash: "hash",
+		Role:         service.RoleUser,
+		Status:       service.StatusActive,
+		Concurrency:  5,
+	})
+
+	_, err := repo.EnsureUserAffiliate(txCtx, inviter.ID)
+	require.NoError(t, err)
+	_, err = repo.EnsureUserAffiliate(txCtx, invitee.ID)
+	require.NoError(t, err)
+	_, err = repo.EnsureUserAffiliate(txCtx, other.ID)
+	require.NoError(t, err)
+
+	order, err := client.PaymentOrder.Create().
+		SetUserID(invitee.ID).
+		SetUserEmail(invitee.Email).
+		SetUserName(invitee.Username).
+		SetAmount(99).
+		SetPayAmount(99).
+		SetRechargeCode("cash-records-test").
+		SetOutTradeNo(fmt.Sprintf("cash-records-%d", time.Now().UnixNano())).
+		SetPaymentType(payment.TypeAlipay).
+		SetPaymentTradeNo("cash-records-trade").
+		SetOrderType(payment.OrderTypeBalance).
+		SetStatus(service.OrderStatusCompleted).
+		SetExpiresAt(time.Now().Add(time.Hour)).
+		SetClientIP("127.0.0.1").
+		SetSrcHost("localhost").
+		Save(txCtx)
+	require.NoError(t, err)
+	orderID := order.ID
+	applied, err := repo.AccrueQuota(txCtx, inviter.ID, invitee.ID, 9.9, 0, &orderID)
+	require.NoError(t, err)
+	require.True(t, applied)
+
+	transferred, balance, err := repo.TransferQuotaToBalance(txCtx, inviter.ID, 1)
+	require.NoError(t, err)
+	require.InDelta(t, 9.9, transferred, 1e-9)
+	require.InDelta(t, 14.9, balance, 1e-9)
+
+	_, err = client.ExecContext(txCtx, `
+INSERT INTO user_affiliate_ledger (user_id, action, amount, created_at, updated_at)
+VALUES ($1, 'accrue', 88, NOW(), NOW())`, other.ID)
+	require.NoError(t, err)
+
+	records, total, err := repo.ListUserAffiliateRecords(txCtx, inviter.ID, service.AffiliateRecordFilter{Page: 1, PageSize: 20})
+
+	require.NoError(t, err)
+	require.Equal(t, int64(2), total)
+	require.Len(t, records, 2)
+	require.Equal(t, "transfer", records[0].Action)
+	require.InDelta(t, 9.9, records[0].Amount, 1e-9)
+	require.NotNil(t, records[0].BalanceAfter)
+	require.NotNil(t, records[0].RebateCashAfter)
+	require.InDelta(t, 14.9, *records[0].BalanceAfter, 1e-9)
+	require.InDelta(t, 0.0, *records[0].RebateCashAfter, 1e-9)
+
+	require.Equal(t, "accrue", records[1].Action)
+	require.InDelta(t, 9.9, records[1].Amount, 1e-9)
+	require.NotNil(t, records[1].SourceUserID)
+	require.Equal(t, invitee.ID, *records[1].SourceUserID)
+	require.Equal(t, invitee.Email, records[1].SourceUserEmail)
+	require.Equal(t, "cash-invitee", records[1].SourceUsername)
+	require.NotNil(t, records[1].SourceOrderID)
+	require.Equal(t, orderID, *records[1].SourceOrderID)
+}
+
+func TestAffiliateRepository_ListAffiliateRebateRecords_UsesPayAmountAsRebateBase(t *testing.T) {
+	ctx := context.Background()
+	tx := testEntTx(t)
+	txCtx := dbent.NewTxContext(ctx, tx)
+	client := tx.Client()
+
+	repo := NewAffiliateRepository(client, integrationDB)
+
+	inviter := mustCreateUser(t, client, &service.User{
+		Email:        fmt.Sprintf("affiliate-rebate-base-inviter-%d@example.com", time.Now().UnixNano()),
+		PasswordHash: "hash",
+		Role:         service.RoleUser,
+		Status:       service.StatusActive,
+		Concurrency:  5,
+	})
+	invitee := mustCreateUser(t, client, &service.User{
+		Email:        fmt.Sprintf("affiliate-rebate-base-invitee-%d@example.com", time.Now().UnixNano()+1),
+		PasswordHash: "hash",
+		Role:         service.RoleUser,
+		Status:       service.StatusActive,
+		Concurrency:  5,
+	})
+	_, err := repo.EnsureUserAffiliate(txCtx, inviter.ID)
+	require.NoError(t, err)
+	_, err = repo.EnsureUserAffiliate(txCtx, invitee.ID)
+	require.NoError(t, err)
+
+	order, err := client.PaymentOrder.Create().
+		SetUserID(invitee.ID).
+		SetUserEmail(invitee.Email).
+		SetUserName(invitee.Username).
+		SetAmount(1560).
+		SetPayAmount(99).
+		SetRechargeCode("rebate-base-pay-amount").
+		SetOutTradeNo(fmt.Sprintf("rebate-base-pay-amount-%d", time.Now().UnixNano())).
+		SetPaymentType(payment.TypeWxpay).
+		SetPaymentTradeNo("rebate-base-pay-amount-trade").
+		SetOrderType(payment.OrderTypeSubscription).
+		SetSubscriptionRebateBaseAmount(1560).
+		SetStatus(service.OrderStatusCompleted).
+		SetExpiresAt(time.Now().Add(time.Hour)).
+		SetClientIP("127.0.0.1").
+		SetSrcHost("localhost").
+		Save(txCtx)
+	require.NoError(t, err)
+	orderID := order.ID
+	applied, err := repo.AccrueQuota(txCtx, inviter.ID, invitee.ID, 7.92, 0, &orderID)
+	require.NoError(t, err)
+	require.True(t, applied)
+
+	records, total, err := repo.ListAffiliateRebateRecords(txCtx, service.AffiliateRecordFilter{Page: 1, PageSize: 20})
+
+	require.NoError(t, err)
+	require.Equal(t, int64(1), total)
+	require.Len(t, records, 1)
+	require.Equal(t, order.ID, records[0].OrderID)
+	require.NotNil(t, records[0].RebateBaseAmount)
+	require.InDelta(t, 99.0, *records[0].RebateBaseAmount, 1e-9)
+	require.InDelta(t, 7.92, records[0].RebateAmount, 1e-9)
 }
 
 func TestAffiliateRepository_AwardSignupBonus_IsIdempotentAndCreditsBalance(t *testing.T) {
@@ -451,7 +612,7 @@ INSERT INTO user_affiliates (user_id, aff_code, aff_quota, aff_history_quota, cr
 VALUES ($1, $2, 0, 0, NOW(), NOW())`, u.ID, affCode)
 	require.NoError(t, err)
 
-	transferred, balance, err := repo.TransferQuotaToBalance(txCtx, u.ID)
+	transferred, balance, err := repo.TransferQuotaToBalance(txCtx, u.ID, 13)
 	require.ErrorIs(t, err, service.ErrAffiliateQuotaEmpty)
 	require.InDelta(t, 0.0, transferred, 1e-9)
 	require.InDelta(t, 0.0, balance, 1e-9)

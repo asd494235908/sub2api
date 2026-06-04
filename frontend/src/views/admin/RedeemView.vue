@@ -70,7 +70,7 @@
               data-test="select-all-codes"
               type="checkbox"
               class="h-4 w-4 cursor-pointer rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-              :checked="allVisibleSelected"
+              :checked="allEditableVisibleSelected"
               @click.stop
               @change="toggleSelectAllVisible($event)"
             />
@@ -78,6 +78,7 @@
 
           <template #cell-select="{ row }">
             <input
+              v-if="isEditableRedeemCode(row)"
               data-test="select-code"
               type="checkbox"
               class="h-4 w-4 cursor-pointer rounded border-gray-300 text-primary-600 focus:ring-primary-500"
@@ -85,6 +86,7 @@
               @click.stop
               @change="toggleSelectRow(row.id, $event)"
             />
+            <span v-else class="text-gray-300 dark:text-dark-500">-</span>
           </template>
 
           <template #cell-code="{ value }">
@@ -185,7 +187,7 @@
           <template #cell-actions="{ row }">
             <div class="flex items-center space-x-2">
               <button
-                v-if="row.status === 'unused'"
+                v-if="row.status === 'unused' && isEditableRedeemCode(row)"
                 @click="handleDelete(row)"
                 class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
               >
@@ -746,6 +748,7 @@ const filterTypeOptions = computed(() => [
   { value: 'subscription', label: t('admin.redeem.subscription') },
   { value: 'invitation', label: t('admin.redeem.invitation') },
   { value: 'weekly_balance', label: formatRedeemType('weekly_balance') },
+  { value: 'affiliate_balance', label: formatRedeemType('affiliate_balance') },
   { value: 'lucky_wheel_bonus', label: formatRedeemType('lucky_wheel_bonus') },
   { value: 'first_recharge_bonus', label: formatRedeemType('first_recharge_bonus') }
 ])
@@ -797,7 +800,13 @@ const deletingCode = ref<RedeemCode | null>(null)
 const copiedCode = ref<string | null>(null)
 
 const isCurrencyRedeemType = (type: string) =>
-  type === 'balance' || type === 'weekly_balance' || type === 'lucky_wheel_bonus'
+  type === 'balance' ||
+  type === 'weekly_balance' ||
+  type === 'affiliate_balance' ||
+  type === 'lucky_wheel_bonus'
+
+const isEditableRedeemCode = (code: RedeemCode) =>
+  code.id > 0 && !['weekly_balance', 'affiliate_balance', 'lucky_wheel_bonus', 'first_recharge_bonus'].includes(code.type)
 
 const redeemTypeFallbackLabels: Record<string, { zh: string; en: string }> = {
   balance: { zh: '余额', en: 'Balance' },
@@ -805,6 +814,7 @@ const redeemTypeFallbackLabels: Record<string, { zh: string; en: string }> = {
   subscription: { zh: '订阅', en: 'Subscription' },
   invitation: { zh: '邀请码', en: 'Invitation' },
   weekly_balance: { zh: '周额度领取', en: 'Weekly Quota Claim' },
+  affiliate_balance: { zh: '返利转余额', en: 'Affiliate Balance Transfer' },
   lucky_wheel_bonus: { zh: '转盘奖励', en: 'Lucky Wheel Bonus' },
   first_recharge_bonus: { zh: '首冲赠送额度', en: 'First Recharge Platform Quota' }
 }
@@ -821,7 +831,6 @@ const formatRedeemType = (type: string) => {
 const {
   selectedSet: selectedCodeIds,
   selectedCount,
-  allVisibleSelected,
   select,
   deselect,
   clear: clearSelectedCodes,
@@ -829,6 +838,11 @@ const {
 } = useTableSelection<RedeemCode>({
   rows: codes,
   getId: (code) => code.id
+})
+
+const allEditableVisibleSelected = computed(() => {
+  const editableCodes = codes.value.filter(isEditableRedeemCode)
+  return editableCodes.length > 0 && editableCodes.every((code) => selectedCodeIds.value.has(code.id))
 })
 
 const batchUpdateForm = reactive({
@@ -952,6 +966,12 @@ const handleSort = (key: string, order: 'asc' | 'desc') => {
 
 const toggleSelectRow = (id: number, event: Event) => {
   const target = event.target as HTMLInputElement
+  const row = codes.value.find((code) => code.id === id)
+  if (!row || !isEditableRedeemCode(row)) {
+    target.checked = false
+    deselect(id)
+    return
+  }
   if (target.checked) {
     select(id)
     return
@@ -961,7 +981,11 @@ const toggleSelectRow = (id: number, event: Event) => {
 
 const toggleSelectAllVisible = (event: Event) => {
   const target = event.target as HTMLInputElement
-  toggleVisible(target.checked)
+  if (target.checked) {
+    codes.value.filter(isEditableRedeemCode).forEach((code) => select(code.id))
+    return
+  }
+  toggleVisible(false)
 }
 
 const getRedeemCodeExpiresInDays = () => {
@@ -1157,7 +1181,8 @@ const confirmDeleteUnused = async () => {
 }
 
 const handleBatchUpdate = async () => {
-  const ids = Array.from(selectedCodeIds.value)
+  const editableIds = new Set(codes.value.filter(isEditableRedeemCode).map((code) => code.id))
+  const ids = Array.from(selectedCodeIds.value).filter((id) => editableIds.has(id))
   if (ids.length === 0) {
     appStore.showInfo(t('admin.redeem.selectCodesFirst'))
     return

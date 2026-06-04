@@ -1,1 +1,1 @@
-export const TOKEN_DOC_URL = 'https://token.gepinkeji.com/tokenDoc'
+export const TOKEN_DOC_URL = 'https://doc.gptk.cc.cd/'

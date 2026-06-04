@@ -127,6 +127,35 @@ func TestPaymentHandlerGetCheckoutInfoIncludesDailySaleMetadata(t *testing.T) {
 	require.Greater(t, got.DailySaleCountdownSeconds, 0)
 }
 
+func TestPaymentHandlerGetCheckoutInfoIncludesTestRechargeEnabled(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	client := newCheckoutInfoHandlerTestClient(t)
+	repo := &checkoutInfoSettingRepoStub{
+		values: map[string]string{
+			service.SettingPaymentEnabled:      "true",
+			service.SettingTestRechargeEnabled: "true",
+		},
+	}
+	configService := service.NewPaymentConfigService(client, repo, nil)
+	handler := NewPaymentHandler(nil, configService, nil)
+
+	rec := httptest.NewRecorder()
+	gctx, _ := gin.CreateTestContext(rec)
+	gctx.Request = httptest.NewRequest(http.MethodGet, "/api/v1/payment/checkout-info", nil)
+	gctx.Set(string(middleware.ContextKeyUser), middleware.AuthSubject{UserID: 1, Concurrency: 1})
+
+	handler.GetCheckoutInfo(gctx)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var body struct {
+		Data struct {
+			TestRechargeEnabled bool `json:"test_recharge_enabled"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	require.True(t, body.Data.TestRechargeEnabled)
+}
+
 func TestPaymentHandlerGetCheckoutInfoIncludesPurchaseOnceAvailability(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	ctx := context.Background()

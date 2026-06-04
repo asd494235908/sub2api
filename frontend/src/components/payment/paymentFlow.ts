@@ -82,6 +82,7 @@ export interface BuildCreateOrderPayloadInput {
   isWechatBrowser: boolean
   /** When true, Alipay payments always use QR code (passes is_mobile: false to backend) */
   forceQRCode?: boolean
+  testRecharge?: boolean
 }
 
 type CreateOrderFlowResult = CreateOrderResult & {
@@ -135,6 +136,9 @@ export function buildCreateOrderPayload(input: BuildCreateOrderPayloadInput): Cr
   }
   if (normalizedOrigin) {
     payload.return_url = `${normalizedOrigin}/payment/result`
+  }
+  if (input.testRecharge) {
+    payload.test_recharge = true
   }
 
   return payload

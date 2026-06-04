@@ -169,6 +169,72 @@ ORDER BY ua.user_id ASC`,
 	return out, rows.Err()
 }
 
+func (r *affiliateIdentityRepository) GetIdentityCandidate(ctx context.Context, inviteeUserID int64, cfg *service.AffiliateIdentityConfig) (*service.AffiliateIdentityCandidate, error) {
+	execCtx, err := r.execer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	orderTypes := map[string]bool{}
+	if cfg != nil {
+		for _, t := range cfg.EligibleOrderTypes {
+			orderTypes[t] = true
+		}
+	}
+	includeBalance := orderTypes[payment.OrderTypeBalance]
+	includeSubscription := orderTypes[payment.OrderTypeSubscription]
+	rows, err := execCtx.QueryContext(ctx, `
+SELECT ua.user_id,
+       COALESCE(SUM(CASE
+         WHEN po.status = $2 THEN GREATEST(po.pay_amount - COALESCE(po.refund_amount, 0), 0)
+         WHEN po.status = $3 THEN po.pay_amount
+         ELSE 0
+       END), 0)::double precision AS paid_amount,
+       COALESCE(BOOL_OR(COALESCE(f.risk_flagged, false)), false) AS risk_flagged
+FROM user_affiliates ua
+LEFT JOIN user_signup_fingerprints f ON f.user_id = ua.user_id
+LEFT JOIN payment_orders po ON po.user_id = ua.user_id
+  AND (($4 AND po.order_type = $5) OR ($6 AND po.order_type = $7))
+  AND po.status IN ($2, $3)
+WHERE ua.user_id = $1
+GROUP BY ua.user_id`,
+		inviteeUserID,
+		service.OrderStatusPartiallyRefunded,
+		service.OrderStatusCompleted,
+		includeBalance,
+		payment.OrderTypeBalance,
+		includeSubscription,
+		payment.OrderTypeSubscription,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	if !rows.Next() {
+		return nil, rows.Err()
+	}
+	var item service.AffiliateIdentityCandidate
+	if err := rows.Scan(&item.UserID, &item.PaidAmount, &item.RiskFlagged); err != nil {
+		return nil, err
+	}
+	return &item, rows.Err()
+}
+
+func (r *affiliateIdentityRepository) HasIdentity(ctx context.Context, userID int64, identityType string) (bool, error) {
+	execCtx, err := r.execer(ctx)
+	if err != nil {
+		return false, err
+	}
+	rows, err := execCtx.QueryContext(ctx, `SELECT 1 FROM user_affiliate_identities WHERE user_id = $1 AND identity_type = $2 LIMIT 1`, userID, identityType)
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = rows.Close() }()
+	if rows.Next() {
+		return true, rows.Err()
+	}
+	return false, rows.Err()
+}
+
 func (r *affiliateIdentityRepository) UpsertIdentity(ctx context.Context, userID int64, identityType string, rateMultiplier float64, sourceInviterID *int64, expiresAt time.Time, snapshot map[string]any) error {
 	execCtx, err := r.execer(ctx)
 	if err != nil {

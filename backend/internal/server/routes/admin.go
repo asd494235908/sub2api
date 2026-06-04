@@ -56,6 +56,9 @@ func RegisterAdminRoutes(
 		// 系统设置
 		registerSettingsRoutes(admin, h)
 
+		// 用户榜单设置
+		registerLeaderboardRoutes(admin, h)
+
 		// 数据管理
 		registerDataManagementRoutes(admin, h)
 
@@ -564,6 +567,14 @@ func registerUsageRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		usage.GET("/cleanup-tasks", h.Admin.Usage.ListCleanupTasks)
 		usage.POST("/cleanup-tasks", h.Admin.Usage.CreateCleanupTask)
 		usage.POST("/cleanup-tasks/:id/cancel", h.Admin.Usage.CancelCleanupTask)
+	}
+}
+
+func registerLeaderboardRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	leaderboard := admin.Group("/leaderboard")
+	{
+		leaderboard.GET("/settings", h.Admin.Setting.GetLeaderboardSettings)
+		leaderboard.PUT("/settings", h.Admin.Setting.UpdateLeaderboardSettings)
 	}
 }
 

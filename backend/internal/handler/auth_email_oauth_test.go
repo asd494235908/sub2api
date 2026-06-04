@@ -394,7 +394,7 @@ func (r *oauthEmailAffiliateRepoStub) ThawFrozenQuota(context.Context, int64) (f
 	panic("unexpected ThawFrozenQuota call")
 }
 
-func (r *oauthEmailAffiliateRepoStub) TransferQuotaToBalance(context.Context, int64) (float64, float64, error) {
+func (r *oauthEmailAffiliateRepoStub) TransferQuotaToBalance(context.Context, int64, float64) (float64, float64, error) {
 	panic("unexpected TransferQuotaToBalance call")
 }
 
@@ -440,6 +440,10 @@ func (r *oauthEmailAffiliateRepoStub) ListAffiliateRebateRecords(context.Context
 
 func (r *oauthEmailAffiliateRepoStub) ListAffiliateTransferRecords(context.Context, service.AffiliateRecordFilter) ([]service.AffiliateTransferRecord, int64, error) {
 	panic("unexpected ListAffiliateTransferRecords call")
+}
+
+func (r *oauthEmailAffiliateRepoStub) ListUserAffiliateRecords(context.Context, int64, service.AffiliateRecordFilter) ([]service.UserAffiliateRecord, int64, error) {
+	panic("unexpected ListUserAffiliateRecords call")
 }
 
 func (r *oauthEmailAffiliateRepoStub) GetAffiliateUserOverview(context.Context, int64) (*service.AffiliateUserOverview, error) {

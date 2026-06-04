@@ -202,6 +202,58 @@ func (s *AffiliateService) RefreshAffiliateIdentitiesForUser(ctx context.Context
 	return s.RefreshAffiliateIdentitiesForInviter(ctx, *inviterID)
 }
 
+func (s *AffiliateService) RefreshAffiliateIdentitiesForOrderInvitee(ctx context.Context, inviteeUserID int64) error {
+	if s == nil || s.identityRepo == nil || inviteeUserID <= 0 {
+		return nil
+	}
+	cfg, enabled, err := s.GetAffiliateIdentityConfig(ctx)
+	if err != nil {
+		return err
+	}
+	if !enabled {
+		return nil
+	}
+	inviterID, err := s.identityRepo.GetInviterIDForInvitee(ctx, inviteeUserID)
+	if err != nil {
+		return err
+	}
+	if inviterID == nil || *inviterID <= 0 {
+		return nil
+	}
+	hasInviteeIdentity, err := s.identityRepo.HasIdentity(ctx, inviteeUserID, AffiliateIdentityTypeInvitee)
+	if err != nil {
+		return err
+	}
+	if hasInviteeIdentity {
+		return nil
+	}
+	candidate, err := s.identityRepo.GetIdentityCandidate(ctx, inviteeUserID, cfg)
+	if err != nil {
+		return err
+	}
+	if candidate == nil || candidate.RiskFlagged || candidate.PaidAmount+1e-9 < cfg.QualifiedPayAmount {
+		return nil
+	}
+	candidates, err := s.identityRepo.ListIdentityCandidates(ctx, *inviterID, cfg)
+	if err != nil {
+		return err
+	}
+	qualifiedCount, totalPaid, paidInviteeCount := affiliateIdentityQualificationSnapshotValues(candidates, cfg)
+	if qualifiedCount < cfg.QualifiedInviteeCount || totalPaid+1e-9 < cfg.QualifiedPayAmount {
+		return nil
+	}
+	expiresAt := time.Now().UTC().Add(time.Duration(cfg.DurationHours) * time.Hour)
+	snapshot := map[string]any{
+		"qualified_invitee_count": qualifiedCount,
+		"qualified_pay_amount":    totalPaid,
+		"paid_invitee_count":      paidInviteeCount,
+	}
+	if err := s.identityRepo.UpsertIdentity(ctx, *inviterID, AffiliateIdentityTypeInviter, cfg.InviterRateMultiplier, nil, expiresAt, snapshot); err != nil {
+		return err
+	}
+	return s.identityRepo.UpsertIdentity(ctx, inviteeUserID, AffiliateIdentityTypeInvitee, cfg.InviteeRateMultiplier, inviterID, expiresAt, snapshot)
+}
+
 func (s *AffiliateService) RefreshAffiliateIdentitiesForInviter(ctx context.Context, inviterID int64) error {
 	if s == nil || s.identityRepo == nil || inviterID <= 0 {
 		return nil
@@ -217,15 +269,12 @@ func (s *AffiliateService) RefreshAffiliateIdentitiesForInviter(ctx context.Cont
 	if err != nil {
 		return err
 	}
-	qualifiedCount := 0
-	totalPaid := 0.0
+	qualifiedCount, totalPaid, _ := affiliateIdentityQualificationSnapshotValues(candidates, cfg)
 	paidInvitees := make([]AffiliateIdentityCandidate, 0, len(candidates))
 	for _, candidate := range candidates {
 		if candidate.RiskFlagged {
 			continue
 		}
-		qualifiedCount++
-		totalPaid += candidate.PaidAmount
 		if candidate.PaidAmount+1e-9 >= cfg.QualifiedPayAmount {
 			paidInvitees = append(paidInvitees, candidate)
 		}
@@ -249,6 +298,27 @@ func (s *AffiliateService) RefreshAffiliateIdentitiesForInviter(ctx context.Cont
 		}
 	}
 	return s.identityRepo.RevokeStaleInviteeIdentities(ctx, inviterID, paidInvitees)
+}
+
+func affiliateIdentityQualificationSnapshotValues(candidates []AffiliateIdentityCandidate, cfg *AffiliateIdentityConfig) (int, float64, int) {
+	qualifiedCount := 0
+	totalPaid := 0.0
+	paidInviteeCount := 0
+	threshold := 0.0
+	if cfg != nil {
+		threshold = cfg.QualifiedPayAmount
+	}
+	for _, candidate := range candidates {
+		if candidate.RiskFlagged {
+			continue
+		}
+		qualifiedCount++
+		totalPaid += candidate.PaidAmount
+		if candidate.PaidAmount+1e-9 >= threshold {
+			paidInviteeCount++
+		}
+	}
+	return qualifiedCount, totalPaid, paidInviteeCount
 }
 
 func (s *AffiliateService) GetActiveAffiliateIdentity(ctx context.Context, userID int64) (*AffiliateIdentityState, error) {

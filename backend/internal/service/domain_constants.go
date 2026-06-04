@@ -378,6 +378,9 @@ const (
 	// sidebar entry is hidden. Defaults to false (opt-in feature).
 	SettingKeyAvailableChannelsEnabled = "available_channels_enabled"
 
+	// SettingKeyUsageLeaderboardSettings stores JSON config for user-facing usage leaderboard.
+	SettingKeyUsageLeaderboardSettings = "usage_leaderboard_settings"
+
 	// =========================
 	// Overload Cooldown (529)
 	// =========================

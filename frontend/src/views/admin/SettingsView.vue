@@ -5038,6 +5038,108 @@
             </div>
           </div>
 
+          <!-- Leaderboard Settings -->
+          <div class="card">
+            <div
+              class="border-b border-gray-100 px-6 py-4 dark:border-dark-700"
+            >
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                {{ t("admin.settings.leaderboard.title") }}
+              </h2>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {{ t("admin.settings.leaderboard.description") }}
+              </p>
+            </div>
+            <div class="space-y-4 p-6">
+              <div>
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t("admin.settings.leaderboard.searchUser") }}
+                </label>
+                <div class="relative">
+                  <Icon
+                    name="search"
+                    size="sm"
+                    class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  />
+                  <input
+                    v-model="leaderboardUserSearch"
+                    type="search"
+                    class="input pl-9"
+                    :placeholder="t('admin.settings.leaderboard.searchPlaceholder')"
+                  />
+                </div>
+                <div
+                  v-if="leaderboardSearchLoading"
+                  class="mt-2 text-xs text-gray-500 dark:text-gray-400"
+                >
+                  {{ t("common.loading") }}
+                </div>
+                <div
+                  v-else-if="leaderboardSearchResults.length > 0"
+                  class="mt-2 max-h-52 overflow-y-auto rounded-md border border-gray-200 bg-white dark:border-dark-700 dark:bg-dark-800"
+                >
+                  <button
+                    v-for="user in leaderboardSearchResults"
+                    :key="user.id"
+                    type="button"
+                    class="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-dark-700"
+                    @click="addLeaderboardIgnoredUser(user)"
+                  >
+                    <span class="truncate text-gray-900 dark:text-white">
+                      {{ formatLeaderboardUser(user) }}
+                    </span>
+                    <Icon name="plus" size="sm" class="text-primary-600" />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <div class="mb-2 flex items-center justify-between">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.leaderboard.ignoredUsers") }}
+                  </label>
+                  <span class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ leaderboardIgnoredUsers.length }}
+                  </span>
+                </div>
+                <div
+                  v-if="leaderboardIgnoredUsers.length === 0"
+                  class="rounded-md border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500 dark:border-dark-600 dark:text-gray-400"
+                >
+                  {{ t("admin.settings.leaderboard.emptyIgnored") }}
+                </div>
+                <div v-else class="flex flex-wrap gap-2">
+                  <span
+                    v-for="user in leaderboardIgnoredUsers"
+                    :key="user.id"
+                    class="inline-flex max-w-full items-center gap-2 rounded-md bg-gray-100 px-3 py-1.5 text-sm text-gray-700 dark:bg-dark-700 dark:text-gray-200"
+                  >
+                    <span class="truncate">{{ formatLeaderboardUser(user) }}</span>
+                    <button
+                      type="button"
+                      class="text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                      :title="t('admin.settings.leaderboard.removeIgnored')"
+                      @click="removeLeaderboardIgnoredUser(user.id)"
+                    >
+                      <Icon name="x" size="xs" />
+                    </button>
+                  </span>
+                </div>
+              </div>
+
+              <div class="flex justify-end">
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  :disabled="leaderboardSettingsSaving"
+                  @click="saveLeaderboardSettings"
+                >
+                  {{ leaderboardSettingsSaving ? t("common.saving") : t("admin.settings.leaderboard.save") }}
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Custom Menu Items -->
           <div class="card">
             <div
@@ -6455,6 +6557,20 @@
                       }}</span>
                     </div>
                   </div>
+                  <div class="min-w-64">
+                    <label class="input-label">{{
+                      t("admin.settings.payment.testRechargeEnabled")
+                    }}</label>
+                    <div class="flex items-center gap-2">
+                      <Toggle
+                        v-model="form.payment_test_recharge_enabled"
+                        data-testid="payment-test-recharge-enabled"
+                      />
+                      <span class="text-sm text-gray-500 dark:text-gray-400">{{
+                        t("admin.settings.payment.testRechargeEnabledHint")
+                      }}</span>
+                    </div>
+                  </div>
                 </div>
                 <!-- Row 4: Enabled payment types (provider badges like sub2apipay) -->
                 <div>
@@ -7101,6 +7217,7 @@ import BackupSettings from "@/views/admin/BackupView.vue";
 import EmailTemplateEditor from "@/views/admin/settings/EmailTemplateEditor.vue";
 import { useClipboard } from "@/composables/useClipboard";
 import { affiliatesAPI, type AffiliateAdminEntry, type SimpleUser as AffiliateSimpleUser } from "@/api/admin/affiliates";
+import type { SimpleUser as LeaderboardSimpleUser } from "@/api/admin/usage";
 import { extractApiErrorMessage, extractI18nErrorMessage } from "@/utils/apiError";
 import { useAppStore } from "@/stores";
 import { useAdminSettingsStore } from "@/stores/adminSettings";
@@ -7218,6 +7335,12 @@ const testEmailAddress = ref("");
 const registrationEmailSuffixWhitelistTags = ref<string[]>([]);
 const registrationEmailSuffixWhitelistDraft = ref("");
 const tablePageSizeOptionsInput = ref("10, 20, 50, 100");
+const leaderboardUserSearch = ref("");
+const leaderboardSearchLoading = ref(false);
+const leaderboardSettingsSaving = ref(false);
+const leaderboardSearchResults = ref<LeaderboardSimpleUser[]>([]);
+const leaderboardIgnoredUsers = ref<LeaderboardSimpleUser[]>([]);
+let leaderboardSearchTimer: number | null = null;
 
 // Admin API Key 状态
 const adminApiKeyLoading = ref(true);
@@ -7446,6 +7569,7 @@ const form = reactive<SettingsForm>({
   payment_enabled_types: [],
   payment_help_image_url: "",
   payment_help_text: "",
+  payment_test_recharge_enabled: false,
   payment_product_name_prefix: "",
   payment_product_name_suffix: "",
   payment_load_balance_strategy: "round-robin",
@@ -8397,7 +8521,7 @@ async function loadSettings() {
     }
 
     // Load web search emulation config separately
-    await Promise.all([loadWebSearchConfig(), loadPromptArchiveConfig()]);
+    await Promise.all([loadWebSearchConfig(), loadPromptArchiveConfig(), loadLeaderboardSettings()]);
   } catch (error: unknown) {
     loadFailed.value = true;
     appStore.showError(
@@ -8405,6 +8529,86 @@ async function loadSettings() {
     );
   } finally {
     loading.value = false;
+  }
+}
+
+function formatLeaderboardUser(user: LeaderboardSimpleUser): string {
+  if (user.username) {
+    return `${user.username} (${user.email || `#${user.id}`})`;
+  }
+  return user.email || `#${user.id}`;
+}
+
+function normalizeLeaderboardUsers(users: LeaderboardSimpleUser[], ids: number[]): LeaderboardSimpleUser[] {
+  const byID = new Map<number, LeaderboardSimpleUser>();
+  for (const user of users) {
+    byID.set(user.id, user);
+  }
+  for (const id of ids) {
+    if (!byID.has(id)) {
+      byID.set(id, { id, email: `#${id}` });
+    }
+  }
+  return ids
+    .filter((id, index) => id > 0 && ids.indexOf(id) === index)
+    .map((id) => byID.get(id))
+    .filter((user): user is LeaderboardSimpleUser => Boolean(user));
+}
+
+async function loadLeaderboardSettings(): Promise<void> {
+  const settings = await adminAPI.leaderboard.getSettings();
+  leaderboardIgnoredUsers.value = normalizeLeaderboardUsers(
+    settings.ignored_users || [],
+    settings.ignored_user_ids || [],
+  );
+}
+
+async function searchLeaderboardUsers(): Promise<void> {
+  const keyword = leaderboardUserSearch.value.trim();
+  if (!keyword) {
+    leaderboardSearchResults.value = [];
+    return;
+  }
+  leaderboardSearchLoading.value = true;
+  try {
+    const ignored = new Set(leaderboardIgnoredUsers.value.map((user) => user.id));
+    const users = await adminAPI.usage.searchUsers(keyword);
+    leaderboardSearchResults.value = users.filter((user) => !ignored.has(user.id));
+  } catch (error: unknown) {
+    leaderboardSearchResults.value = [];
+    appStore.showError(extractApiErrorMessage(error, t("common.error")));
+  } finally {
+    leaderboardSearchLoading.value = false;
+  }
+}
+
+function addLeaderboardIgnoredUser(user: LeaderboardSimpleUser): void {
+  if (leaderboardIgnoredUsers.value.some((item) => item.id === user.id)) {
+    return;
+  }
+  leaderboardIgnoredUsers.value = [...leaderboardIgnoredUsers.value, user];
+  leaderboardSearchResults.value = leaderboardSearchResults.value.filter((item) => item.id !== user.id);
+}
+
+function removeLeaderboardIgnoredUser(userID: number): void {
+  leaderboardIgnoredUsers.value = leaderboardIgnoredUsers.value.filter((user) => user.id !== userID);
+}
+
+async function saveLeaderboardSettings(): Promise<void> {
+  leaderboardSettingsSaving.value = true;
+  try {
+    const settings = await adminAPI.leaderboard.updateSettings({
+      ignored_user_ids: leaderboardIgnoredUsers.value.map((user) => user.id),
+    });
+    leaderboardIgnoredUsers.value = normalizeLeaderboardUsers(
+      settings.ignored_users || leaderboardIgnoredUsers.value,
+      settings.ignored_user_ids || [],
+    );
+    appStore.showSuccess(t("common.saved"));
+  } catch (error: unknown) {
+    appStore.showError(extractApiErrorMessage(error, t("common.error")));
+  } finally {
+    leaderboardSettingsSaving.value = false;
   }
 }
 
@@ -8828,6 +9032,7 @@ async function saveSettings() {
       payment_product_name_suffix: form.payment_product_name_suffix,
       payment_help_image_url: form.payment_help_image_url,
       payment_help_text: form.payment_help_text,
+      payment_test_recharge_enabled: form.payment_test_recharge_enabled,
       payment_cancel_rate_limit_enabled: form.payment_cancel_rate_limit_enabled,
       payment_cancel_rate_limit_max:
         Number(form.payment_cancel_rate_limit_max) || 10,
@@ -10157,6 +10362,15 @@ watch(
     }
   },
 );
+
+watch(leaderboardUserSearch, () => {
+  if (leaderboardSearchTimer) {
+    window.clearTimeout(leaderboardSearchTimer);
+  }
+  leaderboardSearchTimer = window.setTimeout(() => {
+    void searchLeaderboardUsers();
+  }, 250);
+});
 </script>
 
 <style scoped>

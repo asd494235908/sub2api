@@ -308,3 +308,30 @@ func TestAdminService_ListRedeemCodes_AllStatusTailPageFetchesBeyondPaginationLi
 	require.Equal(t, "R-1083", pageCodes[len(pageCodes)-1].Code)
 	require.GreaterOrEqual(t, repo.listWithFiltersCalls, 2)
 }
+
+func TestMergeRedeemCodeAdminListIncludesAffiliateTransfers(t *testing.T) {
+	base := time.Date(2026, 6, 3, 10, 0, 0, 0, time.UTC)
+	usedAt := func(minutes int) *time.Time {
+		v := base.Add(time.Duration(minutes) * time.Minute)
+		return &v
+	}
+
+	got := mergeRedeemCodeAdminList(
+		[]RedeemCode{
+			{ID: 1, Code: "BAL-1", Type: RedeemTypeBalance, Status: StatusUsed, UsedAt: usedAt(1), CreatedAt: *usedAt(1)},
+		},
+		[]RedeemCode{
+			{ID: -10, Code: "AFF-10", Type: RedeemTypeAffiliateBalance, Status: StatusUsed, UsedAt: usedAt(3), CreatedAt: *usedAt(3)},
+		},
+		[]RedeemCode{
+			{ID: -20, Code: "LUCKY-20", Type: RedeemTypeLuckyWheelBonus, Status: StatusUsed, UsedAt: usedAt(2), CreatedAt: *usedAt(2)},
+		},
+		pagination.PaginationParams{Page: 1, PageSize: 3},
+		"used_at",
+		pagination.SortOrderDesc,
+	)
+
+	affiliateTransfer := RedeemCode{ID: -10, Code: "AFF-10", Type: RedeemTypeAffiliateBalance, Status: StatusUsed, UsedAt: usedAt(3), CreatedAt: *usedAt(3)}
+	require.Contains(t, got, affiliateTransfer)
+	require.Equal(t, RedeemTypeAffiliateBalance, got[0].Type)
+}

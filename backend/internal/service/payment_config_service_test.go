@@ -102,6 +102,9 @@ func TestParsePaymentConfig(t *testing.T) {
 		if len(cfg.EnabledTypes) != 0 {
 			t.Fatalf("expected empty EnabledTypes, got %v", cfg.EnabledTypes)
 		}
+		if cfg.TestRechargeEnabled {
+			t.Fatal("expected TestRechargeEnabled=false by default")
+		}
 	})
 
 	t.Run("all values populated", func(t *testing.T) {
@@ -118,6 +121,7 @@ func TestParsePaymentConfig(t *testing.T) {
 			SettingLoadBalanceStrategy: "least_amount",
 			SettingProductNamePrefix:   "PRE",
 			SettingProductNameSuffix:   "SUF",
+			SettingTestRechargeEnabled: "true",
 		}
 		cfg := svc.parsePaymentConfig(vals)
 
@@ -156,6 +160,9 @@ func TestParsePaymentConfig(t *testing.T) {
 		}
 		if cfg.ProductNameSuffix != "SUF" {
 			t.Fatalf("ProductNameSuffix = %q, want %q", cfg.ProductNameSuffix, "SUF")
+		}
+		if !cfg.TestRechargeEnabled {
+			t.Fatal("expected TestRechargeEnabled=true")
 		}
 	})
 
@@ -429,6 +436,23 @@ func TestUpdatePaymentConfig_PersistsVisibleMethodRouting(t *testing.T) {
 	}
 	if repo.values[SettingPaymentVisibleMethodWxpaySource] != VisibleMethodSourceOfficialWechat {
 		t.Fatalf("wxpay source = %q, want %q", repo.values[SettingPaymentVisibleMethodWxpaySource], VisibleMethodSourceOfficialWechat)
+	}
+}
+
+func TestUpdatePaymentConfig_PersistsTestRechargeEnabled(t *testing.T) {
+	repo := &paymentConfigSettingRepoStub{values: map[string]string{}}
+	svc := &PaymentConfigService{settingRepo: repo}
+
+	enabled := true
+	err := svc.UpdatePaymentConfig(context.Background(), UpdatePaymentConfigRequest{
+		TestRechargeEnabled: &enabled,
+	})
+	if err != nil {
+		t.Fatalf("UpdatePaymentConfig returned error: %v", err)
+	}
+
+	if got := repo.updates[SettingTestRechargeEnabled]; got != "true" {
+		t.Fatalf("persisted %s = %q, want true", SettingTestRechargeEnabled, got)
 	}
 }
 

@@ -18,6 +18,9 @@ const {
   getBetaPolicySettings,
   getPromptArchiveSettings,
   updatePromptArchiveSettings,
+  getLeaderboardSettings,
+  updateLeaderboardSettings,
+  searchUsers,
   getGroups,
   listProxies,
   getProviders,
@@ -42,6 +45,9 @@ const {
   getBetaPolicySettings: vi.fn(),
   getPromptArchiveSettings: vi.fn(),
   updatePromptArchiveSettings: vi.fn(),
+  getLeaderboardSettings: vi.fn(),
+  updateLeaderboardSettings: vi.fn(),
+  searchUsers: vi.fn(),
   getGroups: vi.fn(),
   listProxies: vi.fn(),
   getProviders: vi.fn(),
@@ -72,6 +78,13 @@ vi.mock("@/api", () => ({
       getBetaPolicySettings,
       getPromptArchiveSettings,
       updatePromptArchiveSettings,
+    },
+    leaderboard: {
+      getSettings: getLeaderboardSettings,
+      updateSettings: updateLeaderboardSettings,
+    },
+    usage: {
+      searchUsers,
     },
     groups: {
       getAll: getGroups,
@@ -405,6 +418,7 @@ const baseSettingsResponse = {
   payment_product_name_suffix: "",
   payment_help_image_url: "",
   payment_help_text: "",
+  payment_test_recharge_enabled: false,
   payment_cancel_rate_limit_enabled: false,
   payment_cancel_rate_limit_max: 10,
   payment_cancel_rate_limit_window: 1,
@@ -508,6 +522,9 @@ describe("admin SettingsView payment visible method controls", () => {
     getBetaPolicySettings.mockReset();
     getPromptArchiveSettings.mockReset();
     updatePromptArchiveSettings.mockReset();
+    getLeaderboardSettings.mockReset();
+    updateLeaderboardSettings.mockReset();
+    searchUsers.mockReset();
     getGroups.mockReset();
     listProxies.mockReset();
     getProviders.mockReset();
@@ -575,6 +592,15 @@ describe("admin SettingsView payment visible method controls", () => {
       group_ids: [],
       bucket: "",
     });
+    getLeaderboardSettings.mockResolvedValue({
+      ignored_user_ids: [],
+      ignored_users: [],
+    });
+    updateLeaderboardSettings.mockResolvedValue({
+      ignored_user_ids: [],
+      ignored_users: [],
+    });
+    searchUsers.mockResolvedValue([]);
     getGroups.mockResolvedValue([]);
     listProxies.mockResolvedValue({
       items: [],
@@ -825,6 +851,80 @@ describe("admin SettingsView payment visible method controls", () => {
     expect(wrapper.text()).not.toContain("OpenAI 高级调度器");
   });
 
+  it("renders leaderboard settings as a standalone general settings card before custom menu settings", async () => {
+    const wrapper = mountView();
+
+    await flushPromises();
+
+    const cards = wrapper.findAll(".card");
+    const leaderboardCardIndex = cards.findIndex((card) => card.text().includes("admin.settings.leaderboard.title"));
+    const customMenuCardIndex = cards.findIndex((card) => card.text().includes("admin.settings.customMenu.title"));
+
+    expect(leaderboardCardIndex).toBeGreaterThanOrEqual(0);
+    expect(customMenuCardIndex).toBeGreaterThanOrEqual(0);
+    expect(leaderboardCardIndex).toBeLessThan(customMenuCardIndex);
+    expect(cards[leaderboardCardIndex]?.text()).toContain("admin.settings.leaderboard.searchUser");
+    expect(cards[leaderboardCardIndex]?.text()).not.toContain("admin.settings.site.title");
+  });
+
+  it("loads, searches, adds, removes, and saves leaderboard ignored users", async () => {
+    getLeaderboardSettings.mockResolvedValueOnce({
+      ignored_user_ids: [10],
+      ignored_users: [{ id: 10, email: "alpha@example.com", username: "Alpha" }],
+    });
+    searchUsers.mockResolvedValueOnce([
+      { id: 10, email: "alpha@example.com", username: "Alpha" },
+      { id: 11, email: "beta@example.com", username: "Beta" },
+    ]);
+    updateLeaderboardSettings.mockResolvedValueOnce({
+      ignored_user_ids: [11],
+      ignored_users: [{ id: 11, email: "beta@example.com", username: "Beta" }],
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("Alpha (alpha@example.com)");
+
+    const searchInput = wrapper.get('input[type="search"]');
+    await searchInput.setValue("beta");
+    await new Promise((resolve) => window.setTimeout(resolve, 300));
+    await flushPromises();
+
+    expect(searchUsers).toHaveBeenCalledWith("beta");
+    expect(wrapper.text()).toContain("Beta (beta@example.com)");
+
+    const addBetaButton = wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Beta (beta@example.com)"));
+    expect(addBetaButton).toBeDefined();
+    await addBetaButton?.trigger("click");
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("Alpha (alpha@example.com)");
+    expect(wrapper.text()).toContain("Beta (beta@example.com)");
+
+    const removeAlphaButton = wrapper
+      .findAll("button")
+      .find((button) => button.attributes("title") === "admin.settings.leaderboard.removeIgnored");
+    expect(removeAlphaButton).toBeDefined();
+    await removeAlphaButton?.trigger("click");
+    await flushPromises();
+
+    const saveButton = wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("admin.settings.leaderboard.save"));
+    expect(saveButton).toBeDefined();
+    await saveButton?.trigger("click");
+    await flushPromises();
+
+    expect(updateLeaderboardSettings).toHaveBeenCalledWith({
+      ignored_user_ids: [11],
+    });
+    expect(showSuccess).toHaveBeenCalledWith("common.saved");
+    expect(wrapper.text()).toContain("Beta (beta@example.com)");
+  });
+
   it("passes translated upload and remove labels to the payment help image uploader", async () => {
     const wrapper = mountView();
 
@@ -842,6 +942,30 @@ describe("admin SettingsView payment visible method controls", () => {
     expect(paymentHelpImageUpload?.attributes("data-upload-label")).toBe("上传图片");
     expect(paymentHelpImageUpload?.attributes("data-remove-label")).toBe("移除");
   });
+
+  it("loads and submits the wechat test recharge switch", async () => {
+    getSettings.mockResolvedValueOnce({
+      ...baseSettingsResponse,
+      payment_test_recharge_enabled: true,
+    });
+
+    const wrapper = mountView();
+
+    await flushPromises();
+    await openPaymentTab(wrapper);
+
+    const toggle = wrapper.get('[data-testid="payment-test-recharge-enabled"]');
+    expect((toggle.element as HTMLInputElement).checked).toBe(true);
+
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payment_test_recharge_enabled: true,
+      }),
+    );
+  });
 });
 
 describe("admin SettingsView wechat connect controls", () => {
@@ -857,6 +981,11 @@ describe("admin SettingsView wechat connect controls", () => {
     getStreamTimeoutSettings.mockReset();
     getRectifierSettings.mockReset();
     getBetaPolicySettings.mockReset();
+    getPromptArchiveSettings.mockReset();
+    updatePromptArchiveSettings.mockReset();
+    getLeaderboardSettings.mockReset();
+    updateLeaderboardSettings.mockReset();
+    searchUsers.mockReset();
     getGroups.mockReset();
     listProxies.mockReset();
     getProviders.mockReset();
@@ -915,6 +1044,27 @@ describe("admin SettingsView wechat connect controls", () => {
     getBetaPolicySettings.mockResolvedValue({
       rules: [],
     });
+    getPromptArchiveSettings.mockResolvedValue({
+      enabled: false,
+      all_groups: false,
+      group_ids: [],
+      bucket: "",
+    });
+    updatePromptArchiveSettings.mockResolvedValue({
+      enabled: false,
+      all_groups: false,
+      group_ids: [],
+      bucket: "",
+    });
+    getLeaderboardSettings.mockResolvedValue({
+      ignored_user_ids: [],
+      ignored_users: [],
+    });
+    updateLeaderboardSettings.mockResolvedValue({
+      ignored_user_ids: [],
+      ignored_users: [],
+    });
+    searchUsers.mockResolvedValue([]);
     getGroups.mockResolvedValue([]);
     listProxies.mockResolvedValue({
       items: [],
@@ -1103,6 +1253,11 @@ describe("admin SettingsView platform quota matrix", () => {
     getStreamTimeoutSettings.mockReset();
     getRectifierSettings.mockReset();
     getBetaPolicySettings.mockReset();
+    getPromptArchiveSettings.mockReset();
+    updatePromptArchiveSettings.mockReset();
+    getLeaderboardSettings.mockReset();
+    updateLeaderboardSettings.mockReset();
+    searchUsers.mockReset();
     getGroups.mockReset();
     listProxies.mockReset();
     getProviders.mockReset();
@@ -1129,6 +1284,27 @@ describe("admin SettingsView platform quota matrix", () => {
     getStreamTimeoutSettings.mockResolvedValue({});
     getRectifierSettings.mockResolvedValue({});
     getBetaPolicySettings.mockResolvedValue({});
+    getPromptArchiveSettings.mockResolvedValue({
+      enabled: false,
+      all_groups: false,
+      group_ids: [],
+      bucket: "",
+    });
+    updatePromptArchiveSettings.mockResolvedValue({
+      enabled: false,
+      all_groups: false,
+      group_ids: [],
+      bucket: "",
+    });
+    getLeaderboardSettings.mockResolvedValue({
+      ignored_user_ids: [],
+      ignored_users: [],
+    });
+    updateLeaderboardSettings.mockResolvedValue({
+      ignored_user_ids: [],
+      ignored_users: [],
+    });
+    searchUsers.mockResolvedValue([]);
     getGroups.mockResolvedValue([]);
     listProxies.mockResolvedValue({ items: [] });
     getProviders.mockResolvedValue({ data: [] });

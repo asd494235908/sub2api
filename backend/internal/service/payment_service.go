@@ -84,6 +84,7 @@ type CreateOrderRequest struct {
 	OrderType       string
 	PlanID          int64
 	Locale          string
+	TestRecharge    bool
 }
 
 type CreateOrderResponse struct {

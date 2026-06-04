@@ -37,4 +37,20 @@ describe('payment api', () => {
       resume_token: 'resume-token-123',
     })
   })
+
+  it('passes test recharge flag when creating an order', async () => {
+    await paymentAPI.createOrder({
+      amount: 0.01,
+      payment_type: 'wxpay',
+      order_type: 'balance',
+      test_recharge: true,
+    })
+
+    expect(post).toHaveBeenCalledWith('/payment/orders', {
+      amount: 0.01,
+      payment_type: 'wxpay',
+      order_type: 'balance',
+      test_recharge: true,
+    })
+  })
 })

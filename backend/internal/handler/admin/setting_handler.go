@@ -65,6 +65,7 @@ type SettingHandler struct {
 	promptArchiveService     *service.PromptArchiveService
 	userAttributeService     *service.UserAttributeService
 	notificationEmailService *service.NotificationEmailService
+	adminService             service.AdminService
 }
 
 // NewSettingHandler 创建系统设置处理器
@@ -79,6 +80,13 @@ func NewSettingHandler(settingService *service.SettingService, emailService *ser
 			userAttributeService = v
 		}
 	}
+	var adminService service.AdminService
+	for _, extra := range extras {
+		if v, ok := extra.(service.AdminService); ok {
+			adminService = v
+			break
+		}
+	}
 	return &SettingHandler{
 		settingService:       settingService,
 		emailService:         emailService,
@@ -88,6 +96,7 @@ func NewSettingHandler(settingService *service.SettingService, emailService *ser
 		paymentService:       paymentService,
 		promptArchiveService: promptArchiveService,
 		userAttributeService: userAttributeService,
+		adminService:         adminService,
 	}
 }
 
@@ -309,6 +318,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		PaymentProductNameSuffix:               paymentCfg.ProductNameSuffix,
 		PaymentHelpImageURL:                    paymentCfg.HelpImageURL,
 		PaymentHelpText:                        paymentCfg.HelpText,
+		PaymentTestRechargeEnabled:             paymentCfg.TestRechargeEnabled,
 		PaymentCancelRateLimitEnabled:          paymentCfg.CancelRateLimitEnabled,
 		PaymentCancelRateLimitMax:              paymentCfg.CancelRateLimitMax,
 		PaymentCancelRateLimitWindow:           paymentCfg.CancelRateLimitWindow,
@@ -658,6 +668,7 @@ type UpdateSettingsRequest struct {
 	PaymentProductNameSuffix         *string  `json:"payment_product_name_suffix"`
 	PaymentHelpImageURL              *string  `json:"payment_help_image_url"`
 	PaymentHelpText                  *string  `json:"payment_help_text"`
+	PaymentTestRechargeEnabled       *bool    `json:"payment_test_recharge_enabled"`
 
 	// Cancel rate limit
 	PaymentCancelRateLimitEnabled *bool   `json:"payment_cancel_rate_limit_enabled"`
@@ -1943,6 +1954,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			ProductNameSuffix:         req.PaymentProductNameSuffix,
 			HelpImageURL:              req.PaymentHelpImageURL,
 			HelpText:                  req.PaymentHelpText,
+			TestRechargeEnabled:       req.PaymentTestRechargeEnabled,
 			CancelRateLimitEnabled:    req.PaymentCancelRateLimitEnabled,
 			CancelRateLimitMax:        req.PaymentCancelRateLimitMax,
 			CancelRateLimitWindow:     req.PaymentCancelRateLimitWindow,
@@ -2163,6 +2175,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		PaymentProductNameSuffix:               updatedPaymentCfg.ProductNameSuffix,
 		PaymentHelpImageURL:                    updatedPaymentCfg.HelpImageURL,
 		PaymentHelpText:                        updatedPaymentCfg.HelpText,
+		PaymentTestRechargeEnabled:             updatedPaymentCfg.TestRechargeEnabled,
 		PaymentCancelRateLimitEnabled:          updatedPaymentCfg.CancelRateLimitEnabled,
 		PaymentCancelRateLimitMax:              updatedPaymentCfg.CancelRateLimitMax,
 		PaymentCancelRateLimitWindow:           updatedPaymentCfg.CancelRateLimitWindow,
@@ -2194,6 +2207,68 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	response.Success(c, systemSettingsResponseData(payload, updatedAuthSourceDefaults))
 }
 
+// GetLeaderboardSettings returns user-facing leaderboard settings.
+// GET /api/v1/admin/leaderboard/settings
+func (h *SettingHandler) GetLeaderboardSettings(c *gin.Context) {
+	settings, err := h.settingService.GetUsageLeaderboardSettings(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{
+		"ignored_user_ids": settings.IgnoredUserIDs,
+		"ignored_users":    h.loadLeaderboardIgnoredUsers(c.Request.Context(), settings.IgnoredUserIDs),
+	})
+}
+
+// UpdateLeaderboardSettings updates user-facing leaderboard settings.
+// PUT /api/v1/admin/leaderboard/settings
+func (h *SettingHandler) UpdateLeaderboardSettings(c *gin.Context) {
+	var req service.UsageLeaderboardSettings
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	settings, err := h.settingService.UpdateUsageLeaderboardSettings(c.Request.Context(), &req)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{
+		"ignored_user_ids": settings.IgnoredUserIDs,
+		"ignored_users":    h.loadLeaderboardIgnoredUsers(c.Request.Context(), settings.IgnoredUserIDs),
+	})
+}
+
+type leaderboardIgnoredUserResponse struct {
+	ID       int64  `json:"id"`
+	Email    string `json:"email"`
+	Username string `json:"username,omitempty"`
+}
+
+func (h *SettingHandler) loadLeaderboardIgnoredUsers(ctx context.Context, userIDs []int64) []leaderboardIgnoredUserResponse {
+	if h.adminService == nil || len(userIDs) == 0 {
+		return []leaderboardIgnoredUserResponse{}
+	}
+	users := make([]leaderboardIgnoredUserResponse, 0, len(userIDs))
+	for _, userID := range userIDs {
+		user, err := h.adminService.GetUser(ctx, userID)
+		if err != nil {
+			if errors.Is(err, service.ErrUserNotFound) {
+				continue
+			}
+			slog.Warn("leaderboard_ignored_user_load_failed", "user_id", userID, "error", err)
+			continue
+		}
+		users = append(users, leaderboardIgnoredUserResponse{
+			ID:       user.ID,
+			Email:    user.Email,
+			Username: user.Username,
+		})
+	}
+	return users
+}
+
 // hasPaymentFields returns true if any payment-related field was explicitly provided.
 // mapDingTalkValidateError maps ValidateDingTalkConfig errors to machine-readable reason codes.
 func mapDingTalkValidateError(err error) string {
@@ -2215,7 +2290,8 @@ func hasPaymentFields(req UpdateSettingsRequest) bool {
 		req.PaymentBalanceRechargeMultiplier != nil || req.PaymentRechargeFeeRate != nil ||
 		req.PaymentLoadBalanceStrat != nil || req.PaymentProductNamePrefix != nil ||
 		req.PaymentProductNameSuffix != nil || req.PaymentHelpImageURL != nil ||
-		req.PaymentHelpText != nil || req.PaymentCancelRateLimitEnabled != nil ||
+		req.PaymentHelpText != nil || req.PaymentTestRechargeEnabled != nil ||
+		req.PaymentCancelRateLimitEnabled != nil ||
 		req.PaymentCancelRateLimitMax != nil || req.PaymentCancelRateLimitWindow != nil ||
 		req.PaymentCancelRateLimitUnit != nil || req.PaymentCancelRateLimitMode != nil ||
 		req.PaymentAlipayForceQRCode != nil

@@ -383,3 +383,12 @@ func (s *UsageService) GetStatsWithFilters(ctx context.Context, filters usagesta
 	}
 	return stats, nil
 }
+
+// GetUserTokenLeaderboard returns the user-facing token leaderboard.
+func (s *UsageService) GetUserTokenLeaderboard(ctx context.Context, startTime, endTime time.Time, limit int, ignoredUserIDs []int64) (*usagestats.UserTokenLeaderboardResponse, error) {
+	ranking, err := s.usageRepo.GetUserTokenLeaderboard(ctx, startTime, endTime, limit, ignoredUserIDs)
+	if err != nil {
+		return nil, fmt.Errorf("get user token leaderboard: %w", err)
+	}
+	return ranking, nil
+}

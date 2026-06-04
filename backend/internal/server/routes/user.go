@@ -29,6 +29,7 @@ func RegisterUserRoutes(
 			user.PUT("/phone", h.User.BindPhone)
 			user.PUT("", h.User.UpdateProfile)
 			user.GET("/aff", h.User.GetAffiliate)
+			user.GET("/aff/records", h.User.ListAffiliateRecords)
 			user.POST("/aff/transfer", h.User.TransferAffiliateQuota)
 			user.GET("/aff/withdrawals", h.User.ListAffiliateWithdrawals)
 			user.POST("/aff/withdrawals", h.User.CreateAffiliateWithdrawal)
@@ -87,13 +88,14 @@ func RegisterUserRoutes(
 		usage := authenticated.Group("/usage")
 		{
 			usage.GET("", h.Usage.List)
-			usage.GET("/:id", h.Usage.GetByID)
+			usage.GET("/leaderboard", h.Usage.Leaderboard)
 			usage.GET("/stats", h.Usage.Stats)
 			// User dashboard endpoints
 			usage.GET("/dashboard/stats", h.Usage.DashboardStats)
 			usage.GET("/dashboard/trend", h.Usage.DashboardTrend)
 			usage.GET("/dashboard/models", h.Usage.DashboardModels)
 			usage.POST("/dashboard/api-keys-usage", h.Usage.DashboardAPIKeysUsage)
+			usage.GET("/:id", h.Usage.GetByID)
 		}
 
 		// 公告（用户可见）

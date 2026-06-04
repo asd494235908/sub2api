@@ -336,16 +336,42 @@ func (h *UserHandler) TransferAffiliateQuota(c *gin.Context) {
 		return
 	}
 
-	transferred, balance, err := h.affiliateService.TransferAffiliateQuota(c.Request.Context(), subject.UserID)
+	transferredCash, transferredQuota, balance, err := h.affiliateService.TransferAffiliateQuota(c.Request.Context(), subject.UserID)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
 	}
 
 	response.Success(c, gin.H{
-		"transferred_quota": transferred,
+		"transferred_quota": transferredQuota,
 		"balance":           balance,
+		"transferred_cash":  transferredCash,
+		"platform_balance":  balance,
 	})
+}
+
+// ListAffiliateRecords returns current user's affiliate cash ledger records.
+// GET /api/v1/user/aff/records
+func (h *UserHandler) ListAffiliateRecords(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	if h.affiliateService == nil {
+		response.ErrorFrom(c, service.ErrAffiliateProfileNotFound)
+		return
+	}
+	page, pageSize := response.ParsePagination(c)
+	items, total, err := h.affiliateService.ListUserAffiliateRecords(c.Request.Context(), subject.UserID, service.AffiliateRecordFilter{
+		Page:     page,
+		PageSize: pageSize,
+	})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Paginated(c, items, total, page, pageSize)
 }
 
 type createAffiliateWithdrawalRequest struct {
