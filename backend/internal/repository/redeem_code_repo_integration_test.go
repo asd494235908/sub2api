@@ -279,6 +279,46 @@ VALUES ($1, 'transfer', 10.00000000, NULL, 130.00000000, 0.00000000, 0.00000000,
 	s.Require().True(strings.HasPrefix(items[0].Code, "AFF-"), "expected affiliate transfer code prefix, got %q", items[0].Code)
 }
 
+func (s *RedeemCodeRepoSuite) TestListUserActivity_UsesAffiliateTransferPlatformAmount() {
+	user := s.createUser(uniqueTestValue(s.T(), "affiliate-transfer-platform-history") + "@example.com")
+
+	_, err := s.client.ExecContext(s.ctx, `
+INSERT INTO user_affiliate_ledger (
+	user_id, action, amount, platform_amount, source_user_id, balance_after,
+	aff_quota_after, aff_frozen_quota_after, aff_history_quota_after, created_at, updated_at
+)
+VALUES ($1, 'transfer', 10.00000000, 130.00000000, NULL, 150.00000000, 0.00000000, 0.00000000, 10.00000000, NOW(), NOW())`, user.ID)
+	s.Require().NoError(err)
+
+	items, err := s.repo.ListUserActivity(s.ctx, user.ID, 10)
+	s.Require().NoError(err)
+	s.Require().NotEmpty(items)
+	s.Require().Equal(service.RedeemTypeAffiliateBalance, items[0].Type)
+	s.Require().Equal("affiliate_transfer", items[0].Source)
+	s.Require().Equal(float64(130), items[0].Value)
+	s.Require().NotNil(items[0].PlatformAmount)
+	s.Require().Equal(float64(130), *items[0].PlatformAmount)
+}
+
+func (s *RedeemCodeRepoSuite) TestListUserActivity_FallsBackWhenAffiliateTransferPlatformAmountMissing() {
+	user := s.createUser(uniqueTestValue(s.T(), "affiliate-transfer-platform-fallback") + "@example.com")
+
+	_, err := s.client.ExecContext(s.ctx, `
+INSERT INTO user_affiliate_ledger (
+	user_id, action, amount, platform_amount, source_user_id, balance_after,
+	aff_quota_after, aff_frozen_quota_after, aff_history_quota_after, created_at, updated_at
+)
+VALUES ($1, 'transfer', 10.00000000, NULL, NULL, 150.00000000, 0.00000000, 0.00000000, 10.00000000, NOW(), NOW())`, user.ID)
+	s.Require().NoError(err)
+
+	items, err := s.repo.ListUserActivity(s.ctx, user.ID, 10)
+	s.Require().NoError(err)
+	s.Require().NotEmpty(items)
+	s.Require().Equal(service.RedeemTypeAffiliateBalance, items[0].Type)
+	s.Require().Equal(float64(10), items[0].Value)
+	s.Require().Nil(items[0].PlatformAmount)
+}
+
 // --- Update ---
 
 func (s *RedeemCodeRepoSuite) TestUpdate() {

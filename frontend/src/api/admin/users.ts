@@ -230,6 +230,7 @@ export interface BalanceHistoryItem {
   code: string
   type: string
   value: number
+  platform_amount?: number | null
   status: string
   used_by: number | null
   used_at: string | null

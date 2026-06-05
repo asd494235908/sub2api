@@ -587,20 +587,21 @@ func RedeemCodeFromServiceAdmin(rc *service.RedeemCode) *AdminRedeemCode {
 
 func redeemCodeFromServiceBase(rc *service.RedeemCode) RedeemCode {
 	out := RedeemCode{
-		ID:           rc.ID,
-		Code:         rc.Code,
-		Type:         rc.Type,
-		Value:        rc.Value,
-		Status:       rc.Status,
-		UsedBy:       rc.UsedBy,
-		UsedAt:       rc.UsedAt,
-		CreatedAt:    rc.CreatedAt,
-		ExpiresAt:    rc.ExpiresAt,
-		GroupID:      rc.GroupID,
-		ValidityDays: rc.ValidityDays,
-		User:         UserFromServiceShallow(rc.User),
-		Group:        GroupFromServiceShallow(rc.Group),
-		Source:       rc.Source,
+		ID:             rc.ID,
+		Code:           rc.Code,
+		Type:           rc.Type,
+		Value:          rc.Value,
+		PlatformAmount: rc.PlatformAmount,
+		Status:         rc.Status,
+		UsedBy:         rc.UsedBy,
+		UsedAt:         rc.UsedAt,
+		CreatedAt:      rc.CreatedAt,
+		ExpiresAt:      rc.ExpiresAt,
+		GroupID:        rc.GroupID,
+		ValidityDays:   rc.ValidityDays,
+		User:           UserFromServiceShallow(rc.User),
+		Group:          GroupFromServiceShallow(rc.Group),
+		Source:         rc.Source,
 	}
 	if rc.Status == service.StatusUsed || rc.UsedBy != nil || rc.UsedAt != nil {
 		out.Status = service.StatusUsed

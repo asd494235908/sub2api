@@ -421,20 +421,21 @@ func (r *redeemCodeRepository) ListUserActivity(ctx context.Context, userID int6
 	for i := range redeemCodes {
 		code := redeemCodes[i]
 		items = append(items, service.RedeemHistoryItem{
-			ID:           code.ID,
-			Code:         code.Code,
-			Type:         code.Type,
-			Value:        code.Value,
-			Status:       code.Status,
-			UsedBy:       code.UsedBy,
-			UsedAt:       code.UsedAt,
-			Notes:        code.Notes,
-			CreatedAt:    code.CreatedAt,
-			GroupID:      code.GroupID,
-			ValidityDays: code.ValidityDays,
-			User:         code.User,
-			Group:        code.Group,
-			Source:       "redeem_code",
+			ID:             code.ID,
+			Code:           code.Code,
+			Type:           code.Type,
+			Value:          code.Value,
+			PlatformAmount: code.PlatformAmount,
+			Status:         code.Status,
+			UsedBy:         code.UsedBy,
+			UsedAt:         code.UsedAt,
+			Notes:          code.Notes,
+			CreatedAt:      code.CreatedAt,
+			GroupID:        code.GroupID,
+			ValidityDays:   code.ValidityDays,
+			User:           code.User,
+			Group:          code.Group,
+			Source:         "redeem_code",
 		})
 	}
 
@@ -475,25 +476,12 @@ func (r *redeemCodeRepository) listAffiliateTransferHistory(ctx context.Context,
 	execCtx := clientFromContext(ctx, r.client)
 	rows, err := execCtx.QueryContext(ctx, `
 SELECT id,
-       COALESCE(
-           balance_after - (
-               SELECT prev.balance_after
-               FROM user_affiliate_ledger prev
-               WHERE prev.user_id = transfers.user_id
-                 AND prev.balance_after IS NOT NULL
-                 AND (prev.created_at, prev.id) < (transfers.created_at, transfers.id)
-               ORDER BY prev.created_at DESC, prev.id DESC
-               LIMIT 1
-           ),
-           amount
-       )::double precision AS platform_amount,
+       CAST(COALESCE(platform_amount, amount) AS DOUBLE PRECISION) AS display_amount,
+       CAST(platform_amount AS DOUBLE PRECISION),
        created_at
-FROM (
-    SELECT id, user_id, amount, balance_after, created_at
-    FROM user_affiliate_ledger
-    WHERE user_id = $1
-      AND action = 'transfer'
-) transfers
+FROM user_affiliate_ledger
+WHERE user_id = $1
+  AND action = 'transfer'
 ORDER BY created_at DESC, id DESC
 LIMIT $2`, userID, limit)
 	if err != nil {
@@ -505,25 +493,30 @@ LIMIT $2`, userID, limit)
 	for rows.Next() {
 		var (
 			id             int64
-			platformAmount float64
+			displayAmount  float64
+			platformAmount sql.NullFloat64
 			createdAt      time.Time
 		)
-		if err := rows.Scan(&id, &platformAmount, &createdAt); err != nil {
+		if err := rows.Scan(&id, &displayAmount, &platformAmount, &createdAt); err != nil {
 			return nil, err
 		}
 		usedAt := createdAt
-		items = append(items, service.RedeemHistoryItem{
+		item := service.RedeemHistoryItem{
 			ID:        -id,
 			Code:      "AFF-" + strconv.FormatInt(id, 10),
 			Type:      service.RedeemTypeAffiliateBalance,
-			Value:     platformAmount,
+			Value:     displayAmount,
 			Status:    service.StatusUsed,
 			UsedBy:    &userID,
 			UsedAt:    &usedAt,
 			CreatedAt: createdAt,
 			Source:    "affiliate_transfer",
 			Title:     service.RedeemTypeAffiliateBalance,
-		})
+		}
+		if platformAmount.Valid {
+			item.PlatformAmount = &platformAmount.Float64
+		}
+		items = append(items, item)
 	}
 	return items, rows.Err()
 }

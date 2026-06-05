@@ -92,6 +92,7 @@ VALUES ($1, $2, $3, $3, NOW(), NOW())`, u.ID, affCode, 12.34)
 
 	rows, err := client.QueryContext(txCtx, `
 SELECT amount::double precision,
+       platform_amount::double precision,
        balance_after::double precision,
        aff_quota_after::double precision,
        aff_frozen_quota_after::double precision,
@@ -102,9 +103,10 @@ LIMIT 1`, u.ID)
 	require.NoError(t, err)
 	defer func() { _ = rows.Close() }()
 	require.True(t, rows.Next(), "expected transfer ledger")
-	var amount, balanceAfter, quotaAfter, frozenAfter, historyAfter float64
-	require.NoError(t, rows.Scan(&amount, &balanceAfter, &quotaAfter, &frozenAfter, &historyAfter))
+	var amount, platformAmount, balanceAfter, quotaAfter, frozenAfter, historyAfter float64
+	require.NoError(t, rows.Scan(&amount, &platformAmount, &balanceAfter, &quotaAfter, &frozenAfter, &historyAfter))
 	require.InDelta(t, 12.34, amount, 1e-9)
+	require.InDelta(t, 160.42, platformAmount, 1e-9)
 	require.InDelta(t, 165.92, balanceAfter, 1e-9)
 	require.InDelta(t, 0.0, quotaAfter, 1e-9)
 	require.InDelta(t, 0.0, frozenAfter, 1e-9)

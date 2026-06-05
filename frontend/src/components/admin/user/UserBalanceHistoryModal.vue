@@ -246,6 +246,9 @@ const isBalanceType = (type: string) => type === 'balance' || type === 'admin_ba
 // Helper: check if subscription type
 const isSubscriptionType = (type: string) => type === 'subscription'
 
+const displayValue = (item: BalanceHistoryItem) =>
+  item.type === 'affiliate_balance' && item.platform_amount != null ? item.platform_amount : item.value
+
 const shouldShowNotes = (item: BalanceHistoryItem) => {
   if (!item.notes) return false
   return item.type !== 'weekly_balance'
@@ -260,39 +263,42 @@ const getIconName = (item: BalanceHistoryItem) => {
 
 // Icon background color
 const getIconBg = (item: BalanceHistoryItem) => {
+  const value = displayValue(item)
   if (isBalanceType(item.type)) {
-    return item.value >= 0
+    return value >= 0
       ? 'bg-emerald-100 dark:bg-emerald-900/30'
       : 'bg-red-100 dark:bg-red-900/30'
   }
   if (isSubscriptionType(item.type)) return 'bg-purple-100 dark:bg-purple-900/30'
-  return item.value >= 0
+  return value >= 0
     ? 'bg-blue-100 dark:bg-blue-900/30'
     : 'bg-orange-100 dark:bg-orange-900/30'
 }
 
 // Icon text color
 const getIconColor = (item: BalanceHistoryItem) => {
+  const value = displayValue(item)
   if (isBalanceType(item.type)) {
-    return item.value >= 0
+    return value >= 0
       ? 'text-emerald-600 dark:text-emerald-400'
       : 'text-red-600 dark:text-red-400'
   }
   if (isSubscriptionType(item.type)) return 'text-purple-600 dark:text-purple-400'
-  return item.value >= 0
+  return value >= 0
     ? 'text-blue-600 dark:text-blue-400'
     : 'text-orange-600 dark:text-orange-400'
 }
 
 // Value text color
 const getValueColor = (item: BalanceHistoryItem) => {
+  const value = displayValue(item)
   if (isBalanceType(item.type)) {
-    return item.value >= 0
+    return value >= 0
       ? 'text-emerald-600 dark:text-emerald-400'
       : 'text-red-600 dark:text-red-400'
   }
   if (isSubscriptionType(item.type)) return 'text-purple-600 dark:text-purple-400'
-  return item.value >= 0
+  return value >= 0
     ? 'text-blue-600 dark:text-blue-400'
     : 'text-orange-600 dark:text-orange-400'
 }
@@ -332,21 +338,22 @@ const getItemTitle = (item: BalanceHistoryItem) => {
 
 // Format display value
 const formatValue = (item: BalanceHistoryItem) => {
+  const value = displayValue(item)
   if (item.type === 'first_recharge_bonus') {
-    const sign = item.value >= 0 ? '+' : ''
-    return `${sign}${item.value.toFixed(2)}`
+    const sign = value >= 0 ? '+' : ''
+    return `${sign}${value.toFixed(2)}`
   }
   if (isBalanceType(item.type)) {
-    const sign = item.value >= 0 ? '+' : ''
-    return `${sign}¥${item.value.toFixed(2)}`
+    const sign = value >= 0 ? '+' : ''
+    return `${sign}¥${value.toFixed(2)}`
   }
   if (isSubscriptionType(item.type)) {
-    const days = item.validity_days || Math.round(item.value)
+    const days = item.validity_days || Math.round(value)
     const groupName = item.group?.name || ''
     return groupName ? `${days}d - ${groupName}` : `${days}d`
   }
   // concurrency types
-  const sign = item.value >= 0 ? '+' : ''
-  return `${sign}${item.value}`
+  const sign = value >= 0 ? '+' : ''
+  return `${sign}${value}`
 }
 </script>

@@ -1616,7 +1616,7 @@ export default {
     recentActivity: '最近活动',
     historyWillAppear: '您的兑换历史将显示在这里',
     balanceAddedRedeem: '余额充值（兑换）',
-    balanceAddedAffiliate: '余额充值（返利转入）',
+    balanceAddedAffiliate: '平台余额充值（返利转入）',
     balanceAddedAdmin: '余额充值（管理员）',
     balanceDeductedAdmin: '余额扣除（管理员）',
     concurrencyAddedRedeem: '并发增加（兑换）',
@@ -2617,7 +2617,7 @@ export default {
       noBalanceHistory: '暂无变动记录',
       allTypes: '全部类型',
       typeBalance: '余额（兑换码）',
-      typeAffiliateBalance: '余额（返利转入）',
+      typeAffiliateBalance: '平台余额（返利转入）',
       typeAdminBalance: '余额（管理员调整）',
       typeConcurrency: '并发（兑换码）',
       typeAdminConcurrency: '并发（管理员调整）',
@@ -5039,7 +5039,7 @@ export default {
         admin_balance: '余额（管理员）',
         admin_concurrency: '并发数（管理员）',
         weekly_balance: '周额度领取',
-        affiliate_balance: '返利转余额',
+        affiliate_balance: '返利转平台余额',
         lucky_wheel_bonus: '转盘奖励'
       },
       // 用于选择器和筛选器的直接键

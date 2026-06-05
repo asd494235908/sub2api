@@ -240,4 +240,53 @@ describe('Admin RedeemView', () => {
     expect(wrapper.text()).toContain('asd494235908@qq.com')
     expect(wrapper.text()).not.toContain('affiliate_balance')
   })
+
+  it('prefers platform amount when rendering affiliate balance transfers', async () => {
+    listRedeemCodes.mockResolvedValue({
+      items: [
+        {
+          id: -665,
+          code: 'AFF-665',
+          type: 'affiliate_balance',
+          value: 10,
+          platform_amount: 130,
+          status: 'used',
+          used_by: 2,
+          used_at: '2026-06-03T10:00:00Z',
+          created_at: '2026-06-03T10:00:00Z',
+          user: { id: 2, email: 'affiliate@example.com' },
+        },
+      ],
+      total: 1,
+      page: 1,
+      page_size: 20,
+      pages: 1,
+    })
+
+    const wrapper = mount(RedeemView, {
+      global: {
+        stubs: {
+          AppLayout: { template: '<div><slot /></div>' },
+          TablePageLayout: {
+            template: '<div><slot name="filters" /><slot name="table" /><slot name="pagination" /></div>',
+          },
+          Icon: { template: '<span />' },
+          Select: {
+            props: ['options'],
+            template: '<div><span v-for="option in options" :key="option.value">{{ option.label }}</span></div>',
+          },
+          DataTable: DataTableStub,
+          Pagination: { template: '<div />' },
+          ConfirmDialog: { template: '<div />' },
+          GroupBadge: { template: '<span />' },
+          GroupOptionItem: { template: '<span />' },
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('¥130.00')
+    expect(wrapper.text()).not.toContain('¥10.00')
+  })
 })

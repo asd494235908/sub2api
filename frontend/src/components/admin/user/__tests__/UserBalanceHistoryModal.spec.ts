@@ -300,4 +300,38 @@ describe('UserBalanceHistoryModal', () => {
     expect(wrapper.text()).toContain('manual correction')
     expect(wrapper.text()).toContain('lower plan')
   })
+
+  it('prefers platform amount for affiliate balance transfers', async () => {
+    getUserBalanceHistory.mockResolvedValue({
+      items: [
+        {
+          id: -664,
+          code: 'AFF-664',
+          type: 'affiliate_balance',
+          value: 10,
+          platform_amount: 130,
+          status: 'used',
+          used_by: 42,
+          used_at: '2026-06-03T10:00:00Z',
+          created_at: '2026-06-03T10:00:00Z',
+          group_id: null,
+          validity_days: 0,
+          notes: '',
+        },
+      ],
+      total: 1,
+      page: 1,
+      page_size: 15,
+      pages: 1,
+      total_recharged: 0,
+    })
+
+    const wrapper = mountModal()
+    await wrapper.setProps({ show: true })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('redeem.balanceAddedAffiliate')
+    expect(wrapper.text()).toContain('+¥130.00')
+    expect(wrapper.text()).not.toContain('+¥10.00')
+  })
 })

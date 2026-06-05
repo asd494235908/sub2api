@@ -1433,6 +1433,7 @@ export interface RedeemCode {
   code: string
   type: RedeemCodeType
   value: number
+  platform_amount?: number | null
   status: 'active' | 'used' | 'expired' | 'unused' | 'disabled'
   used_by: number | null
   used_at: string | null

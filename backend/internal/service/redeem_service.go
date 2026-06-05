@@ -701,20 +701,21 @@ func (s *RedeemService) GetUserActivityHistory(ctx context.Context, userID int64
 	for i := range codes {
 		code := codes[i]
 		items = append(items, RedeemHistoryItem{
-			ID:           code.ID,
-			Code:         code.Code,
-			Type:         code.Type,
-			Value:        code.Value,
-			Status:       code.Status,
-			UsedBy:       code.UsedBy,
-			UsedAt:       code.UsedAt,
-			Notes:        code.Notes,
-			CreatedAt:    code.CreatedAt,
-			GroupID:      code.GroupID,
-			ValidityDays: code.ValidityDays,
-			User:         code.User,
-			Group:        code.Group,
-			Source:       "redeem_code",
+			ID:             code.ID,
+			Code:           code.Code,
+			Type:           code.Type,
+			Value:          code.Value,
+			PlatformAmount: code.PlatformAmount,
+			Status:         code.Status,
+			UsedBy:         code.UsedBy,
+			UsedAt:         code.UsedAt,
+			Notes:          code.Notes,
+			CreatedAt:      code.CreatedAt,
+			GroupID:        code.GroupID,
+			ValidityDays:   code.ValidityDays,
+			User:           code.User,
+			Group:          code.Group,
+			Source:         "redeem_code",
 		})
 	}
 	return items, nil

@@ -1176,7 +1176,8 @@ func (s *adminServiceImpl) listAffiliateBalanceHistory(ctx context.Context, user
 
 	rows, err := s.entClient.QueryContext(ctx, `
 SELECT id,
-       amount::double precision,
+       CAST(COALESCE(platform_amount, amount) AS DOUBLE PRECISION) AS display_amount,
+       CAST(platform_amount AS DOUBLE PRECISION),
        created_at
 FROM user_affiliate_ledger
 WHERE user_id = $1
@@ -1193,13 +1194,14 @@ LIMIT $3`, userID, params.Offset(), params.Limit())
 	for rows.Next() {
 		var id int64
 		var amount float64
+		var platformAmount sql.NullFloat64
 		var createdAt time.Time
-		if err := rows.Scan(&id, &amount, &createdAt); err != nil {
+		if err := rows.Scan(&id, &amount, &platformAmount, &createdAt); err != nil {
 			return nil, 0, err
 		}
 		usedBy := userID
 		usedAt := createdAt
-		codes = append(codes, RedeemCode{
+		code := RedeemCode{
 			ID:        -id,
 			Code:      fmt.Sprintf("AFF-%d", id),
 			Type:      RedeemTypeAffiliateBalance,
@@ -1208,7 +1210,11 @@ LIMIT $3`, userID, params.Offset(), params.Limit())
 			UsedBy:    &usedBy,
 			UsedAt:    &usedAt,
 			CreatedAt: createdAt,
-		})
+		}
+		if platformAmount.Valid {
+			code.PlatformAmount = &platformAmount.Float64
+		}
+		codes = append(codes, code)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, 0, err
@@ -3374,18 +3380,8 @@ LEFT JOIN users u ON u.id = l.user_id
 	args = append(args, params.Limit(), params.Offset())
 	rows, err := s.entClient.QueryContext(ctx, luckyWheelBindVars(s.entClient.Driver().Dialect(), `
 SELECT l.id,
-       COALESCE(
-           l.balance_after - (
-               SELECT prev.balance_after
-               FROM user_affiliate_ledger prev
-               WHERE prev.user_id = l.user_id
-                 AND prev.balance_after IS NOT NULL
-                 AND (prev.created_at, prev.id) < (l.created_at, l.id)
-               ORDER BY prev.created_at DESC, prev.id DESC
-               LIMIT 1
-           ),
-           l.amount
-       )::double precision AS platform_amount,
+       CAST(COALESCE(l.platform_amount, l.amount) AS DOUBLE PRECISION) AS display_amount,
+       CAST(l.platform_amount AS DOUBLE PRECISION),
        l.created_at,
        l.user_id,
        u.email,
@@ -3404,14 +3400,15 @@ OFFSET ?`), args...)
 	codes := make([]RedeemCode, 0, params.Limit())
 	for rows.Next() {
 		var (
-			id        int64
-			value     float64
-			createdAt time.Time
-			userID    int64
-			email     sql.NullString
-			username  sql.NullString
+			id             int64
+			value          float64
+			platformAmount sql.NullFloat64
+			createdAt      time.Time
+			userID         int64
+			email          sql.NullString
+			username       sql.NullString
 		)
-		if err := rows.Scan(&id, &value, &createdAt, &userID, &email, &username); err != nil {
+		if err := rows.Scan(&id, &value, &platformAmount, &createdAt, &userID, &email, &username); err != nil {
 			return nil, 0, err
 		}
 		usedAt := createdAt
@@ -3422,7 +3419,7 @@ OFFSET ?`), args...)
 		if username.Valid {
 			userSummary.Username = username.String
 		}
-		codes = append(codes, RedeemCode{
+		code := RedeemCode{
 			ID:        -id,
 			Code:      fmt.Sprintf("AFF-%d", id),
 			Type:      RedeemTypeAffiliateBalance,
@@ -3433,7 +3430,11 @@ OFFSET ?`), args...)
 			CreatedAt: createdAt,
 			User:      userSummary,
 			Source:    "affiliate_transfer",
-		})
+		}
+		if platformAmount.Valid {
+			code.PlatformAmount = &platformAmount.Float64
+		}
+		codes = append(codes, code)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, 0, err
@@ -3455,7 +3456,7 @@ func affiliateRedeemCodeOrderBy(sortBy, sortOrder string) string {
 	case "type":
 		return "ORDER BY l.id " + direction
 	case "value":
-		return "ORDER BY platform_amount " + direction + ", l.id " + direction
+		return "ORDER BY display_amount " + direction + ", l.id " + direction
 	case "status":
 		return "ORDER BY l.id " + direction
 	case "used_at", "created_at":

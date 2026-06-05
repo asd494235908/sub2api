@@ -476,6 +476,7 @@ INSERT INTO user_affiliate_ledger (
     user_id,
     action,
     amount,
+    platform_amount,
     source_user_id,
     balance_after,
     aff_quota_after,
@@ -484,9 +485,10 @@ INSERT INTO user_affiliate_ledger (
     created_at,
     updated_at
 )
-VALUES ($1, 'transfer', $2, NULL, $3, $4, $5, $6, NOW(), NOW())`,
+VALUES ($1, 'transfer', $2, $3, NULL, $4, $5, $6, $7, NOW(), NOW())`,
 			userID,
 			transferred,
+			platformAmount,
 			snapshot.BalanceAfter,
 			snapshot.AvailableQuotaAfter,
 			snapshot.FrozenQuotaAfter,

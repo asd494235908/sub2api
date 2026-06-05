@@ -132,8 +132,8 @@
 
           <template #cell-value="{ value, row }">
             <span class="text-sm font-medium text-gray-900 dark:text-white">
-              <template v-if="row.type === 'first_recharge_bonus'">{{ value.toFixed(2) }}</template>
-              <template v-else-if="isCurrencyRedeemType(row.type)">¥{{ value.toFixed(2) }}</template>
+              <template v-if="row.type === 'first_recharge_bonus'">{{ displayRedeemValue(row, value).toFixed(2) }}</template>
+              <template v-else-if="isCurrencyRedeemType(row.type)">¥{{ displayRedeemValue(row, value).toFixed(2) }}</template>
               <template v-else-if="row.type === 'subscription'">
                 {{ row.validity_days || 30 }} {{ t('admin.redeem.days') }}
                 <span v-if="row.group" class="ml-1 text-xs text-gray-500 dark:text-gray-400"
@@ -804,6 +804,9 @@ const isCurrencyRedeemType = (type: string) =>
   type === 'weekly_balance' ||
   type === 'affiliate_balance' ||
   type === 'lucky_wheel_bonus'
+
+const displayRedeemValue = (row: RedeemCode, value: number) =>
+  row.type === 'affiliate_balance' && row.platform_amount != null ? row.platform_amount : value
 
 const isEditableRedeemCode = (code: RedeemCode) =>
   code.id > 0 && !['weekly_balance', 'affiliate_balance', 'lucky_wheel_bonus', 'first_recharge_bonus'].includes(code.type)
