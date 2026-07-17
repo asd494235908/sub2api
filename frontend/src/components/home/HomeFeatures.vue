@@ -72,8 +72,8 @@
             class="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6 font-mono text-xs text-zinc-300"
           >
             <code class="block leading-7">
-              import OpenAI from "openai"<br />
-              const client = new OpenAI()<br />
+              import International from "international"<br />
+              const client = new International()<br />
               await client.responses.create()
             </code>
           </div>

@@ -284,6 +284,15 @@
                           </span>
                         </button>
                       </div>
+                      <div class="mt-4 border-t border-gray-100 pt-4 dark:border-dark-700">
+                        <AmountInput
+                          v-model="amount"
+                          :amounts="[]"
+                          :min="globalMinAmount"
+                          :max="globalMaxAmount"
+                          :show-quick-amounts="false"
+                        />
+                      </div>
                       <p v-if="amountError" class="mt-2 text-xs text-amber-600 dark:text-amber-300">{{ amountError }}</p>
                     </div>
                     <div v-if="enabledMethods.length >= 1" class="card p-6">

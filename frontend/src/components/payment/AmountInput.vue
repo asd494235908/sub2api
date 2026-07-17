@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-4">
     <!-- Quick Amount Buttons -->
-    <div>
+    <div v-if="showQuickAmounts">
       <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
         {{ t('payment.quickAmounts') }}
       </label>
@@ -23,14 +23,14 @@
       </div>
     </div>
 
-    <!-- Custom Amount Input
+    <!-- Custom Amount Input -->
     <div>
       <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
         {{ t('payment.customAmount') }}
       </label>
       <div class="relative">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-dark-500">
-          $
+          ¥
         </span>
         <input
           type="text"
@@ -42,12 +42,11 @@
         />
       </div>
     </div>
-    -->
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const props = withDefaults(defineProps<{
@@ -55,10 +54,12 @@ const props = withDefaults(defineProps<{
   modelValue: number | null
   min?: number
   max?: number
+  showQuickAmounts?: boolean
 }>(), {
   amounts: () => [10, 20, 50, 100, 200, 500, 1000, 2000, 5000],
   min: 0,
   max: 0,
+  showQuickAmounts: true,
 })
 
 const emit = defineEmits<{
@@ -66,13 +67,13 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const customText = ref('')
 
 // 0 = no limit
 const filteredAmounts = computed(() =>
   props.amounts.filter((a) => (props.min <= 0 || a >= props.min) && (props.max <= 0 || a <= props.max))
 )
 
-/*
 const placeholderText = computed(() => {
   if (props.min > 0 && props.max > 0) return `${props.min} - ${props.max}`
   if (props.min > 0) return `≥ ${props.min}`
@@ -81,16 +82,18 @@ const placeholderText = computed(() => {
 })
 
 const AMOUNT_PATTERN = /^\d*(\.\d{0,2})?$/
-*/
 
 function selectAmount(amt: number) {
   emit('update:modelValue', amt)
 }
 
-/*
 function handleInput(e: Event) {
-  const val = (e.target as HTMLInputElement).value
-  if (!AMOUNT_PATTERN.test(val)) return
+  const input = e.target as HTMLInputElement
+  const val = input.value
+  if (!AMOUNT_PATTERN.test(val)) {
+    input.value = customText.value
+    return
+  }
   customText.value = val
   if (val === '') {
     emit('update:modelValue', null)
@@ -105,9 +108,7 @@ function handleInput(e: Event) {
 }
 
 watch(() => props.modelValue, (v) => {
-  if (v !== null && String(v) !== customText.value) {
-    customText.value = String(v)
-  }
+  const next = v !== null && v > 0 ? String(v) : ''
+  if (next !== customText.value) customText.value = next
 }, { immediate: true })
-*/
 </script>

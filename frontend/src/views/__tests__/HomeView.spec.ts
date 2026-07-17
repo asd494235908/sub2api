@@ -45,7 +45,7 @@ vi.mock('vue-i18n', () => ({
       'home.landing.footer.columns.company.contact': '联系我们',
       'home.landing.footer.columns.company.terms': '服务条款',
       'home.landing.footer.columns.company.privacy': '隐私政策',
-      'home.landing.hero.badge': '稳定 · 安全 · 高效的 OpenAI 中转服务',
+      'home.landing.hero.badge': '稳定 · 安全 · 高效的国际中转服务',
       'home.landing.hero.titleLead': '让 ',
       'home.landing.hero.titleHighlight': 'AI 开发',
       'home.landing.hero.titleSuffix': '更简单',
@@ -117,9 +117,11 @@ describe('HomeView', () => {
       }
     })
 
-    expect(wrapper.text()).toContain('稳定 · 安全 · 高效的 OpenAI 中转服务')
+    expect(wrapper.text()).toContain('稳定 · 安全 · 高效的国际中转服务')
     expect(wrapper.text()).toContain('让 AI 开发更简单')
     expect(wrapper.text()).toContain('企业级安全接入')
+    expect(wrapper.text()).toContain('import International from "international"')
+    expect(wrapper.text()).not.toContain('import OpenAI from "openai"')
     expect(wrapper.text()).not.toContain('home.landing.')
     expect(wrapper.find('[data-test="locale-switcher"]').exists()).toBe(true)
   })
@@ -180,6 +182,9 @@ describe('HomeView', () => {
     expect(text).toContain('联系我们')
     expect(text).toContain('服务条款')
     expect(text).toContain('隐私政策')
+    expect(text).not.toContain('成都格品科技有限公司版权所有')
+    expect(text).not.toContain('蜀ICP备17044249号-1')
+    expect(text).not.toContain('© 2018')
     expect(text).toContain('格品购物')
     expect(text).toContain('格品生图')
     expect(text).not.toContain('home.landing.footer.columns.support.title')

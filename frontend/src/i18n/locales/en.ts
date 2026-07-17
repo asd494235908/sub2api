@@ -16,7 +16,7 @@ export default {
         description:
           'GPTK provides an AI API platform for developers and businesses, with secure enterprise access, stable response paths, and straightforward integration for development, testing, and production.'
       },
-      logoTagline: 'Enterprise OpenAI API Relay',
+      logoTagline: 'Enterprise International API Relay',
       brand: 'GPTK',
       nav: {
         home: 'Home',
@@ -31,7 +31,7 @@ export default {
         login: 'Use Now'
       },
       hero: {
-        badge: 'Stable · Secure · Efficient OpenAI relay service',
+        badge: 'Stable · Secure · Efficient International relay service',
         titlePrefix: 'GPTK',
         titleLead: 'Make ',
         titleHighlight: 'AI development',
@@ -55,7 +55,7 @@ export default {
       overview: {
         kicker: 'Why GPTK',
         title: 'Fast, stable, and secure AI access',
-        subtitle: 'We provide a stable, fast, and secure OpenAI API relay service so your business can focus on product innovation.',
+        subtitle: 'We provide a stable, fast, and secure International API relay service so your business can focus on product innovation.',
         benefits: {
           security: {
             title: 'Enterprise Security',
@@ -63,7 +63,7 @@ export default {
           },
           easy: {
             title: 'Simple to Use',
-            description: 'Compatible with OpenAI API conventions. Replace the Base URL and start integrating.'
+            description: 'Compatible with International API conventions. Replace the Base URL and start integrating.'
           },
           stability: {
             title: 'Fast and Stable',
@@ -82,7 +82,7 @@ export default {
           },
           integration: {
             title: 'Low-Cost Migration',
-            description: 'Keep familiar OpenAI request patterns, reduce migration cost, and complete integration and delivery faster.'
+            description: 'Keep familiar International request patterns, reduce migration cost, and complete integration and delivery faster.'
           },
           delivery: {
             title: 'Stable Delivery',
@@ -95,17 +95,17 @@ export default {
         }
       },
       models: {
-        kicker: 'Access OpenAI frontier models',
+        kicker: 'Access International frontier models',
         cardTitle: 'Covering mainstream reasoning, lightweight, and image scenarios available through the current API.',
         cardSubtitle: 'Choose high-performance, balanced, low-cost, or image capabilities by scenario and access them through GPTK.',
         badges: {
           latest: 'Current Latest'
         },
         items: {
-          gpt55: 'OpenAI latest supported model, suitable for complex reasoning, coding, and professional workflows.',
+          gpt55: 'International latest supported model, suitable for complex reasoning, coding, and professional workflows.',
           gpt54: 'A stable and balanced frontier model for coding, tool use, and general production tasks.',
           gpt54nano: 'An ultra-low-cost version for high-frequency and basic tasks.',
-          gptImage2: 'OpenAI current image generation model for image creation and editing scenarios.'
+          gptImage2: 'International current image generation model for image creation and editing scenarios.'
         }
       },
       pricing: {
@@ -176,10 +176,8 @@ export default {
         }
       },
       footer: {
-        about: 'Enterprise OpenAI API relay service that makes AI development easier.',
+        about: 'Enterprise International API relay service that makes AI development easier.',
         follow: 'Follow Us',
-        copyrightOwner: 'Chengdu Gepin Technology Co., Ltd. All rights reserved',
-        filing: 'Shu ICP No. 17044249-1',
         columns: {
           product: {
             title: 'Product',

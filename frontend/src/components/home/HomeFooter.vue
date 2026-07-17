@@ -67,17 +67,6 @@
       </div>
 
       <div class="mt-8 flex flex-col items-center justify-center gap-3 border-t border-white/10 pt-6 text-center text-sm text-slate-300">
-        <p>
-          © 2018 {{ copyrightOwner }}
-          <a
-            href="https://beian.miit.gov.cn/"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="transition-colors hover:text-white hover:underline"
-          >
-            {{ filingLabel }}
-          </a>
-        </p>
         <a
           :href="docUrl"
           target="_blank"
@@ -100,8 +89,6 @@ defineProps<{
   columns: Array<{ title: string; items: Array<{ label: string; href: string; external?: boolean }> }>
   followLabel: string
   contactItems: Array<{ label: string; values: string[] }>
-  copyrightOwner: string
-  filingLabel: string
   docUrl: string
   docsLabel: string
 }>()

@@ -9,7 +9,7 @@ vi.mock('vue-i18n', () => ({
 }))
 
 describe('AmountInput', () => {
-  it('shows quick amounts without rendering the custom amount text input', async () => {
+  it('shows quick amounts and allows entering a custom amount', async () => {
     const wrapper = mount(AmountInput, {
       props: {
         modelValue: null,
@@ -18,11 +18,12 @@ describe('AmountInput', () => {
     })
 
     expect(wrapper.text()).toContain('payment.quickAmounts')
-    expect(wrapper.text()).not.toContain('payment.customAmount')
-    expect(wrapper.find('input[type="text"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('payment.customAmount')
+    expect(wrapper.find('input[type="text"]').exists()).toBe(true)
 
     await wrapper.get('button').trigger('click')
+    await wrapper.get('input[type="text"]').setValue('88.88')
 
-    expect(wrapper.emitted('update:modelValue')).toEqual([[10]])
+    expect(wrapper.emitted('update:modelValue')).toEqual([[10], [88.88]])
   })
 })

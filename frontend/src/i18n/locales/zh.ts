@@ -16,7 +16,7 @@ export default {
         description:
           'GPTK 提供面向开发者与企业的 AI API 接口服务，支持企业级安全接入、国内稳定快速响应与便捷集成，适合 AI 应用开发、测试与生产环境落地。'
       },
-      logoTagline: '企业级 OpenAI API 中转服务',
+      logoTagline: '企业级国际 API 中转服务',
       brand: 'GPTK',
       nav: {
         home: '首页',
@@ -31,7 +31,7 @@ export default {
         login: '立即使用'
       },
       hero: {
-        badge: '稳定 · 安全 · 高效的 OpenAI 中转服务',
+        badge: '稳定 · 安全 · 高效的国际中转服务',
         titlePrefix: 'GPTK',
         titleLead: '让 ',
         titleHighlight: 'AI 开发',
@@ -55,7 +55,7 @@ export default {
       overview: {
         kicker: '为什么选择 GPTK',
         title: '快速、稳定、安全的 AI 接入体验',
-        subtitle: '我们提供稳定、快速、安全的 OpenAI API 中转服务，让业务专注于产品创新。',
+        subtitle: '我们提供稳定、快速、安全的国际 API 中转服务，让业务专注于产品创新。',
         benefits: {
           security: {
             title: '企业级安全',
@@ -63,7 +63,7 @@ export default {
           },
           easy: {
             title: '简单易用',
-            description: '兼容 OpenAI 接口规范，替换 Base URL 即可接入。'
+            description: '兼容国际接口规范，替换 Base URL 即可接入。'
           },
           stability: {
             title: '高速稳定',
@@ -82,7 +82,7 @@ export default {
           },
           integration: {
             title: '低成本迁移上线',
-            description: '沿用熟悉的 OpenAI 请求方式，把改造成本降到更低，快速完成联调与交付。'
+            description: '沿用熟悉的国际请求方式，把改造成本降到更低，快速完成联调与交付。'
           },
           delivery: {
             title: '稳定交付保障',
@@ -95,17 +95,17 @@ export default {
         }
       },
       models: {
-        kicker: '接入 OpenAI 前沿模型',
+        kicker: '接入国际前沿模型',
         cardTitle: '覆盖当前 API 可用的主流推理、轻量与图像场景。',
         cardSubtitle: '按场景选择高性能、均衡、低成本或图像能力，统一通过 GPTK 接入。',
         badges: {
           latest: '当前最新'
         },
         items: {
-          gpt55: 'OpenAI 最新支持模型，适合复杂推理、编码与专业工作流。',
+          gpt55: '国际最新支持模型，适合复杂推理、编码与专业工作流。',
           gpt54: '稳定均衡的前沿模型版本，适合编码、工具调用与通用生产任务。',
           gpt54nano: '面向高频与基础任务的超低成本版本。',
-          gptImage2: 'OpenAI 当前图像生成模型，适合图片生成与编辑场景。'
+          gptImage2: '国际当前图像生成模型，适合图片生成与编辑场景。'
         }
       },
       pricing: {
@@ -176,10 +176,8 @@ export default {
         }
       },
       footer: {
-        about: '企业级 OpenAI API 中转服务，让 AI 开发更简单。',
+        about: '企业级国际 API 中转服务，让 AI 开发更简单。',
         follow: '关注我们',
-        copyrightOwner: '成都格品科技有限公司版权所有',
-        filing: '蜀ICP备17044249号-1',
         columns: {
           product: {
             title: '产品',

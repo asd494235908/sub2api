@@ -764,6 +764,35 @@ describe('PaymentView WeChat JSAPI flow', () => {
     expect(wrapper.find('[data-test="first-recharge-tier-tier-30"]').exists()).toBe(false)
   })
 
+  it('shows a custom amount input inside subscription first recharge entry', async () => {
+    routeState.path = '/purchase'
+    routeState.query = {}
+    getCheckoutInfo.mockResolvedValue(checkoutInfoWithFirstRechargeFixture())
+
+    const wrapper = mount(PaymentView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          PaymentMethodSelector: true,
+          PaymentStatusPanel: true,
+          SubscriptionPlanCard: true,
+          Icon: true,
+          Teleport: true,
+          Transition: false,
+        },
+      },
+    })
+    await flushPromises()
+    await flushPromises()
+
+    const firstRecharge = wrapper.get('[data-test="subscription-first-recharge"]')
+    expect(firstRecharge.text()).toContain('payment.customAmount')
+
+    await firstRecharge.get('input[type="text"]').setValue('88.88')
+
+    expect(firstRecharge.text()).toContain('1155.44 平台额度')
+  })
+
   it('creates a balance order when paying from subscription first recharge entry', async () => {
     routeState.path = '/purchase'
     routeState.query = {}
