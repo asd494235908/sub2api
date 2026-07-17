@@ -610,61 +610,58 @@ func (r *affiliateRepository) ListInvitersWithInvitees(ctx context.Context, filt
 	client := clientFromContext(ctx, r.client)
 	search := strings.TrimSpace(filter.Search)
 	args := make([]any, 0, 8)
-	where := ""
+	whereParts := []string{"ua.aff_count > 0"}
 	if search != "" {
 		pattern := "%" + strings.ToLower(search) + "%"
 		args = append(args, pattern)
 		idx := len(args)
-		where = fmt.Sprintf(`
-WHERE LOWER(COALESCE(u.email, '')) LIKE $%d
-   OR LOWER(COALESCE(u.username, '')) LIKE $%d
-   OR LOWER(COALESCE(ua.aff_code, '')) LIKE $%d
-   OR ua.user_id::text LIKE $%d`, idx, idx, idx, idx)
+		whereParts = append(whereParts, fmt.Sprintf(`(
+	    LOWER(COALESCE(u.email, '')) LIKE $%d
+	 OR LOWER(COALESCE(u.username, '')) LIKE $%d
+	 OR LOWER(COALESCE(ua.aff_code, '')) LIKE $%d
+	 OR ua.user_id::text LIKE $%d
+)`, idx, idx, idx, idx))
 	}
+	childJoinParts := []string{"ua_child.inviter_id = ua.user_id"}
 	if filter.StartAt != nil {
 		args = append(args, *filter.StartAt)
 		idx := len(args)
-		if where == "" {
-			where = fmt.Sprintf("\nWHERE ua.created_at >= $%d", idx)
-		} else {
-			where += fmt.Sprintf("\n  AND ua.created_at >= $%d", idx)
-		}
+		childJoinParts = append(childJoinParts, fmt.Sprintf("ua_child.created_at >= $%d", idx))
 	}
 	if filter.EndAt != nil {
 		args = append(args, *filter.EndAt)
 		idx := len(args)
-		if where == "" {
-			where = fmt.Sprintf("\nWHERE ua.created_at <= $%d", idx)
-		} else {
-			where += fmt.Sprintf("\n  AND ua.created_at <= $%d", idx)
-		}
+		childJoinParts = append(childJoinParts, fmt.Sprintf("ua_child.created_at <= $%d", idx))
 	}
-	baseWhere := "WHERE ua.aff_count > 0"
-	if where != "" {
-		baseWhere += strings.Replace(where, "WHERE ", "\n  AND ", 1)
-	}
+	baseWhere := "WHERE " + strings.Join(whereParts, "\n  AND ")
+	childJoin := "JOIN user_affiliates ua_child\n       ON " + strings.Join(childJoinParts, "\n      AND ")
 
 	countRows, err := client.QueryContext(ctx, `
 SELECT COUNT(*)
 FROM (
     SELECT ua.user_id
-    FROM user_affiliates ua
-    JOIN users u ON u.id = ua.user_id
+	    FROM user_affiliates ua
+	    JOIN users u ON u.id = ua.user_id
+	    `+childJoin+`
 `+baseWhere+`
-    GROUP BY ua.user_id
+	    GROUP BY ua.user_id
 ) AS inviters`, args...)
 	if err != nil {
 		return nil, 0, err
 	}
-	defer func() { _ = countRows.Close() }()
 
 	var total int64
 	if countRows.Next() {
 		if err := countRows.Scan(&total); err != nil {
+			_ = countRows.Close()
 			return nil, 0, err
 		}
 	}
 	if err := countRows.Err(); err != nil {
+		_ = countRows.Close()
+		return nil, 0, err
+	}
+	if err := countRows.Close(); err != nil {
 		return nil, 0, err
 	}
 
@@ -680,8 +677,7 @@ SELECT ua.user_id,
        ident.expires_at AS identity_expires_at
 FROM user_affiliates ua
 JOIN users u ON u.id = ua.user_id
-LEFT JOIN user_affiliates ua_child
-       ON ua_child.inviter_id = ua.user_id
+`+childJoin+`
 LEFT JOIN user_affiliate_ledger ual
        ON ual.user_id = ua.user_id
       AND ual.source_user_id = ua_child.user_id

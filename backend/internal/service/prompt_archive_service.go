@@ -509,7 +509,7 @@ func fetchPromptArchiveURLData(ctx context.Context, rawURL string, fallbackMIME 
 		if err != nil {
 			return "", nil, fmt.Errorf("fetch attachment url: %w", err)
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			return "", nil, fmt.Errorf("fetch attachment url status=%d", resp.StatusCode)
 		}
@@ -550,7 +550,7 @@ func buildPromptArchiveSummary(text string) string {
 
 func buildPromptArchiveMarkdown(record *PromptArchivePersistedRecord) string {
 	var b strings.Builder
-	b.WriteString("---\n")
+	_, _ = b.WriteString("---\n")
 	metadata := map[string]any{
 		"request_id":        record.RequestID,
 		"client_request_id": record.ClientRequestID,
@@ -566,31 +566,31 @@ func buildPromptArchiveMarkdown(record *PromptArchivePersistedRecord) string {
 		"created_at":        record.CreatedAt.UTC().Format(time.RFC3339Nano),
 	}
 	raw, _ := json.MarshalIndent(metadata, "", "  ")
-	b.Write(raw)
-	b.WriteString("\n---\n\n## System\n")
-	b.WriteString(strings.TrimSpace(record.SystemPrompt))
-	b.WriteString("\n\n## User Prompt\n")
-	b.WriteString(strings.TrimSpace(record.UserPromptText))
-	b.WriteString("\n\n## Attachments\n")
+	_, _ = b.Write(raw)
+	_, _ = b.WriteString("\n---\n\n## System\n")
+	_, _ = b.WriteString(strings.TrimSpace(record.SystemPrompt))
+	_, _ = b.WriteString("\n\n## User Prompt\n")
+	_, _ = b.WriteString(strings.TrimSpace(record.UserPromptText))
+	_, _ = b.WriteString("\n\n## Attachments\n")
 	if len(record.Attachments) == 0 {
-		b.WriteString("None\n")
+		_, _ = b.WriteString("None\n")
 		return b.String()
 	}
 	for _, attachment := range record.Attachments {
-		b.WriteString("- kind: ")
-		b.WriteString(string(attachment.Kind))
+		_, _ = b.WriteString("- kind: ")
+		_, _ = b.WriteString(string(attachment.Kind))
 		if attachment.ObjectKey != "" {
-			b.WriteString(", object_key: ")
-			b.WriteString(attachment.ObjectKey)
+			_, _ = b.WriteString(", object_key: ")
+			_, _ = b.WriteString(attachment.ObjectKey)
 		} else if attachment.SourceURL != "" {
-			b.WriteString(", source_url: ")
-			b.WriteString(attachment.SourceURL)
+			_, _ = b.WriteString(", source_url: ")
+			_, _ = b.WriteString(attachment.SourceURL)
 		}
 		if attachment.MIMEType != "" {
-			b.WriteString(", mime_type: ")
-			b.WriteString(attachment.MIMEType)
+			_, _ = b.WriteString(", mime_type: ")
+			_, _ = b.WriteString(attachment.MIMEType)
 		}
-		b.WriteString("\n")
+		_, _ = b.WriteString("\n")
 	}
 	return b.String()
 }
@@ -654,11 +654,11 @@ func sanitizePromptArchivePathSegment(raw string) string {
 	for _, r := range raw {
 		switch {
 		case unicode.IsLetter(r), unicode.IsNumber(r):
-			b.WriteRune(r)
+			_, _ = b.WriteRune(r)
 			lastDash = false
 		default:
 			if !lastDash {
-				b.WriteByte('-')
+				_ = b.WriteByte('-')
 				lastDash = true
 			}
 		}
@@ -682,6 +682,9 @@ func BuildPromptArchiveEnvelopeFromParsedRequest(apiKey *APIKey, endpoint, proto
 	if apiKey.GroupID != nil {
 		groupID = *apiKey.GroupID
 	}
+	var messages []any
+	_ = parsed.DecodeMessages(&messages)
+	system, _ := parsed.SystemValue()
 	return &PromptArchiveEnvelope{
 		RequestID:        "",
 		ClientRequestID:  "",
@@ -694,8 +697,8 @@ func BuildPromptArchiveEnvelopeFromParsedRequest(apiKey *APIKey, endpoint, proto
 		Protocol:         protocol,
 		Endpoint:         endpoint,
 		Model:            parsed.Model,
-		SystemPrompt:     extractPromptArchiveSystemText(parsed.System),
-		UserPromptText:   extractPromptArchiveUserTextFromMessages(parsed.Messages),
+		SystemPrompt:     extractPromptArchiveSystemText(system),
+		UserPromptText:   extractPromptArchiveUserTextFromMessages(messages),
 		CreatedAt:        normalizePromptArchiveTime(now),
 	}
 }

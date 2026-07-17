@@ -119,23 +119,6 @@ type RechargeActivityStatsQuery struct {
 	UserKeyword string
 }
 
-func setRechargeActivityTestDrawSequence(t interface{ Cleanup(func()) }, values ...float64) {
-	previous := rechargeActivityRandFloat64
-	index := 0
-	rechargeActivityRandFloat64 = func() float64 {
-		if len(values) == 0 {
-			return 0
-		}
-		if index >= len(values) {
-			return values[len(values)-1]
-		}
-		out := values[index]
-		index++
-		return out
-	}
-	t.Cleanup(func() { rechargeActivityRandFloat64 = previous })
-}
-
 func (s *PaymentService) rechargeActivityEnabled(ctx context.Context) bool {
 	if s == nil || s.configService == nil {
 		return false
@@ -524,7 +507,7 @@ RETURNING id`, chance.UserID, chance.SourceOrderID, chance.SourceOrderType, chan
 		if err != nil {
 			return 0, fmt.Errorf("insert recharge activity chance: %w", err)
 		}
-		defer rows.Close()
+		defer func() { _ = rows.Close() }()
 		if rows.Next() {
 			var id int64
 			if err := rows.Scan(&id); err != nil {
@@ -558,7 +541,7 @@ WHERE id = ? AND user_id = ?`)
 	if err != nil {
 		return nil, fmt.Errorf("load recharge activity chance: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	chances, err := scanRechargeActivityChances(rows)
 	if err != nil {
 		return nil, fmt.Errorf("load recharge activity chance: %w", err)
@@ -584,7 +567,7 @@ LIMIT ?`)
 	if err != nil {
 		return nil, fmt.Errorf("list recharge activity pending chances: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	return scanRechargeActivityChances(rows)
 }
 
@@ -605,7 +588,7 @@ LIMIT ?`)
 	if err != nil {
 		return nil, fmt.Errorf("list recharge activity records: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	return scanRechargeActivityDrawRecords(rows)
 }
 
@@ -625,7 +608,7 @@ RETURNING id`, record.ChanceID, record.UserID, record.SourceOrderID, record.Priz
 		if err != nil {
 			return 0, fmt.Errorf("insert recharge activity draw record: %w", err)
 		}
-		defer rows.Close()
+		defer func() { _ = rows.Close() }()
 		if rows.Next() {
 			var id int64
 			if err := rows.Scan(&id); err != nil {
@@ -662,7 +645,7 @@ WHERE id = ?`)
 	if err != nil {
 		return nil, fmt.Errorf("load recharge activity record: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	records, err := scanRechargeActivityDrawRecords(rows)
 	if err != nil {
 		return nil, fmt.Errorf("load recharge activity record: %w", err)
@@ -757,11 +740,13 @@ FROM recharge_activity_chances`)
 	}
 	if rows.Next() {
 		if err := rows.Scan(&stats.TotalChances, &stats.PendingChances, &stats.DrawnChances); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return nil, fmt.Errorf("scan recharge activity chance stats: %w", err)
 		}
 	}
-	rows.Close()
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("close recharge activity chance stats: %w", err)
+	}
 	rows, err = execCtx.QueryContext(ctx, `
 SELECT
   COALESCE(SUM(CASE WHEN fulfillment_status = 'pending' THEN 1 ELSE 0 END), 0),
@@ -773,11 +758,13 @@ FROM recharge_activity_draw_records`)
 	}
 	if rows.Next() {
 		if err := rows.Scan(&stats.PendingFulfillments, &stats.FulfilledRecords, &stats.TotalRewardAmount); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return nil, fmt.Errorf("scan recharge activity fulfillment stats: %w", err)
 		}
 	}
-	rows.Close()
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("close recharge activity fulfillment stats: %w", err)
+	}
 
 	where, args := rechargeActivityRecentRecordsFilter(query.UserKeyword)
 	countQuery := luckyWheelBindVars(client.Driver().Dialect(), `
@@ -791,15 +778,17 @@ LEFT JOIN users u ON u.id = r.user_id
 	}
 	if rows.Next() {
 		if err := rows.Scan(&stats.RecentRecordsTotal); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return nil, fmt.Errorf("scan recharge activity recent records total: %w", err)
 		}
 	}
 	if err := rows.Err(); err != nil {
-		rows.Close()
+		_ = rows.Close()
 		return nil, fmt.Errorf("count recharge activity recent records: %w", err)
 	}
-	rows.Close()
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("close recharge activity recent records count: %w", err)
+	}
 
 	args = append(args, query.PageSize, (query.Page-1)*query.PageSize)
 	recordsQuery := luckyWheelBindVars(client.Driver().Dialect(), `
@@ -817,7 +806,7 @@ OFFSET ?`)
 	if err != nil {
 		return nil, fmt.Errorf("list recharge activity recent records: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	stats.RecentRecords, err = scanRechargeActivityDrawRecordsWithUser(rows)
 	return stats, err
 }

@@ -19,6 +19,10 @@ type smsBroadcastUserRepoStub struct {
 	getByIDSeq []int64
 }
 
+func (s *smsBroadcastUserRepoStub) BatchUpdateLimits(context.Context, []int64, *int, *int) (int, error) {
+	panic("unexpected BatchUpdateLimits call")
+}
+
 func (s *smsBroadcastUserRepoStub) Create(context.Context, *User) error {
 	panic("unexpected Create call")
 }
@@ -39,6 +43,9 @@ func (s *smsBroadcastUserRepoStub) GetByID(_ context.Context, id int64) (*User, 
 		}
 	}
 	return nil, nil
+}
+func (s *smsBroadcastUserRepoStub) GetByIDIncludeDeleted(ctx context.Context, id int64) (*User, error) {
+	return s.GetByID(ctx, id)
 }
 func (s *smsBroadcastUserRepoStub) GetByEmail(context.Context, string) (*User, error) {
 	panic("unexpected GetByEmail call")

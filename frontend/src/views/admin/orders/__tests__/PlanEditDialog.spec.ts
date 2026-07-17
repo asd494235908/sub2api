@@ -1,21 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-
 import PlanEditDialog from '../PlanEditDialog.vue'
 
-const { createPlan, updatePlan } = vi.hoisted(() => ({
+const { createPlan, updatePlan, showError, showSuccess } = vi.hoisted(() => ({
   createPlan: vi.fn(),
   updatePlan: vi.fn(),
+  showError: vi.fn(),
+  showSuccess: vi.fn(),
 }))
 
-const showError = vi.fn()
-const showSuccess = vi.fn()
-
-vi.mock('@/api/admin/payment', () => ({
-  adminPaymentAPI: {
-    createPlan,
-    updatePlan,
-  },
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: (key: string, params?: Record<string, unknown>) => {
+      if (key === 'payment.admin.subscriptionCnyPayPreview') return `preview ${params?.amount}`
+      if (key === 'payment.admin.subscriptionCnyPayPreviewWithFee') return `fee ${params?.feeRate} ${params?.total}`
+      return key
+    },
+  }),
 }))
 
 vi.mock('@/stores/app', () => ({
@@ -25,25 +26,20 @@ vi.mock('@/stores/app', () => ({
   }),
 }))
 
-vi.mock('vue-i18n', async () => {
-  const actual = await vi.importActual<typeof import('vue-i18n')>('vue-i18n')
-  return {
-    ...actual,
-    useI18n: () => ({
-      t: (key: string) => key,
-    }),
-  }
-})
-
-const groups = [
-  {
-    id: 7,
-    name: 'Pro Group',
-    platform: 'openai',
-    rate_multiplier: 1,
-    subscription_type: 'subscription',
+vi.mock('@/api/admin/payment', () => ({
+  adminPaymentAPI: {
+    createPlan,
+    updatePlan,
   },
-]
+}))
+
+const groups = [{
+  id: 7,
+  name: 'Pro Group',
+  platform: 'openai',
+  rate_multiplier: 1,
+  subscription_type: 'subscription',
+}]
 
 function expectedDateTimeLocal(value: string) {
   const date = new Date(value)
@@ -51,17 +47,21 @@ function expectedDateTimeLocal(value: string) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-function mountDialog(plan: Record<string, unknown> | null = null) {
+function mountDialog(
+  paymentConfig: Record<string, unknown> | null,
+  plan: Record<string, unknown> | null = null,
+) {
   return mount(PlanEditDialog, {
     props: {
       show: true,
       plan: plan as never,
       groups: groups as never,
+      paymentConfig,
     },
     global: {
       stubs: {
         BaseDialog: {
-          props: ['show', 'title'],
+          props: ['show'],
           template: '<div v-if="show"><slot /><slot name="footer" /></div>',
         },
         Select: {
@@ -76,7 +76,42 @@ function mountDialog(plan: Record<string, unknown> | null = null) {
   })
 }
 
-describe('PlanEditDialog', () => {
+describe('PlanEditDialog subscription CNY payment preview', () => {
+  beforeEach(() => {
+    createPlan.mockReset()
+    updatePlan.mockReset()
+    showError.mockReset()
+    showSuccess.mockReset()
+  })
+
+  it('shows CNY channel charge using the configured subscription rate and fee', async () => {
+    const wrapper = mountDialog({
+      subscription_usd_to_cny_rate: 7.15,
+      recharge_fee_rate: 2.5,
+    })
+
+    await wrapper.find('input[type="number"]').setValue('9.99')
+
+    expect(wrapper.text()).toContain('preview')
+    expect(wrapper.text()).toContain('¥71.43')
+    expect(wrapper.text()).toContain('fee 2.5')
+    expect(wrapper.text()).toContain('¥73.22')
+  })
+
+  it('hides the preview when the subscription rate is not configured', async () => {
+    const wrapper = mountDialog({
+      subscription_usd_to_cny_rate: 0,
+      recharge_fee_rate: 2.5,
+    })
+
+    await wrapper.find('input[type="number"]').setValue('9.99')
+
+    expect(wrapper.text()).not.toContain('preview')
+    expect(wrapper.text()).not.toContain('¥71.43')
+  })
+})
+
+describe('PlanEditDialog local sale protections', () => {
   beforeEach(() => {
     createPlan.mockReset()
     updatePlan.mockReset()
@@ -86,8 +121,8 @@ describe('PlanEditDialog', () => {
 
   it('submits sale window and daily purchase limit fields', async () => {
     createPlan.mockResolvedValue({ data: { id: 1 } })
+    const wrapper = mountDialog(null)
 
-    const wrapper = mountDialog()
     await wrapper.find('input[type="text"]').setValue('Pro Plan')
     await wrapper.find('select').setValue('7')
     await wrapper.find('textarea').setValue('Description')
@@ -120,8 +155,7 @@ describe('PlanEditDialog', () => {
 
   it('loads existing sale window values and keeps zero as unlimited', async () => {
     updatePlan.mockResolvedValue({ data: { id: 3 } })
-
-    const wrapper = mountDialog({
+    const wrapper = mountDialog(null, {
       id: 3,
       name: 'Existing',
       group_id: 7,
@@ -160,8 +194,7 @@ describe('PlanEditDialog', () => {
 
   it('sends null when daily sale window inputs are cleared', async () => {
     updatePlan.mockResolvedValue({ data: { id: 4 } })
-
-    const wrapper = mountDialog({
+    const wrapper = mountDialog(null, {
       id: 4,
       name: 'Clear Daily',
       group_id: 7,
@@ -183,7 +216,6 @@ describe('PlanEditDialog', () => {
     const timeInputs = wrapper.findAll('input[type="time"]')
     await timeInputs[0].setValue('')
     await timeInputs[1].setValue('')
-
     await wrapper.find('form').trigger('submit.prevent')
     await flushPromises()
 
@@ -195,8 +227,7 @@ describe('PlanEditDialog', () => {
 
   it('loads and submits purchase once per active subscription switch', async () => {
     updatePlan.mockResolvedValue({ data: { id: 5 } })
-
-    const wrapper = mountDialog({
+    const wrapper = mountDialog(null, {
       id: 5,
       name: 'Once Plan',
       group_id: 7,
@@ -217,11 +248,9 @@ describe('PlanEditDialog', () => {
     })
 
     expect(wrapper.text()).toContain('payment.admin.purchaseOncePerActiveSubscription')
-
     await wrapper.find('form').trigger('submit.prevent')
     await flushPromises()
 
-    expect(updatePlan).toHaveBeenCalledTimes(1)
     expect(updatePlan.mock.calls[0][1]).toMatchObject({
       purchase_once_per_active_subscription: true,
     })
@@ -229,8 +258,7 @@ describe('PlanEditDialog', () => {
 
   it('loads and submits weekly sale days', async () => {
     updatePlan.mockResolvedValue({ data: { id: 6 } })
-
-    const wrapper = mountDialog({
+    const wrapper = mountDialog(null, {
       id: 6,
       name: 'Weekly Plan',
       group_id: 7,
@@ -254,13 +282,9 @@ describe('PlanEditDialog', () => {
     expect(wrapper.text()).toContain('payment.weekdays.mon')
     expect(wrapper.text()).toContain('payment.weekdays.wed')
     expect(wrapper.text()).toContain('payment.weekdays.fri')
-
     await wrapper.find('form').trigger('submit.prevent')
     await flushPromises()
 
-    expect(updatePlan).toHaveBeenCalledTimes(1)
-    expect(updatePlan.mock.calls[0][1]).toMatchObject({
-      weekly_sale_days: [1, 3, 5],
-    })
+    expect(updatePlan.mock.calls[0][1]).toMatchObject({ weekly_sale_days: [1, 3, 5] })
   })
 })

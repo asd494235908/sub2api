@@ -32,7 +32,7 @@ func newRechargeActivityPaymentHandler(t *testing.T) (*PaymentHandler, *service.
 	configService := service.NewPaymentConfigService(client, repo, nil)
 	userRepo := &luckyWheelHandlerUserRepoStub{}
 	paymentService := service.NewPaymentService(client, payment.NewRegistry(), nil, nil, nil, configService, userRepo, nil, nil)
-	handler := NewPaymentHandler(paymentService, configService, nil)
+	handler := NewPaymentHandler(paymentService, configService)
 	return handler, paymentService, configService, repo
 }
 

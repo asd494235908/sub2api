@@ -13,6 +13,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func setRechargeActivityTestDrawSequence(t interface{ Cleanup(func()) }, values ...float64) {
+	previous := rechargeActivityRandFloat64
+	index := 0
+	rechargeActivityRandFloat64 = func() float64 {
+		if len(values) == 0 {
+			return 0
+		}
+		if index >= len(values) {
+			return values[len(values)-1]
+		}
+		out := values[index]
+		index++
+		return out
+	}
+	t.Cleanup(func() { rechargeActivityRandFloat64 = previous })
+}
+
 func newRechargeActivityPaymentService(t *testing.T) (*PaymentService, *settingPublicRepoStub, *mockUserRepo) {
 	t.Helper()
 
@@ -300,15 +317,47 @@ func TestMarkCompletedGrantsRechargeActivityWithoutSuppressingLuckyWheel(t *test
 
 	user := createLuckyWheelTestUser(t, ctx, svc, "recharge-activity-coexist@example.com")
 	order := createLuckyWheelBalanceOrder(t, ctx, svc, user, 4, 360, 20)
+	order, err := svc.entClient.PaymentOrder.UpdateOneID(order.ID).SetStatus(OrderStatusPaid).Save(ctx)
+	require.NoError(t, err)
+	lease, err := svc.acquirePaymentFulfillmentLease(ctx, order)
+	require.NoError(t, err)
+	require.NotNil(t, lease)
 
-	require.NoError(t, svc.markCompleted(ctx, &dbent.PaymentOrder{
-		ID:           order.ID,
-		UserID:       order.UserID,
-		OrderType:    order.OrderType,
-		PayAmount:    order.PayAmount,
-		Amount:       order.Amount,
-		RechargeCode: order.RechargeCode,
-	}, "RECHARGE_SUCCESS"))
+	require.NoError(t, svc.markCompleted(ctx, order, lease, "RECHARGE_SUCCESS"))
+
+	rechargeSummary, err := svc.GetRechargeActivitySummary(ctx, user.ID)
+	require.NoError(t, err)
+	require.Len(t, rechargeSummary.PendingChances, 1)
+	luckySummary, err := svc.GetLuckyWheelSummary(ctx, user.ID)
+	require.NoError(t, err)
+	require.NotNil(t, luckySummary.ActiveSession)
+}
+
+func TestMarkCompletedRetriesBenefitsBeforeCompletingOrder(t *testing.T) {
+	ctx := context.Background()
+	svc, repo, _ := newRechargeActivityPaymentService(t)
+	repo.values[SettingKeyLuckyWheelEnabled] = "true"
+	repo.values[SettingKeyLuckyWheelConfig] = "{"
+	saveRechargeActivityConfig(t, repo, defaultRechargeActivityConfig())
+
+	user := createLuckyWheelTestUser(t, ctx, svc, "recharge-benefit-retry@example.com")
+	order := createLuckyWheelBalanceOrder(t, ctx, svc, user, 5, 360, 20)
+	order, err := svc.entClient.PaymentOrder.UpdateOneID(order.ID).SetStatus(OrderStatusPaid).Save(ctx)
+	require.NoError(t, err)
+	lease, err := svc.acquirePaymentFulfillmentLease(ctx, order)
+	require.NoError(t, err)
+	require.NotNil(t, lease)
+
+	require.Error(t, svc.markCompleted(ctx, order, lease, "RECHARGE_SUCCESS"))
+	reloaded, err := svc.entClient.PaymentOrder.Get(ctx, order.ID)
+	require.NoError(t, err)
+	require.Equal(t, OrderStatusRecharging, reloaded.Status)
+
+	saveLuckyWheelConfig(t, repo, defaultLuckyWheelConfig())
+	require.NoError(t, svc.markCompleted(ctx, order, lease, "RECHARGE_SUCCESS"))
+	reloaded, err = svc.entClient.PaymentOrder.Get(ctx, order.ID)
+	require.NoError(t, err)
+	require.Equal(t, OrderStatusCompleted, reloaded.Status)
 
 	rechargeSummary, err := svc.GetRechargeActivitySummary(ctx, user.ID)
 	require.NoError(t, err)

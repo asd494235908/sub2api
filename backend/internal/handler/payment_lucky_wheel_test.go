@@ -30,6 +30,10 @@ type luckyWheelHandlerUserRepoStub struct {
 	balance float64
 }
 
+func (s *luckyWheelHandlerUserRepoStub) BatchUpdateLimits(context.Context, []int64, *int, *int) (int, error) {
+	panic("unexpected BatchUpdateLimits")
+}
+
 type luckyWheelHandlerSettingRepoStub struct {
 	values map[string]string
 }
@@ -76,6 +80,9 @@ func (s *luckyWheelHandlerUserRepoStub) Create(context.Context, *service.User) e
 }
 func (s *luckyWheelHandlerUserRepoStub) GetByID(context.Context, int64) (*service.User, error) {
 	return &service.User{ID: 1, Balance: s.balance}, nil
+}
+func (s *luckyWheelHandlerUserRepoStub) GetByIDIncludeDeleted(ctx context.Context, id int64) (*service.User, error) {
+	return s.GetByID(ctx, id)
 }
 func (s *luckyWheelHandlerUserRepoStub) GetByEmail(context.Context, string) (*service.User, error) {
 	panic("unexpected GetByEmail")
@@ -187,7 +194,7 @@ func newLuckyWheelPaymentHandler(t *testing.T) (*PaymentHandler, *service.Paymen
 	configService := service.NewPaymentConfigService(client, repo, nil)
 	userRepo := &luckyWheelHandlerUserRepoStub{}
 	paymentService := service.NewPaymentService(client, payment.NewRegistry(), nil, nil, nil, configService, userRepo, nil, nil)
-	handler := NewPaymentHandler(paymentService, configService, nil)
+	handler := NewPaymentHandler(paymentService, configService)
 	return handler, paymentService, configService, repo
 }
 

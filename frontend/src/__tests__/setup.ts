@@ -57,17 +57,18 @@ if (typeof globalThis.cancelIdleCallback === 'undefined') {
   }) as unknown as typeof cancelIdleCallback
 }
 
-if (typeof window.matchMedia === 'undefined') {
+// Mock matchMedia (jsdom 未实现;DataTable 等组件依赖它做桌面/移动分支)
+if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
   window.matchMedia = ((query: string) => ({
-    matches: false,
+    matches: true, // 测试默认按桌面视口渲染表格
     media: query,
     onchange: null,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
     addListener: vi.fn(),
     removeListener: vi.fn(),
-    dispatchEvent: vi.fn()
-  })) as typeof window.matchMedia
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })) as unknown as typeof window.matchMedia
 }
 
 // Mock IntersectionObserver

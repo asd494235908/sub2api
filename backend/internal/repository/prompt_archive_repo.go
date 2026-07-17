@@ -184,7 +184,7 @@ LIMIT $` + itoa(len(args)-1) + ` OFFSET $` + itoa(len(args))
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	items := make([]*service.PromptArchiveRecordDetail, 0, pageSize)
 	for rows.Next() {
@@ -234,7 +234,7 @@ ORDER BY created_at DESC`
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	out := &service.PromptArchiveSessionDetail{
 		SessionID: strings.TrimSpace(sessionID),

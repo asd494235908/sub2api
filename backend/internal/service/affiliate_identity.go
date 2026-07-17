@@ -20,9 +20,6 @@ const (
 
 	AffiliateIdentityTypeInviter = "inviter"
 	AffiliateIdentityTypeInvitee = "invitee"
-
-	affiliateIdentityStatusActive  = "active"
-	affiliateIdentityStatusRevoked = "revoked"
 )
 
 type AffiliateIdentityConfig struct {

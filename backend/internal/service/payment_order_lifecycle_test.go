@@ -35,6 +35,8 @@ type paymentOrderLifecycleQueryProvider struct {
 type paymentOrderLifecycleRedeemRepo struct {
 	codesByCode map[string]*RedeemCode
 	nextID      int64
+	failUseCode string
+	failUseOnce bool
 	useCalls    []struct {
 		id     int64
 		userID int64
@@ -301,6 +303,10 @@ func (r *paymentOrderLifecycleRedeemRepo) Use(_ context.Context, id, userID int6
 	for code, redeemCode := range r.codesByCode {
 		if redeemCode.ID != id {
 			continue
+		}
+		if r.failUseOnce && code == r.failUseCode {
+			r.failUseOnce = false
+			return fmt.Errorf("injected redeem failure for %s", code)
 		}
 		now := time.Now().UTC()
 		redeemCode.Status = StatusUsed
@@ -727,6 +733,16 @@ func TestExecuteBalanceFulfillmentAppliesFirstRechargeBonusOncePerTier(t *testin
 			SetSrcHost("api.example.com").
 			Save(ctx)
 		require.NoError(t, err)
+		if i == 0 {
+			redeemRepo.failUseCode = fmt.Sprintf("FIRST-%d-TIER30", order.ID)
+			redeemRepo.failUseOnce = true
+			require.ErrorContains(t, svc.ExecuteBalanceFulfillment(ctx, order.ID), "injected redeem failure")
+			failedOrder, reloadErr := client.PaymentOrder.Get(ctx, order.ID)
+			require.NoError(t, reloadErr)
+			require.Equal(t, OrderStatusFailed, failedOrder.Status)
+			_, updateErr := svc.UpdateFirstRechargeConfig(ctx, false, &FirstRechargeConfig{Tiers: []FirstRechargeTier{}})
+			require.NoError(t, updateErr)
+		}
 		require.NoError(t, svc.ExecuteBalanceFulfillment(ctx, order.ID))
 	}
 
@@ -744,6 +760,8 @@ func TestExecuteBalanceFulfillmentAppliesFirstRechargeBonusOncePerTier(t *testin
 	require.NoError(t, err)
 	require.InDelta(t, 60.0, reloadedUser.TotalRecharged, 1e-9)
 
+	_, err = svc.UpdateFirstRechargeConfig(ctx, true, firstRechargeCfg)
+	require.NoError(t, err)
 	result, err := svc.GrantFirstRechargeChance(ctx, user.ID, "tier-30", 1, "admin", "manual grant")
 	require.NoError(t, err)
 	require.Equal(t, 1, result.Available)

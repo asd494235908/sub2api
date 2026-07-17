@@ -510,7 +510,7 @@ func (r *smsBroadcastRepository) UpdateRecipient(ctx context.Context, campaignID
 	return err
 }
 
-type rowScanner interface {
+type smsBroadcastRowScanner interface {
 	Scan(dest ...any) error
 }
 
@@ -529,7 +529,7 @@ func scanSMSBroadcastCampaign(ctx context.Context, exec sqlQueryExecutor, query 
 	return scanSMSBroadcastCampaignFromRows(rows)
 }
 
-func scanSMSBroadcastCampaignFromRows(row rowScanner) (*service.SMSBroadcastCampaign, error) {
+func scanSMSBroadcastCampaignFromRows(row smsBroadcastRowScanner) (*service.SMSBroadcastCampaign, error) {
 	var item service.SMSBroadcastCampaign
 	var mode string
 	var status string

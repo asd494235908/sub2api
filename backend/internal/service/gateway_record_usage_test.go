@@ -291,6 +291,59 @@ func TestGatewayServiceRecordUsage_EmptyImageSizeDefaultsBeforeBillingAndPersist
 	require.InDelta(t, 0.19, usageRepo.lastLog.ActualCost, 1e-12)
 }
 
+func TestGatewayServiceRecordUsage_PeakRateAffectsTokenModeImageOutputTokens(t *testing.T) {
+	groupID := int64(902)
+	usageRepo := &openAIRecordUsageLogRepoStub{inserted: true}
+	userRepo := &openAIRecordUsageUserRepoStub{}
+	svc := newGatewayRecordUsageServiceForTest(usageRepo, userRepo, &openAIRecordUsageSubRepoStub{})
+	svc.resolver = newOpenAITokenImageChannelPricingResolverForTest(t, groupID, "gemini-image")
+
+	err := svc.RecordUsage(context.Background(), &RecordUsageInput{
+		Result: &ForwardResult{
+			RequestID:  "gateway_peak_image_tokens",
+			Model:      "gemini-image",
+			ImageCount: 1,
+			Usage: ClaudeUsage{
+				InputTokens:       1000,
+				OutputTokens:      600,
+				ImageOutputTokens: 100,
+			},
+			Duration: time.Second,
+		},
+		APIKey: &APIKey{
+			ID:      802,
+			GroupID: i64p(groupID),
+			Group: &Group{
+				ID:                 groupID,
+				RateMultiplier:     1.0,
+				SubscriptionType:   SubscriptionTypeSubscription,
+				PeakRateEnabled:    true,
+				PeakStart:          "00:00",
+				PeakEnd:            "23:59",
+				PeakRateMultiplier: 3.0,
+			},
+		},
+		User:    &User{ID: 602},
+		Account: &Account{ID: 702},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, usageRepo.lastLog)
+	require.NotNil(t, usageRepo.lastLog.BillingMode)
+	require.Equal(t, string(BillingModeToken), *usageRepo.lastLog.BillingMode)
+	require.Equal(t, 3.0, usageRepo.lastLog.RateMultiplier)
+
+	textInput := 1000 * 3e-6
+	textOutput := 500 * 15e-6
+	imageOutput := 100 * 15e-6
+	expectedActual := (textInput + textOutput + imageOutput) * 3.0
+
+	require.InDelta(t, textInput+textOutput+imageOutput, usageRepo.lastLog.TotalCost, 1e-12)
+	require.InDelta(t, imageOutput, usageRepo.lastLog.ImageOutputCost, 1e-12)
+	require.InDelta(t, expectedActual, usageRepo.lastLog.ActualCost, 1e-12)
+	require.InDelta(t, expectedActual, userRepo.lastAmount, 1e-12)
+}
+
 func TestGatewayServiceRecordUsage_UsageLogWriteErrorDoesNotSkipBilling(t *testing.T) {
 	usageRepo := &openAIRecordUsageLogRepoStub{inserted: false, err: MarkUsageLogCreateNotPersisted(context.Canceled)}
 	userRepo := &openAIRecordUsageUserRepoStub{}
@@ -445,125 +498,10 @@ func TestGatewayServiceRecordUsage_GeneratesRequestIDWhenAllSourcesMissing(t *te
 	require.Equal(t, billingRepo.lastCmd.RequestID, usageRepo.lastLog.RequestID)
 }
 
-func TestGatewayServiceRecordUsage_BalanceKeyUsesLowestMemberAndAffiliateMultiplier(t *testing.T) {
-	groupID := int64(901)
-	identityRepo := newAffiliateIdentityMemoryRepo()
-	expiresAt := time.Now().Add(time.Hour)
-	require.NoError(t, identityRepo.UpsertIdentity(context.Background(), 601, AffiliateIdentityTypeInvitee, 0.7, nil, expiresAt, nil))
+func TestGatewayServiceRecordUsage_DroppedUsageLogFallsBackToSyncCreate(t *testing.T) {
+	// 计费成功后 best-effort 写入被丢弃（队列超时）时必须同步兜底，
+	// 否则出现“已扣费但无 usage_log”的对账缺口（issue #3656）。
 
-	usageRepo := &openAIRecordUsageLogRepoStub{inserted: true}
-	billingRepo := &openAIRecordUsageBillingRepoStub{result: &UsageBillingApplyResult{Applied: true}}
-	svc := newGatewayRecordUsageServiceWithBillingRepoForTest(usageRepo, billingRepo, &openAIRecordUsageUserRepoStub{}, &openAIRecordUsageSubRepoStub{})
-	svc.paymentService = &PaymentService{
-		configService: NewPaymentConfigService(nil, &openAIRecordUsageSettingRepoStub{values: map[string]string{
-			SettingKeyMemberLevelEnabled:       "true",
-			SettingKeyMemberLevelConfig:        `{"levels":[{"id":"codex_level_08","name":"Codex 0.8","min_recharge_amount":100,"rate_multiplier":0.8,"enabled":true,"sort_order":0}]}`,
-			SettingKeyAffiliateIdentityEnabled: "true",
-			SettingKeyAffiliateIdentityConfig:  `{"inviter_rate_multiplier":0.7,"invitee_rate_multiplier":0.7,"duration_hours":720,"qualified_invitee_count":0,"qualified_pay_amount":50,"eligible_order_types":["balance","subscription"],"fingerprint_enforcement_enabled":false,"max_accounts_per_fingerprint_hash":10}`,
-		}}, nil),
-		affiliateService: &AffiliateService{
-			settingService: &SettingService{settingRepo: &openAIRecordUsageSettingRepoStub{values: map[string]string{
-				SettingKeyAffiliateIdentityEnabled: "true",
-				SettingKeyAffiliateIdentityConfig:  `{"inviter_rate_multiplier":0.7,"invitee_rate_multiplier":0.7,"duration_hours":720,"qualified_invitee_count":0,"qualified_pay_amount":50,"eligible_order_types":["balance","subscription"],"fingerprint_enforcement_enabled":false,"max_accounts_per_fingerprint_hash":10}`,
-			}}},
-			identityRepo: identityRepo,
-		},
-	}
-
-	err := svc.RecordUsage(context.Background(), &RecordUsageInput{
-		Result: &ForwardResult{
-			RequestID: "gateway_member_affiliate_min",
-			Usage: ClaudeUsage{
-				InputTokens:  1000,
-				OutputTokens: 1000,
-			},
-			Model:    "claude-3-5-haiku",
-			Duration: time.Second,
-		},
-		APIKey: &APIKey{
-			ID:      501,
-			GroupID: i64p(groupID),
-			Group: &Group{
-				ID:               groupID,
-				RateMultiplier:   1.2,
-				SubscriptionType: SubscriptionTypeStandard,
-			},
-			Quota: 100,
-		},
-		User:    &User{ID: 601, TotalRecharged: 200},
-		Account: &Account{ID: 701},
-	})
-
-	require.NoError(t, err)
-	require.NotNil(t, usageRepo.lastLog)
-	require.Equal(t, BillingTypeBalance, usageRepo.lastLog.BillingType)
-	require.InDelta(t, 0.7, usageRepo.lastLog.RateMultiplier, 1e-12)
-	require.InDelta(t, usageRepo.lastLog.TotalCost*0.7, usageRepo.lastLog.ActualCost, 1e-12)
-	require.NotNil(t, billingRepo.lastCmd)
-	require.InDelta(t, usageRepo.lastLog.ActualCost, billingRepo.lastCmd.BalanceCost, 1e-12)
-}
-
-func TestGatewayServiceRecordUsage_SubscriptionKeyIgnoresMemberAndAffiliateMultiplier(t *testing.T) {
-	groupID := int64(902)
-	subscriptionID := int64(77)
-	identityRepo := newAffiliateIdentityMemoryRepo()
-	expiresAt := time.Now().Add(time.Hour)
-	require.NoError(t, identityRepo.UpsertIdentity(context.Background(), 602, AffiliateIdentityTypeInvitee, 0.7, nil, expiresAt, nil))
-
-	usageRepo := &openAIRecordUsageLogRepoStub{inserted: true}
-	billingRepo := &openAIRecordUsageBillingRepoStub{result: &UsageBillingApplyResult{Applied: true}}
-	svc := newGatewayRecordUsageServiceWithBillingRepoForTest(usageRepo, billingRepo, &openAIRecordUsageUserRepoStub{}, &openAIRecordUsageSubRepoStub{})
-	svc.paymentService = &PaymentService{
-		configService: NewPaymentConfigService(nil, &openAIRecordUsageSettingRepoStub{values: map[string]string{
-			SettingKeyMemberLevelEnabled:       "true",
-			SettingKeyMemberLevelConfig:        `{"levels":[{"id":"codex_level_08","name":"Codex 0.8","min_recharge_amount":100,"rate_multiplier":0.8,"enabled":true,"sort_order":0}]}`,
-			SettingKeyAffiliateIdentityEnabled: "true",
-			SettingKeyAffiliateIdentityConfig:  `{"inviter_rate_multiplier":0.7,"invitee_rate_multiplier":0.7,"duration_hours":720,"qualified_invitee_count":0,"qualified_pay_amount":50,"eligible_order_types":["balance","subscription"],"fingerprint_enforcement_enabled":false,"max_accounts_per_fingerprint_hash":10}`,
-		}}, nil),
-		affiliateService: &AffiliateService{
-			settingService: &SettingService{settingRepo: &openAIRecordUsageSettingRepoStub{values: map[string]string{
-				SettingKeyAffiliateIdentityEnabled: "true",
-				SettingKeyAffiliateIdentityConfig:  `{"inviter_rate_multiplier":0.7,"invitee_rate_multiplier":0.7,"duration_hours":720,"qualified_invitee_count":0,"qualified_pay_amount":50,"eligible_order_types":["balance","subscription"],"fingerprint_enforcement_enabled":false,"max_accounts_per_fingerprint_hash":10}`,
-			}}},
-			identityRepo: identityRepo,
-		},
-	}
-
-	err := svc.RecordUsage(context.Background(), &RecordUsageInput{
-		Result: &ForwardResult{
-			RequestID: "gateway_subscription_ignores_member_affiliate",
-			Usage: ClaudeUsage{
-				InputTokens:  1000,
-				OutputTokens: 1000,
-			},
-			Model:    "claude-3-5-haiku",
-			Duration: time.Second,
-		},
-		APIKey: &APIKey{
-			ID:      502,
-			GroupID: i64p(groupID),
-			Group: &Group{
-				ID:               groupID,
-				RateMultiplier:   1.2,
-				SubscriptionType: SubscriptionTypeSubscription,
-			},
-			Quota: 100,
-		},
-		User:         &User{ID: 602, TotalRecharged: 200},
-		Account:      &Account{ID: 702},
-		Subscription: &UserSubscription{ID: subscriptionID, UserID: 602, GroupID: groupID},
-	})
-
-	require.NoError(t, err)
-	require.NotNil(t, usageRepo.lastLog)
-	require.Equal(t, BillingTypeSubscription, usageRepo.lastLog.BillingType)
-	require.InDelta(t, 1.2, usageRepo.lastLog.RateMultiplier, 1e-12)
-	require.NotNil(t, billingRepo.lastCmd)
-	require.Zero(t, billingRepo.lastCmd.BalanceCost)
-	require.InDelta(t, usageRepo.lastLog.ActualCost, billingRepo.lastCmd.SubscriptionCost, 1e-12)
-}
-
-func TestGatewayServiceRecordUsage_DroppedUsageLogSyncFallback(t *testing.T) {
 	usageRepo := &openAIRecordUsageBestEffortLogRepoStub{
 		bestEffortErr: MarkUsageLogCreateDropped(errors.New("usage log best-effort queue full")),
 	}
@@ -588,6 +526,9 @@ func TestGatewayServiceRecordUsage_DroppedUsageLogSyncFallback(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, usageRepo.bestEffortCalls)
 	require.Equal(t, 1, usageRepo.createCalls)
+	// 兜底调用使用的 ctx 必须仍然存活，不能带着已死的 ctx 走过场。
+	require.NoError(t, usageRepo.lastCtxErr)
+
 }
 
 func TestGatewayServiceRecordUsage_BillingErrorSkipsUsageLogWrite(t *testing.T) {

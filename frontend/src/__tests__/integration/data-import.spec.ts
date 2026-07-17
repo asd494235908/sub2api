@@ -1,87 +1,107 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import ImportDataModal from '@/components/admin/account/ImportDataModal.vue'
-import { adminAPI } from '@/api/admin'
 
-const mocks = vi.hoisted(() => ({
-  showError: vi.fn(),
-  showSuccess: vi.fn(),
-  importData: vi.fn()
-}))
+const showError = vi.fn()
+const showSuccess = vi.fn()
+const showWarning = vi.fn()
 
 vi.mock('@/stores/app', () => ({
   useAppStore: () => ({
-    showError: mocks.showError,
-    showSuccess: mocks.showSuccess
+    showError,
+    showSuccess,
+    showWarning
   })
 }))
 
 vi.mock('@/api/admin', () => ({
   adminAPI: {
     accounts: {
-      importData: mocks.importData
+      importData: vi.fn()
     }
   }
 }))
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
-    t: (key: string, params?: Record<string, unknown>) => {
-      if (!params) return key
-      return `${key}:${JSON.stringify(params)}`
-    }
+    t: (key: string) => key
   })
 }))
 
+const mountModal = () =>
+  mount(ImportDataModal, {
+    props: { show: true },
+    global: {
+      stubs: {
+        BaseDialog: { template: '<div><slot /><slot name="footer" /></div>' }
+      }
+    }
+  })
+
+const makeJsonFile = (name: string, content: string, type = 'application/json') => {
+  const file = new File([content], name, { type })
+  Object.defineProperty(file, 'text', {
+    value: () => Promise.resolve(content)
+  })
+  return file
+}
+
+const setInputFiles = (element: Element, files: File[]) => {
+  Object.defineProperty(element, 'files', {
+    value: files,
+    configurable: true
+  })
+}
+
 describe('ImportDataModal', () => {
-  beforeEach(() => {
-    mocks.showError.mockReset()
-    mocks.showSuccess.mockReset()
-    mocks.importData.mockReset()
+  beforeEach(async () => {
+    showError.mockReset()
+    showSuccess.mockReset()
+    showWarning.mockReset()
+    const { adminAPI } = await import('@/api/admin')
+    vi.mocked(adminAPI.accounts.importData).mockReset()
   })
 
   it('未选择文件时提示错误', async () => {
-    const wrapper = mount(ImportDataModal, {
-      props: { show: true },
-      global: {
-        stubs: {
-          BaseDialog: { template: '<div><slot /><slot name="footer" /></div>' }
-        }
-      }
-    })
+    const wrapper = mountModal()
 
     await wrapper.find('form').trigger('submit')
-    expect(mocks.showError).toHaveBeenCalledWith('admin.accounts.dataImportSelectFile')
+    expect(showError).toHaveBeenCalledWith('admin.accounts.dataImportSelectFile')
   })
 
-  it('无效 JSON 时提示解析失败', async () => {
-    const wrapper = mount(ImportDataModal, {
-      props: { show: true },
-      global: {
-        stubs: {
-          BaseDialog: { template: '<div><slot /><slot name="footer" /></div>' }
-        }
-      }
-    })
+  it('无效 JSON 时按文件名提示解析失败', async () => {
+    const { adminAPI } = await import('@/api/admin')
+    const wrapper = mountModal()
 
     const input = wrapper.find('input[type="file"]')
-    const file = new File(['invalid json'], 'data.json', { type: 'application/json' })
-    Object.defineProperty(file, 'text', {
-      value: () => Promise.resolve('invalid json')
-    })
-    Object.defineProperty(input.element, 'files', {
-      value: [file]
-    })
+    setInputFiles(input.element, [makeJsonFile('data.json', 'invalid json')])
 
     await input.trigger('change')
     await wrapper.find('form').trigger('submit')
-    await Promise.resolve()
+    await flushPromises()
 
-    expect(mocks.showError).toHaveBeenCalledWith('admin.accounts.dataImportParseFailed')
+    expect(showError).toHaveBeenCalledWith('admin.accounts.dataImportParseFailedFile')
+    expect(adminAPI.accounts.importData).not.toHaveBeenCalled()
   })
 
-  it('多个文件中一个 JSON 解析失败时继续导入其他文件并提示失败文件名', async () => {
-    mocks.importData.mockResolvedValueOnce({
+  it('不是导出数据的 JSON 按文件名拒绝', async () => {
+    const { adminAPI } = await import('@/api/admin')
+    const wrapper = mountModal()
+
+    const input = wrapper.find('input[type="file"]')
+    setInputFiles(input.element, [makeJsonFile('random.json', JSON.stringify({ name: 'test' }))])
+
+    await input.trigger('change')
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+
+    expect(showError).toHaveBeenCalledWith('admin.accounts.dataImportInvalidFile')
+    expect(adminAPI.accounts.importData).not.toHaveBeenCalled()
+  })
+
+  it('无有效 JSON 的选择不清空已有选择', async () => {
+    const { adminAPI } = await import('@/api/admin')
+    vi.mocked(adminAPI.accounts.importData).mockResolvedValue({
       proxy_created: 0,
       proxy_reused: 0,
       proxy_failed: 0,
@@ -89,93 +109,106 @@ describe('ImportDataModal', () => {
       account_failed: 0
     })
 
-    const wrapper = mount(ImportDataModal, {
-      props: { show: true },
-      global: {
-        stubs: {
-          BaseDialog: { template: '<div><slot /><slot name="footer" /></div>' }
-        }
-      }
-    })
-
+    const wrapper = mountModal()
     const input = wrapper.find('input[type="file"]')
-    const badFile = new File(['invalid json'], 'bad.json', { type: 'application/json' })
-    Object.defineProperty(badFile, 'text', {
-      value: () => Promise.resolve('invalid json')
-    })
-    const goodFile = new File(['{"exported_at":"2026-01-01T00:00:00Z","proxies":[],"accounts":[]}'], 'good.json', {
-      type: 'application/json'
-    })
-    Object.defineProperty(goodFile, 'text', {
-      value: () => Promise.resolve('{"exported_at":"2026-01-01T00:00:00Z","proxies":[],"accounts":[]}')
-    })
-    Object.defineProperty(input.element, 'files', {
-      value: [badFile, goodFile]
-    })
 
+    const valid = makeJsonFile(
+      'valid.json',
+      JSON.stringify({ exported_at: '2026-07-05T00:00:00Z', proxies: [], accounts: [{ name: 'a' }] })
+    )
+    setInputFiles(input.element, [valid])
     await input.trigger('change')
+
+    setInputFiles(input.element, [new File(['hello'], 'notes.txt', { type: 'text/plain' })])
+    await input.trigger('change')
+    expect(showError).toHaveBeenCalledWith('admin.accounts.dataImportSelectFile')
+
     await wrapper.find('form').trigger('submit')
     await flushPromises()
 
-    expect(adminAPI.accounts.importData).toHaveBeenCalledTimes(1)
     expect(adminAPI.accounts.importData).toHaveBeenCalledWith({
-      data: {
-        exported_at: '2026-01-01T00:00:00Z',
-        proxies: [],
-        accounts: []
-      },
+      data: expect.objectContaining({
+        accounts: [{ name: 'a' }]
+      }),
       skip_default_group_bind: true
     })
-    expect(mocks.showError).toHaveBeenCalled()
-    expect(mocks.showError.mock.calls.at(-1)?.[0]).toContain('bad.json')
-    expect(wrapper.emitted('imported')).toHaveLength(1)
   })
 
-  it('某个文件接口导入失败时继续导入后续文件并提示失败文件名', async () => {
-    mocks.importData
-      .mockRejectedValueOnce(new Error('server rejected'))
-      .mockResolvedValueOnce({
-        proxy_created: 0,
-        proxy_reused: 0,
-        proxy_failed: 0,
-        account_created: 2,
-        account_failed: 0
-      })
-
-    const wrapper = mount(ImportDataModal, {
-      props: { show: true },
-      global: {
-        stubs: {
-          BaseDialog: { template: '<div><slot /><slot name="footer" /></div>' }
-        }
-      }
+  it('merges multiple selected JSON files before importing', async () => {
+    const { adminAPI } = await import('@/api/admin')
+    vi.mocked(adminAPI.accounts.importData).mockResolvedValue({
+      proxy_created: 0,
+      proxy_reused: 0,
+      proxy_failed: 0,
+      account_created: 2,
+      account_failed: 0
     })
+
+    const wrapper = mountModal()
 
     const input = wrapper.find('input[type="file"]')
-    const failedFile = new File(['{"exported_at":"2026-01-01T00:00:00Z","proxies":[],"accounts":[]}'], 'failed.json', {
-      type: 'application/json'
-    })
-    Object.defineProperty(failedFile, 'text', {
-      value: () => Promise.resolve('{"exported_at":"2026-01-01T00:00:00Z","proxies":[],"accounts":[]}')
-    })
-    const successFile = new File(['{"exported_at":"2026-01-02T00:00:00Z","proxies":[],"accounts":[]}'], 'success.json', {
-      type: 'application/json'
-    })
-    Object.defineProperty(successFile, 'text', {
-      value: () => Promise.resolve('{"exported_at":"2026-01-02T00:00:00Z","proxies":[],"accounts":[]}')
-    })
-    Object.defineProperty(input.element, 'files', {
-      value: [failedFile, successFile]
-    })
+    const first = makeJsonFile(
+      'first.json',
+      JSON.stringify({ exported_at: '2026-07-05T00:00:00Z', proxies: [], accounts: [{ name: 'a' }] })
+    )
+    const second = makeJsonFile(
+      'second.json',
+      JSON.stringify({
+        exported_at: '2026-07-05T00:00:01Z',
+        proxies: [{ proxy_key: 'p' }],
+        accounts: [{ name: 'b' }]
+      })
+    )
+    setInputFiles(input.element, [first, second])
 
     await input.trigger('change')
     await wrapper.find('form').trigger('submit')
     await flushPromises()
 
-    expect(adminAPI.accounts.importData).toHaveBeenCalledTimes(2)
-    expect(mocks.showError).toHaveBeenCalled()
-    expect(mocks.showError.mock.calls.at(-1)?.[0]).toContain('failed.json')
-    expect(mocks.showError.mock.calls.at(-1)?.[0]).toContain('server rejected')
+    expect(adminAPI.accounts.importData).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        proxies: [{ proxy_key: 'p' }],
+        accounts: [{ name: 'a' }, { name: 'b' }]
+      }),
+      skip_default_group_bind: true
+    })
+    expect(showSuccess).toHaveBeenCalledWith('admin.accounts.dataImportSuccess')
+  })
+
+  it('部分成功时关闭弹窗仍通知父组件刷新', async () => {
+    const { adminAPI } = await import('@/api/admin')
+    vi.mocked(adminAPI.accounts.importData).mockResolvedValue({
+      proxy_created: 0,
+      proxy_reused: 0,
+      proxy_failed: 0,
+      account_created: 1,
+      account_failed: 1
+    })
+
+    const wrapper = mountModal()
+    const input = wrapper.find('input[type="file"]')
+    setInputFiles(input.element, [
+      makeJsonFile(
+        'mixed.json',
+        JSON.stringify({
+          exported_at: '2026-07-05T00:00:00Z',
+          proxies: [],
+          accounts: [{ name: 'a' }, { name: 'b' }]
+        })
+      )
+    ])
+
+    await input.trigger('change')
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+
+    expect(showError).toHaveBeenCalledWith('admin.accounts.dataImportCompletedWithErrors')
+    expect(wrapper.emitted('imported')).toBeUndefined()
+
+    // 第二个 btn-secondary 是 footer 的取消按钮(第一个是选择文件)
+    await wrapper.findAll('button.btn-secondary')[1]!.trigger('click')
+
     expect(wrapper.emitted('imported')).toHaveLength(1)
+    expect(wrapper.emitted('close')).toHaveLength(1)
   })
 })

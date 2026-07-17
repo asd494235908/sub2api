@@ -26,7 +26,11 @@ func NewRedeemCodeRepository(client *dbent.Client) service.RedeemCodeRepository 
 }
 
 func (r *redeemCodeRepository) Create(ctx context.Context, code *service.RedeemCode) error {
-	created, err := r.client.RedeemCode.Create().
+	client := r.client
+	if tx := dbent.TxFromContext(ctx); tx != nil {
+		client = tx.Client()
+	}
+	created, err := client.RedeemCode.Create().
 		SetCode(code.Code).
 		SetType(code.Type).
 		SetValue(code.Value).
@@ -589,7 +593,7 @@ LIMIT ?`
 		}
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	items := make([]service.RedeemHistoryItem, 0)
 	for rows.Next() {
@@ -643,11 +647,11 @@ func redeemCodeBindVars(dialectName, query string) string {
 	index := 1
 	for _, r := range query {
 		if r == '?' {
-			out.WriteString("$" + strconv.Itoa(index))
+			_, _ = out.WriteString("$" + strconv.Itoa(index))
 			index++
 			continue
 		}
-		out.WriteRune(r)
+		_, _ = out.WriteRune(r)
 	}
 	return out.String()
 }

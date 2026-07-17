@@ -34,7 +34,7 @@ func TestPaymentHandlerGetCheckoutInfoIncludesDailySaleMetadata(t *testing.T) {
 		},
 	}
 	configService := service.NewPaymentConfigService(client, repo, nil)
-	handler := NewPaymentHandler(nil, configService, nil)
+	handler := NewPaymentHandler(nil, configService)
 
 	_, err := client.PaymentProviderInstance.Create().
 		SetProviderKey(payment.TypeEasyPay).
@@ -137,7 +137,7 @@ func TestPaymentHandlerGetCheckoutInfoIncludesTestRechargeEnabled(t *testing.T) 
 		},
 	}
 	configService := service.NewPaymentConfigService(client, repo, nil)
-	handler := NewPaymentHandler(nil, configService, nil)
+	handler := NewPaymentHandler(nil, configService)
 
 	rec := httptest.NewRecorder()
 	gctx, _ := gin.CreateTestContext(rec)
@@ -168,7 +168,7 @@ func TestPaymentHandlerGetCheckoutInfoIncludesPurchaseOnceAvailability(t *testin
 		},
 	}
 	configService := service.NewPaymentConfigService(client, repo, nil)
-	handler := NewPaymentHandler(nil, configService, nil)
+	handler := NewPaymentHandler(nil, configService)
 
 	_, err := client.PaymentProviderInstance.Create().
 		SetProviderKey(payment.TypeEasyPay).
@@ -251,7 +251,7 @@ func TestPaymentHandlerGetCheckoutInfoIncludesWeeklySaleAvailability(t *testing.
 		},
 	}
 	configService := service.NewPaymentConfigService(client, repo, nil)
-	handler := NewPaymentHandler(nil, configService, nil)
+	handler := NewPaymentHandler(nil, configService)
 
 	_, err := client.PaymentProviderInstance.Create().
 		SetProviderKey(payment.TypeEasyPay).
@@ -359,7 +359,7 @@ func TestPaymentHandlerGetCheckoutInfoIncludesMappedSupportedModels(t *testing.T
 		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
-	handler := NewPaymentHandler(nil, configService, nil)
+	handler := NewPaymentHandler(nil, configService)
 	handler.gatewayService = gatewayService
 
 	_, err = client.SubscriptionPlan.Create().
@@ -433,7 +433,7 @@ func TestPaymentHandlerGetCheckoutInfoFallsBackToDefaultSupportedModels(t *testi
 		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
-	handler := NewPaymentHandler(nil, configService, nil)
+	handler := NewPaymentHandler(nil, configService)
 	handler.gatewayService = gatewayService
 
 	_, err = client.SubscriptionPlan.Create().

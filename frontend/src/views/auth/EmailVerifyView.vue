@@ -514,6 +514,22 @@ async function handleVerify(): Promise<void> {
     const fingerprint = deviceFingerprint.value || await collectDeviceFingerprint()
 
     if (isPendingOAuthFlow()) {
+      const payload: Record<string, unknown> = {
+        email: email.value,
+        password: password.value,
+        verify_code: verifyCode.value.trim(),
+        ...oauthAffiliatePayload(affCode.value || loadAffiliateReferralCode()),
+      }
+      if (invitationCode.value) {
+        payload.invitation_code = invitationCode.value
+      }
+      if (pendingAdoptionDecision.value?.adoptDisplayName !== undefined) {
+        payload.adopt_display_name = pendingAdoptionDecision.value.adoptDisplayName
+      }
+      if (pendingAdoptionDecision.value?.adoptAvatar !== undefined) {
+        payload.adopt_avatar = pendingAdoptionDecision.value.adoptAvatar
+      }
+
       const { data } = await apiClient.post<PendingOAuthCreateAccountResponse>(
         '/auth/oauth/pending/create-account',
         {

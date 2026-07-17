@@ -4,6 +4,7 @@ package repository
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -160,73 +161,59 @@ func (s *UserRepoSuite) TestUpdate() {
 	s.Require().Equal("updated", updated.Username)
 }
 
-func (s *UserRepoSuite) TestListWithFilters_ReturnsPhoneNumber() {
+func (s *UserRepoSuite) TestBatchUpdateLimitsUpdatesOnlyProvidedFields() {
 	user := s.mustCreateUser(&service.User{
-		Email:       "phone-list@test.com",
-		PhoneNumber: "+8618380640817",
-		Username:    "phone-user",
+		Email:       "batch-limits-one-field@test.com",
+		Concurrency: 4,
+		RPMLimit:    20,
 	})
+	concurrency := 9
 
-	users, _, err := s.repo.ListWithFilters(s.ctx, pagination.PaginationParams{Page: 1, PageSize: 10}, service.UserListFilters{})
+	affected, err := s.repo.BatchUpdateLimits(s.ctx, []int64{user.ID}, &concurrency, nil)
 	s.Require().NoError(err)
-	s.Require().NotEmpty(users)
+	s.Equal(1, affected)
 
-	var matched *service.User
-	for i := range users {
-		if users[i].ID == user.ID {
-			matched = &users[i]
-			break
-		}
-	}
-	s.Require().NotNil(matched)
-	s.Require().Equal("+8618380640817", matched.PhoneNumber)
+	updated, err := s.repo.GetByID(s.ctx, user.ID)
+	s.Require().NoError(err)
+	s.Equal(9, updated.Concurrency)
+	s.Equal(20, updated.RPMLimit)
 }
 
-func (s *UserRepoSuite) TestListWithFilters_SearchByPhoneNumber() {
-	matched := s.mustCreateUser(&service.User{
-		Email:       "phone-search-match@test.com",
-		PhoneNumber: "+8613800138000",
-		Username:    "matched-user",
+func (s *UserRepoSuite) TestBatchUpdateLimitsUpdatesBothFieldsToZero() {
+	user := s.mustCreateUser(&service.User{
+		Email:       "batch-limits-zero@test.com",
+		Concurrency: 4,
+		RPMLimit:    20,
 	})
-	s.mustCreateUser(&service.User{
-		Email:       "phone-search-miss@test.com",
-		PhoneNumber: "+8613900139000",
-		Username:    "missed-user",
-	})
+	zero := 0
 
-	users, _, err := s.repo.ListWithFilters(s.ctx, pagination.PaginationParams{Page: 1, PageSize: 10}, service.UserListFilters{
-		Search: "138001380",
-	})
+	affected, err := s.repo.BatchUpdateLimits(s.ctx, []int64{user.ID}, &zero, &zero)
 	s.Require().NoError(err)
-	s.Require().Len(users, 1)
-	s.Require().Equal(matched.ID, users[0].ID)
+	s.Equal(1, affected)
+
+	updated, err := s.repo.GetByID(s.ctx, user.ID)
+	s.Require().NoError(err)
+	s.Zero(updated.Concurrency)
+	s.Zero(updated.RPMLimit)
 }
 
-func (s *UserRepoSuite) TestListWithFilters_HasPhoneOnlyReturnsBoundPhones() {
-	matched := s.mustCreateUser(&service.User{
-		Email:       "phone-filter-match@test.com",
-		PhoneNumber: "+8613800138000",
-		Username:    "phone-filter-match",
-	})
-	s.mustCreateUser(&service.User{
-		Email:       "phone-filter-empty@test.com",
-		PhoneNumber: "",
-		Username:    "phone-filter-empty",
-	})
-	s.mustCreateUser(&service.User{
-		Email:       "phone-filter-space@test.com",
-		PhoneNumber: "   ",
-		Username:    "phone-filter-space",
-	})
+func (s *UserRepoSuite) TestBatchUpdateLimitsIgnoresDeletedUsersAndReturnsAffectedRows() {
+	active := s.mustCreateUser(&service.User{Email: "batch-limits-active@test.com", RPMLimit: 10})
+	deleted := s.mustCreateUser(&service.User{Email: "batch-limits-deleted@test.com", RPMLimit: 10})
+	s.Require().NoError(s.client.User.DeleteOneID(deleted.ID).Exec(s.ctx))
+	rpmLimit := 45
 
-	users, page, err := s.repo.ListWithFilters(s.ctx, pagination.PaginationParams{Page: 1, PageSize: 10}, service.UserListFilters{
-		HasPhone: true,
-	})
+	affected, err := s.repo.BatchUpdateLimits(s.ctx, []int64{active.ID, deleted.ID}, nil, &rpmLimit)
 	s.Require().NoError(err)
-	s.Require().Equal(int64(1), page.Total)
-	s.Require().Len(users, 1)
-	s.Require().Equal(matched.ID, users[0].ID)
-	s.Require().Equal("+8613800138000", users[0].PhoneNumber)
+	s.Equal(1, affected)
+
+	updatedActive, err := s.repo.GetByID(s.ctx, active.ID)
+	s.Require().NoError(err)
+	s.Equal(45, updatedActive.RPMLimit)
+	updatedDeleted, err := s.repo.GetByIDIncludeDeleted(s.ctx, deleted.ID)
+	s.Require().NoError(err)
+	s.Equal(10, updatedDeleted.RPMLimit)
+
 }
 
 func (s *UserRepoSuite) TestUpdateIgnoresNoRowsFromConflictingEmailIdentityUpsert() {
@@ -423,6 +410,29 @@ func (s *UserRepoSuite) TestUpdateBalance_Negative() {
 	s.Require().InDelta(7.0, got.Balance, 1e-6)
 }
 
+func (s *UserRepoSuite) TestApplyRedeemBalanceAdjustment_ConcurrentNeverNegative() {
+	user := s.mustCreateUser(&service.User{Email: "redeem-bal-concurrent@test.com", Balance: 10})
+
+	var wg sync.WaitGroup
+	errs := make(chan error, 2)
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			errs <- s.repo.ApplyRedeemBalanceAdjustment(context.Background(), user.ID, -7)
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		s.Require().NoError(err)
+	}
+
+	got, err := s.repo.GetByID(s.ctx, user.ID)
+	s.Require().NoError(err)
+	s.Require().InDelta(0, got.Balance, 1e-6)
+}
+
 func (s *UserRepoSuite) TestDeductBalance() {
 	user := s.mustCreateUser(&service.User{Email: "deduct@test.com", Balance: 10})
 
@@ -493,6 +503,29 @@ func (s *UserRepoSuite) TestUpdateConcurrency_Negative() {
 	got, err := s.repo.GetByID(s.ctx, user.ID)
 	s.Require().NoError(err)
 	s.Require().Equal(3, got.Concurrency)
+}
+
+func (s *UserRepoSuite) TestApplyRedeemConcurrencyAdjustment_ConcurrentNeverNegative() {
+	user := s.mustCreateUser(&service.User{Email: "redeem-concurrency-concurrent@test.com", Concurrency: 10})
+
+	var wg sync.WaitGroup
+	errs := make(chan error, 2)
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			errs <- s.repo.ApplyRedeemConcurrencyAdjustment(context.Background(), user.ID, -7)
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		s.Require().NoError(err)
+	}
+
+	got, err := s.repo.GetByID(s.ctx, user.ID)
+	s.Require().NoError(err)
+	s.Require().Equal(0, got.Concurrency)
 }
 
 // --- ExistsByEmail ---

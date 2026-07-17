@@ -317,7 +317,7 @@ describe('AffiliatesView', () => {
   })
 
   it('reloads inviters with date range filters and timezone', async () => {
-    try {
+    {
       const wrapper = mount(AffiliatesView, {
         global: {
           stubs: {
@@ -357,7 +357,7 @@ describe('AffiliatesView', () => {
         end_at: '2026-05-31',
         timezone: expect.any(String),
       })
-    } finally {}
+    }
   })
 
   it('opens manual relation dialog and submits overwrite payload', async () => {

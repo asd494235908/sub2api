@@ -12,8 +12,23 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/subscriptionplan"
 	"github.com/Wei-Shaw/sub2api/ent/usersubscription"
+	"github.com/Wei-Shaw/sub2api/internal/payment"
+
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 )
+
+// normalizePlanCurrency validates and normalizes the display-only currency label.
+// Empty means "no label" and is kept as-is so existing plans stay unchanged.
+func normalizePlanCurrency(raw string) (string, error) {
+	if strings.TrimSpace(raw) == "" {
+		return "", nil
+	}
+	currency, err := payment.NormalizePaymentCurrency(raw)
+	if err != nil {
+		return "", infraerrors.BadRequest("PLAN_CURRENCY_INVALID", "currency must be a 3-letter ISO currency code")
+	}
+	return currency, nil
+}
 
 // validatePlanRequired checks that all required fields for a plan are provided.
 func validatePlanRequired(name string, groupID int64, price float64, validityDays int, validityUnit string, originalPrice *float64, saleStartsAt, saleEndsAt *time.Time, dailyPurchaseLimit int, dailySaleStartsAt, dailySaleEndsAt string) error {
@@ -127,21 +142,15 @@ type PlanGroupInfo struct {
 	Platform                  string   `json:"platform"`
 	Name                      string   `json:"name"`
 	RateMultiplier            float64  `json:"rate_multiplier"`
+	PeakRateEnabled           bool     `json:"peak_rate_enabled"`
+	PeakStart                 string   `json:"peak_start"`
+	PeakEnd                   string   `json:"peak_end"`
+	PeakRateMultiplier        float64  `json:"peak_rate_multiplier"`
 	DailyLimitUSD             *float64 `json:"daily_limit_usd"`
 	WeeklyLimitUSD            *float64 `json:"weekly_limit_usd"`
 	MonthlyLimitUSD           *float64 `json:"monthly_limit_usd"`
 	SubscriptionTotalLimitUSD *float64 `json:"subscription_total_limit_usd"`
 	ModelScopes               []string `json:"supported_model_scopes"`
-}
-
-// GetGroupPlatformMap returns a map of group_id → platform for the given plans.
-func (s *PaymentConfigService) GetGroupPlatformMap(ctx context.Context, plans []*dbent.SubscriptionPlan) map[int64]string {
-	info := s.GetGroupInfoMap(ctx, plans)
-	m := make(map[int64]string, len(info))
-	for id, gi := range info {
-		m[id] = gi.Platform
-	}
-	return m
 }
 
 // GetGroupInfoMap returns a map of group_id → PlanGroupInfo for the given plans.
@@ -167,6 +176,10 @@ func (s *PaymentConfigService) GetGroupInfoMap(ctx context.Context, plans []*dbe
 			Platform:                  g.Platform,
 			Name:                      g.Name,
 			RateMultiplier:            g.RateMultiplier,
+			PeakRateEnabled:           g.PeakRateEnabled,
+			PeakStart:                 g.PeakStart,
+			PeakEnd:                   g.PeakEnd,
+			PeakRateMultiplier:        g.PeakRateMultiplier,
 			DailyLimitUSD:             g.DailyLimitUsd,
 			WeeklyLimitUSD:            g.WeeklyLimitUsd,
 			MonthlyLimitUSD:           g.MonthlyLimitUsd,
@@ -318,21 +331,21 @@ func SubscriptionPlanDailySaleState(plan *dbent.SubscriptionPlan, now time.Time)
 
 	if startMinute < endMinute {
 		if currentMinute >= startMinute && currentMinute < endMinute {
-			return "available", maxInt(0, endSecond-currentSecondOfDay)
+			return "available", max(0, endSecond-currentSecondOfDay)
 		}
 		if currentMinute < startMinute {
-			return "pending", maxInt(0, startSecond-currentSecondOfDay)
+			return "pending", max(0, startSecond-currentSecondOfDay)
 		}
-		return "pending", maxInt(0, secondsPerDay-currentSecondOfDay+startSecond)
+		return "pending", max(0, secondsPerDay-currentSecondOfDay+startSecond)
 	}
 
 	if currentMinute >= startMinute {
-		return "available", maxInt(0, secondsPerDay-currentSecondOfDay+endSecond)
+		return "available", max(0, secondsPerDay-currentSecondOfDay+endSecond)
 	}
 	if currentMinute < endMinute {
-		return "available", maxInt(0, endSecond-currentSecondOfDay)
+		return "available", max(0, endSecond-currentSecondOfDay)
 	}
-	return "pending", maxInt(0, startSecond-currentSecondOfDay)
+	return "pending", max(0, startSecond-currentSecondOfDay)
 }
 
 func SubscriptionPlanWeeklySaleState(plan *dbent.SubscriptionPlan, now time.Time) string {
@@ -340,13 +353,6 @@ func SubscriptionPlanWeeklySaleState(plan *dbent.SubscriptionPlan, now time.Time
 		return "available"
 	}
 	return "off_day"
-}
-
-func maxInt(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
 
 func (s *PaymentConfigService) CreatePlan(ctx context.Context, req CreatePlanRequest) (*dbent.SubscriptionPlan, error) {
@@ -359,9 +365,13 @@ func (s *PaymentConfigService) CreatePlan(ctx context.Context, req CreatePlanReq
 	if err := validatePlanRequired(req.Name, req.GroupID, req.Price, req.ValidityDays, req.ValidityUnit, req.OriginalPrice, req.SaleStartsAt, req.SaleEndsAt, req.DailyPurchaseLimit, req.DailySaleStartsAt, req.DailySaleEndsAt); err != nil {
 		return nil, err
 	}
+	currency, err := normalizePlanCurrency(req.Currency)
+	if err != nil {
+		return nil, err
+	}
 	b := s.entClient.SubscriptionPlan.Create().
 		SetGroupID(req.GroupID).SetName(req.Name).SetDescription(req.Description).
-		SetPrice(req.Price).SetValidityDays(req.ValidityDays).SetValidityUnit(req.ValidityUnit).
+		SetPrice(req.Price).SetCurrency(currency).SetValidityDays(req.ValidityDays).SetValidityUnit(req.ValidityUnit).
 		SetFeatures(req.Features).SetProductName(req.ProductName).
 		SetForSale(req.ForSale).
 		SetPurchaseOncePerActiveSubscription(req.PurchaseOncePerActiveSubscription).
@@ -448,6 +458,13 @@ func (s *PaymentConfigService) UpdatePlan(ctx context.Context, id int64, req Upd
 	}
 	if req.OriginalPrice != nil {
 		u.SetOriginalPrice(*req.OriginalPrice)
+	}
+	if req.Currency != nil {
+		currency, err := normalizePlanCurrency(*req.Currency)
+		if err != nil {
+			return nil, err
+		}
+		u.SetCurrency(currency)
 	}
 	if req.ValidityDays != nil {
 		u.SetValidityDays(*req.ValidityDays)

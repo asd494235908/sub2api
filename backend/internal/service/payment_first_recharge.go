@@ -186,7 +186,7 @@ func (s *PaymentService) BulkUpdateFirstRechargeChances(ctx context.Context, tie
 }
 
 func (s *PaymentService) ApplyFirstRechargeBonusForOrder(ctx context.Context, order *dbent.PaymentOrder) error {
-	if order == nil || order.OrderType != payment.OrderTypeBalance || !s.firstRechargeEnabled(ctx) {
+	if order == nil || order.OrderType != payment.OrderTypeBalance {
 		return nil
 	}
 	if s.redeemService == nil {
@@ -195,41 +195,114 @@ func (s *PaymentService) ApplyFirstRechargeBonusForOrder(ctx context.Context, or
 	if err := s.ensureFirstRechargeTables(ctx); err != nil {
 		return err
 	}
-	cfg, _, err := s.GetFirstRechargeConfig(ctx)
+	claimedTierID, alreadyClaimed, err := firstRechargeClaimedTier(ctx, s.entClient, order.ID)
 	if err != nil {
 		return err
+	}
+	if alreadyClaimed {
+		return s.redeemClaimedFirstRechargeBonus(ctx, order, claimedTierID)
+	}
+	if s.configService == nil {
+		return nil
+	}
+
+	cfg, enabled, err := s.GetFirstRechargeConfig(ctx)
+	if err != nil {
+		return err
+	}
+	if !enabled {
+		return nil
 	}
 	tier := firstRechargeMatchTier(cfg, order.PayAmount)
 	if tier == nil {
 		return nil
 	}
-	claimed, err := firstRechargeClaimChance(ctx, s.entClient, order.UserID, tier.ID, order.ID, time.Now().UTC())
+	code := firstRechargeBonusCode(order.ID, tier.ID)
+	existing, lookupErr := s.redeemService.GetByCode(ctx, code)
+	if lookupErr != nil && !errors.Is(lookupErr, ErrRedeemCodeNotFound) {
+		return lookupErr
+	}
+	codeExists := lookupErr == nil && existing != nil
+
+	tx, err := s.entClient.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("begin first recharge reward claim: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	txCtx := dbent.NewTxContext(ctx, tx)
+	claimed, err := firstRechargeClaimChance(txCtx, tx.Client(), order.UserID, tier.ID, order.ID, time.Now().UTC())
 	if err != nil {
 		return err
 	}
 	if !claimed {
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("commit unclaimed first recharge reward: %w", err)
+		}
 		return nil
 	}
-	code := fmt.Sprintf("FIRST-%d-%s", order.ID, sanitizeFirstRechargeCodePart(tier.ID))
-	notes := fmt.Sprintf("first recharge bonus tier=%s pay_amount=%.2f order_id=%d", tier.ID, order.PayAmount, order.ID)
-	rc := &RedeemCode{
-		Code:   code,
-		Type:   RedeemTypeFirstRechargeBonus,
-		Value:  tier.BonusAmount,
-		Status: StatusUnused,
-		Notes:  notes,
-	}
-	if err := s.redeemService.CreateCode(ctx, rc); err != nil {
-		existing, lookupErr := s.redeemService.GetByCode(ctx, code)
-		if lookupErr != nil || existing == nil || !existing.IsUsed() {
+	if !codeExists {
+		rc := &RedeemCode{
+			Code:   code,
+			Type:   RedeemTypeFirstRechargeBonus,
+			Value:  tier.BonusAmount,
+			Status: StatusUnused,
+			Notes:  fmt.Sprintf("first recharge bonus tier=%s pay_amount=%.2f order_id=%d", tier.ID, order.PayAmount, order.ID),
+		}
+		if err := s.redeemService.CreateCode(txCtx, rc); err != nil {
 			return fmt.Errorf("create first recharge bonus redeem code: %w", err)
 		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit first recharge reward claim: %w", err)
+	}
+	return s.redeemClaimedFirstRechargeBonus(ctx, order, tier.ID)
+}
+
+func (s *PaymentService) redeemClaimedFirstRechargeBonus(ctx context.Context, order *dbent.PaymentOrder, tierID string) error {
+	code := firstRechargeBonusCode(order.ID, tierID)
+	existing, err := s.redeemService.GetByCode(ctx, code)
+	if err != nil {
+		return fmt.Errorf("load claimed first recharge bonus code %q: %w", code, err)
+	}
+	if existing == nil {
+		return fmt.Errorf("load claimed first recharge bonus code %q: empty result", code)
+	}
+	if existing.IsUsed() {
 		return nil
 	}
 	if _, err := s.redeemService.Redeem(ContextSkipRedeemAffiliate(ctx), order.UserID, code); err != nil {
 		return fmt.Errorf("redeem first recharge bonus: %w", err)
 	}
 	return nil
+}
+
+func firstRechargeBonusCode(orderID int64, tierID string) string {
+	return fmt.Sprintf("FIRST-%d-%s", orderID, sanitizeFirstRechargeCodePart(tierID))
+}
+
+func firstRechargeClaimedTier(ctx context.Context, client *dbent.Client, orderID int64) (string, bool, error) {
+	execCtx, err := luckyWheelExecContext(ctx, client)
+	if err != nil {
+		return "", false, err
+	}
+	query := luckyWheelBindVars(client.Driver().Dialect(), `
+SELECT tier_id FROM first_recharge_consumption_logs WHERE order_id = ? LIMIT 1`)
+	rows, err := execCtx.QueryContext(ctx, query, orderID)
+	if err != nil {
+		return "", false, fmt.Errorf("load first recharge consumption: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	if !rows.Next() {
+		if err := rows.Err(); err != nil {
+			return "", false, fmt.Errorf("iterate first recharge consumption: %w", err)
+		}
+		return "", false, nil
+	}
+	var tierID string
+	if err := rows.Scan(&tierID); err != nil {
+		return "", false, fmt.Errorf("scan first recharge consumption: %w", err)
+	}
+	return tierID, true, nil
 }
 
 func normalizeFirstRechargeConfig(cfg *FirstRechargeConfig) (*FirstRechargeConfig, error) {
@@ -372,7 +445,7 @@ WHERE user_id = ? AND tier_id = ?`)
 	if err != nil {
 		return nil, fmt.Errorf("load first recharge chance: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	if !rows.Next() {
 		return &firstRechargeChanceState{Available: 1, Consumed: 0}, nil
 	}
@@ -477,7 +550,7 @@ WHERE deleted_at IS NULL`)
 	if err != nil {
 		return 0, fmt.Errorf("count bulk first recharge users: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	affected := 0
 	if rows.Next() {
 		if err := rows.Scan(&affected); err != nil {
@@ -488,12 +561,45 @@ WHERE deleted_at IS NULL`)
 }
 
 func firstRechargeClaimChance(ctx context.Context, client *dbent.Client, userID int64, tierID string, orderID int64, now time.Time) (bool, error) {
+	if client == nil {
+		return false, fmt.Errorf("claim first recharge chance: ent client is nil")
+	}
+	if dbent.TxFromContext(ctx) != nil {
+		return firstRechargeClaimChanceInTx(ctx, client, userID, tierID, orderID, now)
+	}
+	tx, err := client.Tx(ctx)
+	if err != nil {
+		return false, fmt.Errorf("begin first recharge claim: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	txCtx := dbent.NewTxContext(ctx, tx)
+	claimed, err := firstRechargeClaimChanceInTx(txCtx, tx.Client(), userID, tierID, orderID, now)
+	if err != nil {
+		return false, err
+	}
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("commit first recharge claim: %w", err)
+	}
+	return claimed, nil
+}
+
+func firstRechargeClaimChanceInTx(ctx context.Context, client *dbent.Client, userID int64, tierID string, orderID int64, now time.Time) (bool, error) {
 	execCtx, err := luckyWheelExecContext(ctx, client)
 	if err != nil {
 		return false, err
 	}
-	if _, err := firstRechargeLoadChance(ctx, client, userID, tierID); err != nil {
-		return false, err
+	query := luckyWheelBindVars(client.Driver().Dialect(), `
+SELECT 1 FROM first_recharge_consumption_logs WHERE order_id = ?`)
+	rows, err := execCtx.QueryContext(ctx, query, orderID)
+	if err != nil {
+		return false, fmt.Errorf("check first recharge consumption log: %w", err)
+	}
+	alreadyClaimed := rows.Next()
+	if closeErr := rows.Close(); closeErr != nil {
+		return false, fmt.Errorf("close first recharge consumption rows: %w", closeErr)
+	}
+	if alreadyClaimed {
+		return true, nil
 	}
 	if client.Driver().Dialect() == dialect.Postgres {
 		rows, err := execCtx.QueryContext(ctx, `
@@ -512,7 +618,7 @@ VALUES (?, ?, 1, 0, ?, ?)`, userID, tierID, now, now); err != nil {
 			return false, fmt.Errorf("ensure first recharge chance: %w", err)
 		}
 	}
-	query := luckyWheelBindVars(client.Driver().Dialect(), `
+	query = luckyWheelBindVars(client.Driver().Dialect(), `
 UPDATE first_recharge_chances
 SET available = available - 1, consumed = consumed + 1, updated_at = ?
 WHERE user_id = ? AND tier_id = ? AND available > 0`)
@@ -538,7 +644,7 @@ func sanitizeFirstRechargeCodePart(value string) string {
 	var b strings.Builder
 	for _, r := range value {
 		if (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
-			b.WriteRune(r)
+			_, _ = b.WriteRune(r)
 		}
 	}
 	if b.Len() == 0 {

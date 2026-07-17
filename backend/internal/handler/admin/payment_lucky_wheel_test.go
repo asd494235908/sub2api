@@ -69,11 +69,18 @@ func (s *adminLuckyWheelSettingRepoStub) Delete(context.Context, string) error {
 
 type adminLuckyWheelUserRepoStub struct{}
 
+func (s *adminLuckyWheelUserRepoStub) BatchUpdateLimits(context.Context, []int64, *int, *int) (int, error) {
+	panic("unexpected BatchUpdateLimits")
+}
+
 func (s *adminLuckyWheelUserRepoStub) Create(context.Context, *service.User) error {
 	panic("unexpected Create")
 }
 func (s *adminLuckyWheelUserRepoStub) GetByID(context.Context, int64) (*service.User, error) {
 	return &service.User{ID: 1, Balance: 0}, nil
+}
+func (s *adminLuckyWheelUserRepoStub) GetByIDIncludeDeleted(ctx context.Context, id int64) (*service.User, error) {
+	return s.GetByID(ctx, id)
 }
 func (s *adminLuckyWheelUserRepoStub) GetByEmail(context.Context, string) (*service.User, error) {
 	panic("unexpected GetByEmail")

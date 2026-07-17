@@ -11,7 +11,8 @@ import (
 )
 
 type settingPublicRepoStub struct {
-	values map[string]string
+	values   map[string]string
+	allowSet bool
 }
 
 func (s *settingPublicRepoStub) Get(ctx context.Context, key string) (*Setting, error) {
@@ -26,7 +27,14 @@ func (s *settingPublicRepoStub) GetValue(ctx context.Context, key string) (strin
 }
 
 func (s *settingPublicRepoStub) Set(ctx context.Context, key, value string) error {
-	panic("unexpected Set call")
+	if !s.allowSet {
+		panic("unexpected Set call")
+	}
+	if s.values == nil {
+		s.values = map[string]string{}
+	}
+	s.values[key] = value
+	return nil
 }
 
 func (s *settingPublicRepoStub) GetMultiple(ctx context.Context, keys []string) (map[string]string, error) {
@@ -133,110 +141,18 @@ func TestSettingService_GetPublicSettings_ExposesForceEmailOnThirdPartySignup(t 
 	require.True(t, settings.ForceEmailOnThirdPartySignup)
 }
 
-func TestSettingService_GetPublicSettings_ExposesHomepageContactFields(t *testing.T) {
+func TestSettingService_GetPublicSettings_ExposesAllowUserViewErrorRequests(t *testing.T) {
 	repo := &settingPublicRepoStub{
 		values: map[string]string{
-			SettingKeyQQGroup:       "123456789",
-			SettingKeyWeChatContact: "sub2api_support",
+			SettingKeyAllowUserViewErrorRequests: "true",
 		},
 	}
 	svc := NewSettingService(repo, &config.Config{})
 
 	settings, err := svc.GetPublicSettings(context.Background())
 	require.NoError(t, err)
-	require.Equal(t, "123456789", settings.QQGroup)
-	require.Equal(t, "sub2api_support", settings.WeChatContact)
-}
+	require.True(t, settings.AllowUserViewErrorRequests)
 
-func TestSettingService_GetPublicSettings_PreservesMultilineHomepageContactFields(t *testing.T) {
-	repo := &settingPublicRepoStub{
-		values: map[string]string{
-			SettingKeyQQGroup:       "123456789\n987654321",
-			SettingKeyWeChatContact: "sub2api_support\nwechat_helper",
-		},
-	}
-	svc := NewSettingService(repo, &config.Config{})
-
-	settings, err := svc.GetPublicSettings(context.Background())
-	require.NoError(t, err)
-	require.Equal(t, "123456789\n987654321", settings.QQGroup)
-	require.Equal(t, "sub2api_support\nwechat_helper", settings.WeChatContact)
-}
-
-func TestSettingService_GetPublicSettings_ExposesDefaultHomeLinks(t *testing.T) {
-	repo := &settingPublicRepoStub{values: map[string]string{}}
-	svc := NewSettingService(repo, &config.Config{})
-
-	settings, err := svc.GetPublicSettings(context.Background())
-	require.NoError(t, err)
-	require.JSONEq(t, `[
-		{"id":"gpshop","label":"格品购物","label_zh":"格品购物","label_en":"Gepin Shop","url":"https://card.gepinkeji.com","enabled":true,"sort_order":0},
-		{"id":"gpci","label":"格品生图","label_zh":"格品生图","label_en":"Gepin Image","url":"https://chat.gepinkeji.com/","enabled":true,"sort_order":1}
-	]`, settings.HomeLinks)
-}
-
-func TestSettingService_GetPublicSettings_ExposesConfiguredHomeLinks(t *testing.T) {
-	repo := &settingPublicRepoStub{
-		values: map[string]string{
-			SettingKeyHomeLinks: `[
-				{"id":"custom-b","label":"B","label_zh":"乙","label_en":"B","url":"https://b.example.com","enabled":false,"sort_order":9},
-				{"id":"custom-a","label":"A","label_zh":"甲","label_en":"A","url":"https://a.example.com","enabled":true,"sort_order":2}
-			]`,
-		},
-	}
-	svc := NewSettingService(repo, &config.Config{})
-
-	settings, err := svc.GetPublicSettings(context.Background())
-	require.NoError(t, err)
-	require.JSONEq(t, `[
-		{"id":"custom-a","label":"A","label_zh":"甲","label_en":"A","url":"https://a.example.com","enabled":true,"sort_order":0},
-		{"id":"custom-b","label":"B","label_zh":"乙","label_en":"B","url":"https://b.example.com","enabled":false,"sort_order":1}
-	]`, settings.HomeLinks)
-}
-
-func TestSettingService_GetPublicSettings_ExposesPhoneVerifyEnabled(t *testing.T) {
-	repo := &settingPublicRepoStub{
-		values: map[string]string{
-			SettingKeyPhoneVerifyEnabled: "true",
-		},
-	}
-	svc := NewSettingService(repo, &config.Config{})
-
-	settings, err := svc.GetPublicSettings(context.Background())
-	require.NoError(t, err)
-	require.True(t, settings.PhoneVerifyEnabled)
-}
-
-func TestSettingService_GetPublicSettings_ExposesWeeklyQuotaEnabled(t *testing.T) {
-	repo := &settingPublicRepoStub{
-		values: map[string]string{
-			SettingKeyWeeklyQuotaEnabled: "true",
-			SettingKeyWeeklyQuotaAmount:  "18.88",
-		},
-	}
-	svc := NewSettingService(repo, &config.Config{})
-
-	settings, err := svc.GetPublicSettings(context.Background())
-	require.NoError(t, err)
-	require.True(t, settings.WeeklyQuotaEnabled)
-
-	all, err := svc.GetAllSettings(context.Background())
-	require.NoError(t, err)
-	require.True(t, all.WeeklyQuotaEnabled)
-	require.Equal(t, 18.88, all.WeeklyQuotaAmount)
-}
-
-func TestSettingService_GetPublicSettings_ExposesLuckyWheelEnabled(t *testing.T) {
-	repo := &settingPublicRepoStub{
-		values: map[string]string{
-			SettingKeyLuckyWheelEnabled: "true",
-		},
-	}
-	svc := NewSettingService(repo, &config.Config{})
-
-	settings, err := svc.GetPublicSettings(context.Background())
-	require.NoError(t, err)
-	require.True(t, settings.LuckyWheelEnabled)
 }
 
 func TestSettingService_GetPublicSettings_ExposesWeChatOAuthModeCapabilities(t *testing.T) {

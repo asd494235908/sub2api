@@ -461,7 +461,7 @@ FROM lucky_wheel_sessions`)
 	if err != nil {
 		return nil, fmt.Errorf("query lucky wheel stats: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	if rows.Next() {
 		var total, pending, settled sql.NullInt64
 		var totalBonus sql.NullFloat64
@@ -490,17 +490,6 @@ FROM lucky_wheel_sessions`)
 		return nil, err
 	}
 	return stats, nil
-}
-
-func (s *PaymentService) luckyWheelBalanceRechargeMultiplier(ctx context.Context) (float64, error) {
-	if s == nil || s.configService == nil {
-		return defaultBalanceRechargeMultiplier, nil
-	}
-	cfg, err := s.configService.GetPaymentConfig(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("get payment config for lucky wheel settlement: %w", err)
-	}
-	return normalizeBalanceRechargeMultiplier(cfg.BalanceRechargeMultiplier), nil
 }
 
 func normalizeLuckyWheelConfig(cfg *LuckyWheelConfig) (*LuckyWheelConfig, error) {
@@ -890,7 +879,7 @@ LIMIT 1`)
 		}
 		return fmt.Errorf("query invite bonus inviter: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var inviterID sql.NullInt64
 	if !rows.Next() {
@@ -921,7 +910,7 @@ WHERE inviter_user_id = ? AND consumed_session_id IS NULL`)
 	if err != nil {
 		return 0, fmt.Errorf("query pending invite bonus: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var total sql.NullFloat64
 	if rows.Next() {
 		if err := rows.Scan(&total); err != nil {
@@ -989,7 +978,7 @@ WHERE claim_day = ?`)
 	if err != nil {
 		return 0, fmt.Errorf("count golden window claims: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var count int
 	if rows.Next() {
 		if err := rows.Scan(&count); err != nil {
@@ -1074,7 +1063,7 @@ RETURNING id`,
 		if err != nil {
 			return 0, fmt.Errorf("insert lucky wheel session: %w", err)
 		}
-		defer rows.Close()
+		defer func() { _ = rows.Close() }()
 		if rows.Next() {
 			var id int64
 			if err := rows.Scan(&id); err != nil {
@@ -1126,7 +1115,7 @@ RETURNING id`,
 		if err != nil {
 			return 0, fmt.Errorf("insert lucky wheel draw record: %w", err)
 		}
-		defer rows.Close()
+		defer func() { _ = rows.Close() }()
 		if rows.Next() {
 			var id int64
 			if err := rows.Scan(&id); err != nil {
@@ -1195,7 +1184,7 @@ LIMIT 1`)
 	if err != nil {
 		return nil, fmt.Errorf("query lucky wheel session by order: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	sessions, err := scanLuckyWheelSessions(rows)
 	if err != nil || len(sessions) == 0 {
 		return nil, err
@@ -1225,7 +1214,7 @@ LIMIT 1`
 	if err != nil {
 		return nil, fmt.Errorf("lock lucky wheel session: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	sessions, err := scanLuckyWheelSessions(rows)
 	if err != nil {
 		return nil, err
@@ -1254,7 +1243,7 @@ LIMIT 1`)
 	if err != nil {
 		return nil, fmt.Errorf("load lucky wheel session: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	sessions, err := scanLuckyWheelSessions(rows)
 	if err != nil {
 		return nil, err
@@ -1284,7 +1273,7 @@ LIMIT ?`)
 	if err != nil {
 		return nil, fmt.Errorf("list lucky wheel sessions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	return scanLuckyWheelSessions(rows)
 }
 
@@ -1306,7 +1295,7 @@ LIMIT ?`)
 	if err != nil {
 		return nil, fmt.Errorf("list lucky wheel recent sessions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	return scanLuckyWheelSessions(rows)
 }
 
@@ -1323,7 +1312,7 @@ ORDER BY final_multiplier ASC`)
 	if err != nil {
 		return nil, fmt.Errorf("list lucky wheel multiplier stats: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make([]LuckyWheelMultiplierStat, 0)
 	for rows.Next() {
 		var item LuckyWheelMultiplierStat
@@ -1386,7 +1375,7 @@ ORDER BY draw_index ASC, id ASC`, strings.Join(placeholders, ","))
 	if err != nil {
 		return nil, fmt.Errorf("list lucky wheel draw records: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make([]LuckyWheelDrawRecord, 0)
 	for rows.Next() {
 		var record LuckyWheelDrawRecord
@@ -1551,11 +1540,11 @@ func luckyWheelBindVars(d, query string) string {
 	index := 1
 	for _, r := range query {
 		if r == '?' {
-			out.WriteString(fmt.Sprintf("$%d", index))
+			_, _ = out.WriteString(fmt.Sprintf("$%d", index))
 			index++
 			continue
 		}
-		out.WriteRune(r)
+		_, _ = out.WriteRune(r)
 	}
 	return out.String()
 }

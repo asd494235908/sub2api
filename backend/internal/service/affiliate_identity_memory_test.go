@@ -85,7 +85,7 @@ func (r *affiliateIdentityMemoryRepo) UpsertIdentity(_ context.Context, userID i
 		SourceInviterID: source,
 		GrantedAt:       time.Now().UTC(),
 		ExpiresAt:       expiresAt,
-		Status:          affiliateIdentityStatusActive,
+		Status:          "active",
 	}
 	return nil
 }
@@ -118,7 +118,7 @@ func (r *affiliateIdentityMemoryRepo) RevokeStaleInviteeIdentities(_ context.Con
 
 func (r *affiliateIdentityMemoryRepo) GetActiveIdentity(_ context.Context, userID int64) (*AffiliateIdentityState, error) {
 	state := r.identities[userID]
-	if state == nil || state.Status != affiliateIdentityStatusActive || !state.ExpiresAt.After(time.Now()) {
+	if state == nil || state.Status != "active" || !state.ExpiresAt.After(time.Now()) {
 		return nil, nil
 	}
 	copy := *state

@@ -177,14 +177,15 @@ import HomeProducts from '@/components/home/HomeProducts.vue'
 import HomeShowcase from '@/components/home/HomeShowcase.vue'
 import { TOKEN_DOC_URL } from '@/constants/externalLinks'
 import type { HomeLink } from '@/types'
+import { sanitizeUrl } from '@/utils/url'
 
 const { t, locale } = useI18n()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 
-const siteLogo = computed(() => appStore.cachedPublicSettings?.site_logo || appStore.siteLogo || '')
+const siteLogo = computed(() => sanitizeUrl(appStore.cachedPublicSettings?.site_logo || appStore.siteLogo || '', { allowRelative: true, allowDataUrl: true }))
+const docUrl = computed(() => sanitizeUrl(appStore.cachedPublicSettings?.doc_url || appStore.docUrl || TOKEN_DOC_URL))
 const homeContent = computed(() => appStore.cachedPublicSettings?.home_content || '')
-const docUrl = TOKEN_DOC_URL
 const communityQrItems = computed(() => [
   { src: '/qq.jpg', alt: t('home.landing.community.qrAlt.qq'), label: t('home.landing.community.qrLabels.qq') },
   { src: '/wechat.jpg', alt: t('home.landing.community.qrAlt.wechat'), label: t('home.landing.community.qrLabels.wechat') }
@@ -254,7 +255,7 @@ const navItems = computed(() => [
   { href: '#top', label: t('home.landing.nav.home') },
   { href: '#pricing', label: t('home.landing.nav.pricing') },
   ...visibleHomeLinks.value,
-  { href: docUrl, label: t('home.landing.nav.docs'), external: true },
+  { href: docUrl.value || TOKEN_DOC_URL, label: t('home.landing.nav.docs'), external: true },
   { href: '#footer', label: t('home.landing.nav.community') }
 ])
 
@@ -378,18 +379,18 @@ const footerColumns = computed(() => [
     title: t('home.landing.footer.columns.product.title'),
     items: [
       { label: t('home.landing.footer.columns.product.pricing'), href: '#pricing' },
-      { label: t('home.landing.footer.columns.product.docs'), href: docUrl, external: true },
+      { label: t('home.landing.footer.columns.product.docs'), href: docUrl.value || TOKEN_DOC_URL, external: true },
       { label: t('home.landing.footer.columns.product.platforms'), href: '#overview' },
-      { label: t('home.landing.footer.columns.product.changelog'), href: docUrl, external: true }
+      { label: t('home.landing.footer.columns.product.changelog'), href: docUrl.value || TOKEN_DOC_URL, external: true }
     ]
   },
   {
     title: t('home.landing.footer.columns.developer.title'),
     items: [
-      { label: t('home.landing.footer.columns.developer.quickstart'), href: docUrl, external: true },
-      { label: t('home.landing.footer.columns.developer.sdk'), href: docUrl, external: true },
-      { label: t('home.landing.footer.columns.developer.bestPractices'), href: docUrl, external: true },
-      { label: t('home.landing.footer.columns.developer.status'), href: docUrl, external: true }
+      { label: t('home.landing.footer.columns.developer.quickstart'), href: docUrl.value || TOKEN_DOC_URL, external: true },
+      { label: t('home.landing.footer.columns.developer.sdk'), href: docUrl.value || TOKEN_DOC_URL, external: true },
+      { label: t('home.landing.footer.columns.developer.bestPractices'), href: docUrl.value || TOKEN_DOC_URL, external: true },
+      { label: t('home.landing.footer.columns.developer.status'), href: docUrl.value || TOKEN_DOC_URL, external: true }
     ]
   },
   {
@@ -401,8 +402,8 @@ const footerColumns = computed(() => [
     items: [
       { label: t('home.landing.footer.columns.company.about'), href: '#overview' },
       { label: t('home.landing.footer.columns.company.contact'), href: '#footer' },
-      { label: t('home.landing.footer.columns.company.terms'), href: docUrl, external: true },
-      { label: t('home.landing.footer.columns.company.privacy'), href: docUrl, external: true }
+      { label: t('home.landing.footer.columns.company.terms'), href: docUrl.value || TOKEN_DOC_URL, external: true },
+      { label: t('home.landing.footer.columns.company.privacy'), href: docUrl.value || TOKEN_DOC_URL, external: true }
     ]
   }
 ])

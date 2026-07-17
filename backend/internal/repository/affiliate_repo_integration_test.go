@@ -401,7 +401,9 @@ func TestAffiliateRepository_ListInvitersWithInvitees_FiltersByInviteCreatedAt(t
 	oldCreatedAt := time.Date(2026, 5, 1, 9, 0, 0, 0, time.UTC)
 	newCreatedAt := time.Date(2026, 5, 20, 10, 0, 0, 0, time.UTC)
 
-	_, err := client.ExecContext(txCtx, `
+	_, err := repo.EnsureUserAffiliate(txCtx, inviter.ID)
+	require.NoError(t, err)
+	_, err = client.ExecContext(txCtx, `
 INSERT INTO user_affiliates (user_id, inviter_id, aff_code, aff_count, created_at, updated_at)
 VALUES ($1, $2, 'OLDREL', 0, $3, $3)`, oldInvitee.ID, inviter.ID, oldCreatedAt)
 	require.NoError(t, err)

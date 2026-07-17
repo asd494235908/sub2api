@@ -16,7 +16,7 @@ func NormalizePhoneNumber(raw string, defaultCountryCode string) string {
 	for i, r := range raw {
 		switch {
 		case r >= '0' && r <= '9':
-			digits.WriteRune(r)
+			_, _ = digits.WriteRune(r)
 		case r == '+' && i == 0:
 			hasLeadingPlus = true
 		}
@@ -65,7 +65,7 @@ func normalizeCountryCode(raw string) string {
 	var digits strings.Builder
 	for _, r := range raw {
 		if r >= '0' && r <= '9' {
-			digits.WriteRune(r)
+			_, _ = digits.WriteRune(r)
 		}
 	}
 	return digits.String()

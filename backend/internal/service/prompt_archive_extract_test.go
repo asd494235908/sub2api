@@ -12,7 +12,7 @@ func TestBuildPromptArchiveEnvelopeFromParsedRequest(t *testing.T) {
 		"system":[{"type":"text","text":"You are helpful"}],
 		"messages":[{"role":"user","content":[{"type":"text","text":"hello world"}]}]
 	}`)
-	parsed, err := ParseGatewayRequest(body, "")
+	parsed, err := ParseGatewayRequest(NewRequestBodyRef(body), "")
 	if err != nil {
 		t.Fatalf("ParseGatewayRequest error: %v", err)
 	}

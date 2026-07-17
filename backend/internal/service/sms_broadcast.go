@@ -249,9 +249,6 @@ func NormalizeSMSBroadcastTemplateVarRows(rows []SMSBroadcastTemplateVarRow) ([]
 			vars[key] = value
 		}
 	}
-	if vars == nil {
-		vars = map[string]string{}
-	}
 	return normalizedRows, vars, nil
 }
 
@@ -647,10 +644,4 @@ func convertSMSBroadcastFilters(filters SMSBroadcastAudienceFilters) UserListFil
 		Attributes:           filters.Attributes,
 		IncludeSubscriptions: filters.IncludeSubscriptions,
 	}
-}
-
-func sortRecipientsByUserID(recipients []SMSBroadcastRecipient) {
-	sort.SliceStable(recipients, func(i, j int) bool {
-		return recipients[i].UserID < recipients[j].UserID
-	})
 }

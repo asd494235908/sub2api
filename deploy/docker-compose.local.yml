@@ -24,7 +24,7 @@ services:
   # Sub2API Application
   # ===========================================================================
   sub2api:
-    image: weishaw/sub2api:latest
+    image: ${SUB2API_IMAGE:-weishaw/sub2api:latest}
     container_name: sub2api
     restart: unless-stopped
     ulimits:
@@ -35,7 +35,7 @@ services:
       - "${BIND_HOST:-0.0.0.0}:${SERVER_PORT:-8080}:8080"
     volumes:
       # Local directory mapping for easy migration
-      - ./data:/app/data
+      - ./data:/app/data:Z
       # Optional: Mount custom config.yaml (uncomment and create the file first)
       # Copy config.example.yaml to config.yaml, modify it, then uncomment:
       # - ./config.yaml:/app/data/config.yaml
@@ -51,6 +51,7 @@ services:
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8080
       - SERVER_MODE=${SERVER_MODE:-release}
+      - ENABLE_SERVER_TIMING=${ENABLE_SERVER_TIMING:-false}
       - RUN_MODE=${RUN_MODE:-standard}
 
       # =======================================================================
@@ -77,6 +78,23 @@ services:
       - REDIS_POOL_SIZE=${REDIS_POOL_SIZE:-1024}
       - REDIS_MIN_IDLE_CONNS=${REDIS_MIN_IDLE_CONNS:-10}
       - REDIS_ENABLE_TLS=${REDIS_ENABLE_TLS:-false}
+
+      # =======================================================================
+      # Prompt Archive / MinIO Configuration
+      # =======================================================================
+      - ARCHIVE_ENABLED=${ARCHIVE_ENABLED:-false}
+      - ARCHIVE_QUEUE_CAPACITY=${ARCHIVE_QUEUE_CAPACITY:-1024}
+      - ARCHIVE_WORKER_COUNT=${ARCHIVE_WORKER_COUNT:-8}
+      - ARCHIVE_BATCH_SIZE=${ARCHIVE_BATCH_SIZE:-32}
+      - ARCHIVE_FLUSH_INTERVAL_SECONDS=${ARCHIVE_FLUSH_INTERVAL_SECONDS:-2}
+      - ARCHIVE_OVERFLOW_POLICY=${ARCHIVE_OVERFLOW_POLICY:-drop_and_log}
+      - ARCHIVE_INLINE_DATA_MAX_BYTES=${ARCHIVE_INLINE_DATA_MAX_BYTES:-1048576}
+      - ARCHIVE_MINIO_ENDPOINT=${ARCHIVE_MINIO_ENDPOINT:-}
+      - ARCHIVE_MINIO_BUCKET=${ARCHIVE_MINIO_BUCKET:-}
+      - ARCHIVE_MINIO_ACCESS_KEY=${ARCHIVE_MINIO_ACCESS_KEY:-}
+      - ARCHIVE_MINIO_SECRET_KEY=${ARCHIVE_MINIO_SECRET_KEY:-}
+      - ARCHIVE_MINIO_REGION=${ARCHIVE_MINIO_REGION:-auto}
+      - ARCHIVE_MINIO_FORCE_PATH_STYLE=${ARCHIVE_MINIO_FORCE_PATH_STYLE:-true}
 
       # =======================================================================
       # Admin Account (auto-created on first run)
@@ -106,6 +124,19 @@ services:
       - CASDOOR_AUTHORIZE_URL=${CASDOOR_AUTHORIZE_URL:-}
       - CASDOOR_TOKEN_URL=${CASDOOR_TOKEN_URL:-}
       - CASDOOR_USERINFO_URL=${CASDOOR_USERINFO_URL:-}
+      - CASDOOR_IHUYI_SMS_SECRET=${CASDOOR_IHUYI_SMS_SECRET:-}
+
+      # =======================================================================
+      # SMS (IHuyi)
+      # =======================================================================
+      - SMS_IHUYI_ENABLED=${SMS_IHUYI_ENABLED:-false}
+      - SMS_IHUYI_API_ID=${SMS_IHUYI_API_ID:-}
+      - SMS_IHUYI_API_KEY=${SMS_IHUYI_API_KEY:-}
+      - SMS_IHUYI_TEMPLATE_ID=${SMS_IHUYI_TEMPLATE_ID:-309190}
+
+      # Setup Configuration
+      # =======================================================================
+      - SETUP_MIGRATION_TIMEOUT_SECONDS=${SETUP_MIGRATION_TIMEOUT_SECONDS:-0}
 
       # =======================================================================
       # TOTP (2FA) Configuration
@@ -147,9 +178,9 @@ services:
       # =======================================================================
       # Enable URL allowlist validation (false to skip allowlist checks)
       - SECURITY_URL_ALLOWLIST_ENABLED=${SECURITY_URL_ALLOWLIST_ENABLED:-false}
-      # Allow insecure HTTP URLs when allowlist is disabled (default: false, requires https)
+      # Allow insecure HTTP URLs when allowlist is disabled
       - SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP=${SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP:-false}
-      # Allow private IP addresses for upstream/pricing/CRS (for internal deployments)
+      # Allow private IP addresses for upstream/pricing/CRS
       - SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS=${SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS:-false}
       # Upstream hosts whitelist (comma-separated, only used when enabled=true)
       - SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS=${SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS:-}
@@ -165,6 +196,7 @@ services:
       # Image Generation Stream & Concurrency
       # =======================================================================
       # OpenAI HTTP upstream protocol/timeout
+      - GATEWAY_OPENAI_COMPACT_MODEL=${GATEWAY_OPENAI_COMPACT_MODEL:-gpt-5.4}
       - GATEWAY_OPENAI_RESPONSE_HEADER_TIMEOUT=${GATEWAY_OPENAI_RESPONSE_HEADER_TIMEOUT:-0}
       - GATEWAY_OPENAI_HTTP2_ENABLED=${GATEWAY_OPENAI_HTTP2_ENABLED:-true}
       - GATEWAY_OPENAI_HTTP2_ALLOW_PROXY_FALLBACK_TO_HTTP1=${GATEWAY_OPENAI_HTTP2_ALLOW_PROXY_FALLBACK_TO_HTTP1:-true}
@@ -173,6 +205,7 @@ services:
       - GATEWAY_OPENAI_HTTP2_FALLBACK_TTL_SECONDS=${GATEWAY_OPENAI_HTTP2_FALLBACK_TTL_SECONDS:-600}
       - GATEWAY_IMAGE_STREAM_DATA_INTERVAL_TIMEOUT=${GATEWAY_IMAGE_STREAM_DATA_INTERVAL_TIMEOUT:-900}
       - GATEWAY_IMAGE_STREAM_KEEPALIVE_INTERVAL=${GATEWAY_IMAGE_STREAM_KEEPALIVE_INTERVAL:-10}
+      - GATEWAY_IMAGE_NONSTREAM_KEEPALIVE_INTERVAL=${GATEWAY_IMAGE_NONSTREAM_KEEPALIVE_INTERVAL:-0}
       - GATEWAY_IMAGE_CONCURRENCY_ENABLED=${GATEWAY_IMAGE_CONCURRENCY_ENABLED:-false}
       - GATEWAY_IMAGE_CONCURRENCY_MAX_CONCURRENT_REQUESTS=${GATEWAY_IMAGE_CONCURRENCY_MAX_CONCURRENT_REQUESTS:-0}
       - GATEWAY_IMAGE_CONCURRENCY_OVERFLOW_MODE=${GATEWAY_IMAGE_CONCURRENCY_OVERFLOW_MODE:-reject}
@@ -205,7 +238,7 @@ services:
         hard: 100000
     volumes:
       # Local directory mapping for easy migration
-      - ./postgres_data:/var/lib/postgresql/data
+      - ./postgres_data:/var/lib/postgresql/data:Z
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-sub2api}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
@@ -236,7 +269,7 @@ services:
         hard: 100000
     volumes:
       # Local directory mapping for easy migration
-      - ./redis_data:/data
+      - ./redis_data:/data:Z
     command: >
         sh -c '
           redis-server

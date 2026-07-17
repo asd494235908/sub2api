@@ -17,6 +17,7 @@ vi.mock('@/i18n', () => ({
 }))
 
 import * as titleModule from '@/router/title'
+import { resolveRouteDocumentTitle } from '@/router/title'
 
 const { resolveDocumentTitle } = titleModule
 
@@ -91,5 +92,29 @@ describe('resolveDocumentTitle', () => {
 
     expect(document.title).toBe('Usage Records - GPTK')
     expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe('管理和查看你的 API 密钥')
+  })
+})
+
+describe('resolveRouteDocumentTitle', () => {
+  it('自定义页面菜单加载后，使用菜单名称作为标题', () => {
+    const route = {
+      name: 'CustomPage',
+      params: { id: 'scheduler' },
+      meta: {
+        title: 'Custom Page'
+      }
+    }
+
+    expect(resolveRouteDocumentTitle(route, 'EzouAPI')).toBe('Custom Page - EzouAPI')
+    expect(resolveRouteDocumentTitle(route, 'EzouAPI', [
+      {
+        id: 'scheduler',
+        label: '账号调度器',
+        icon_svg: '',
+        url: 'https://example.com',
+        visibility: 'admin',
+        sort_order: 0
+      }
+    ])).toBe('账号调度器 - EzouAPI')
   })
 })

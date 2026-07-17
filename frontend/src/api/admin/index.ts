@@ -18,6 +18,7 @@ import subscriptionsAPI from './subscriptions'
 import usageAPI from './usage'
 import geminiAPI from './gemini'
 import antigravityAPI from './antigravity'
+import grokAPI from './grok'
 import userAttributesAPI from './userAttributes'
 import opsAPI from './ops'
 import errorPassthroughAPI from './errorPassthrough'
@@ -33,6 +34,8 @@ import adminPaymentAPI from './payment'
 import affiliatesAPI from './affiliates'
 import riskControlAPI from './riskControl'
 import leaderboardAPI from './leaderboard'
+import adminComplianceAPI from './compliance'
+import auditAPI from './audit'
 
 /**
  * Unified admin API object for convenient access
@@ -53,6 +56,7 @@ export const adminAPI = {
   usage: usageAPI,
   gemini: geminiAPI,
   antigravity: antigravityAPI,
+  grok: grokAPI,
   userAttributes: userAttributesAPI,
   ops: opsAPI,
   errorPassthrough: errorPassthroughAPI,
@@ -67,7 +71,9 @@ export const adminAPI = {
   payment: adminPaymentAPI,
   affiliates: affiliatesAPI,
   riskControl: riskControlAPI,
-  leaderboard: leaderboardAPI
+  leaderboard: leaderboardAPI,
+  compliance: adminComplianceAPI,
+  audit: auditAPI
 }
 
 export {
@@ -86,6 +92,7 @@ export {
   usageAPI,
   geminiAPI,
   antigravityAPI,
+  grokAPI,
   userAttributesAPI,
   opsAPI,
   errorPassthroughAPI,
@@ -100,12 +107,15 @@ export {
   adminPaymentAPI,
   affiliatesAPI,
   riskControlAPI,
-  leaderboardAPI
+  leaderboardAPI,
+  adminComplianceAPI,
+  auditAPI
 }
 
 export default adminAPI
 
 // Re-export types used by components
+export type { AuditLog, AuditLogQuery, AuditLogListResponse } from './audit'
 export type { BalanceHistoryItem } from './users'
 export type { ErrorPassthroughRule, CreateRuleRequest, UpdateRuleRequest } from './errorPassthrough'
 export type { BackupAgentHealth, DataManagementConfig } from './dataManagement'

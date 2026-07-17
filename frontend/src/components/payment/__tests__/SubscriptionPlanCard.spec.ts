@@ -1,5 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
+import { createPinia } from "pinia";
 import { createI18n } from "vue-i18n";
 import SubscriptionPlanCard from "../SubscriptionPlanCard.vue";
 
@@ -69,7 +70,7 @@ const mountPlanCard = (groupPlatform: string) =>
         daily_purchase_limit: 0,
       },
     },
-    global: { plugins: [i18n] },
+    global: { plugins: [i18n, createPinia()] },
   });
 
 describe("SubscriptionPlanCard", () => {
